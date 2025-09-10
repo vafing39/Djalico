@@ -1,5 +1,4 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
 import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
@@ -8,7 +7,7 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
-export default function TabLayout() {
+export default function AdminLayout() {
   const colorScheme = useColorScheme();
 
   return (
@@ -22,21 +21,36 @@ export default function TabLayout() {
           ios: {
             // Use a transparent background on iOS to show the blur effect
             position: 'absolute',
+            backgroundColor: 'transparent',
           },
           default: {},
         }),
       }}>
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="gestionVideo"
         options={{
-          title: 'Explore',
+          title: 'Gestion video',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="gestionUser"
+        options={{
+          title: 'Gestion utilisateur',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.badge.plus.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="setting"
+        options={{
+          title: 'Settings',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />

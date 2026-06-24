@@ -138,6 +138,21 @@ export interface AdminUser {
   role: string;
 }
 
+export interface CurrentUser {
+  name: string;
+  avatar: string;
+  level: TagType;
+}
+
+// ─── Current user (replace with real API data once auth is wired) ─────────────
+
+export const CURRENT_USER: CurrentUser = {
+  name: "Magdalena",
+  avatar:
+    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=60",
+  level: "expert",
+};
+
 // ─── Home screen ──────────────────────────────────────────────────────────────
 
 export const CATEGORIES: Category[] = [

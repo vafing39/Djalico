@@ -19,12 +19,19 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { CATEGORIES, FEATURED_PARCOURS, HOME_VIDEOS } from "@/data/mockData";
+import { CATEGORIES, CURRENT_USER, FEATURED_PARCOURS, HOME_VIDEOS, MY_COURSES } from "@/data/mockData";
+
+const LEVEL_LABEL: Record<string, string> = {
+  expert: "Expert",
+  intermediate: "Intermédiaire",
+  beginner: "Débutant",
+};
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [instrument, setInstrument] = useState<any>("0");
+  const [searchQuery, setSearchQuery] = useState("");
   const categorie = CATEGORIES[instrument];
 
   const [selectedVideo, setSelectedVideo] = useState<{
@@ -50,17 +57,40 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
+  const q = searchQuery.toLowerCase().trim();
+
   const filteredData = useMemo(() => {
-    return categorie?.title === "Tout"
-      ? FEATURED_PARCOURS
-      : FEATURED_PARCOURS.filter((item) => item.categorie === categorie?.title);
-  }, [categorie?.title]);
+    const byInstrument =
+      categorie?.title === "Tout"
+        ? FEATURED_PARCOURS
+        : FEATURED_PARCOURS.filter((item) => item.categorie === categorie?.title);
+    if (!q) return byInstrument;
+    return byInstrument.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.categorie?.toLowerCase().includes(q) ||
+        item.instructor?.toLowerCase().includes(q)
+    );
+  }, [categorie?.title, q]);
 
   const filteredVideos = useMemo(() => {
-    return categorie?.title === "Tout"
-      ? HOME_VIDEOS
-      : HOME_VIDEOS.filter((item) => item.categorie === categorie?.title);
-  }, [categorie?.title]);
+    const byInstrument =
+      categorie?.title === "Tout"
+        ? HOME_VIDEOS
+        : HOME_VIDEOS.filter((item) => item.categorie === categorie?.title);
+    if (!q) return byInstrument;
+    return byInstrument.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.subtitle?.toLowerCase().includes(q) ||
+        item.categorie?.toLowerCase().includes(q)
+    );
+  }, [categorie?.title, q]);
+
+  const inProgressCourses = useMemo(
+    () => MY_COURSES.filter((c) => c.status === "en_cours"),
+    []
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -73,20 +103,18 @@ export default function HomeScreen() {
           <View style={styles.headerTop}>
             <View style={styles.profileRow}>
               <Image
-                source={{
-                  uri: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=60",
-                }}
+                source={{ uri: CURRENT_USER.avatar }}
                 style={styles.avatar}
               />
               <View style={{ marginLeft: 10 }}>
                 <Text style={styles.greetingSmall}>Bonjour 👋</Text>
-                <Text style={styles.greetingName}>Magdalena</Text>
+                <Text style={styles.greetingName}>{CURRENT_USER.name}</Text>
               </View>
             </View>
 
             <View style={styles.expertBadge}>
               <AntDesign name="star" size={12} color={color.deepBlue} />
-              <Text style={styles.expertText}>Expert</Text>
+              <Text style={styles.expertText}>{LEVEL_LABEL[CURRENT_USER.level]}</Text>
             </View>
           </View>
 
@@ -101,7 +129,16 @@ export default function HomeScreen() {
               placeholder="Instrument, vidéo, cours…"
               placeholderTextColor={color.softGray}
               style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              autoCorrect={false}
             />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery("")}>
+                <Feather name="x" size={16} color={color.softGray} />
+              </Pressable>
+            )}
           </View>
         </Animated.View>
 
@@ -118,7 +155,9 @@ export default function HomeScreen() {
           {/* Categories */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Instruments</Text>
-            <Text style={styles.sectionLink}>Voir tout</Text>
+            <Pressable onPress={() => router.navigate("/Explorer")}>
+              <Text style={styles.sectionLink}>Voir tout</Text>
+            </Pressable>
           </View>
 
           <ScrollView
@@ -144,6 +183,49 @@ export default function HomeScreen() {
               );
             })}
           </ScrollView>
+
+          {/* Reprendre */}
+          {inProgressCourses.length > 0 && (
+            <>
+              <View style={[styles.sectionHeader, { marginTop: 28 }]}>
+                <Text style={styles.sectionTitle}>Reprendre</Text>
+                <Pressable onPress={() => router.navigate("/mesCours")}>
+                  <Text style={styles.sectionLink}>Mes cours</Text>
+                </Pressable>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.resumeRow}
+              >
+                {inProgressCourses.map((course) => {
+                  const progress = course.completedLessons / course.totalLessons;
+                  return (
+                    <Pressable
+                      key={course.id}
+                      style={styles.resumeCard}
+                      onPress={() => router.navigate("/mesCours")}
+                    >
+                      <Image source={{ uri: course.image }} style={styles.resumeThumb} />
+                      <View style={styles.resumeInfo}>
+                        <Text style={styles.resumeCategory}>{course.category}</Text>
+                        <Text style={styles.resumeTitle} numberOfLines={1}>
+                          {course.title}
+                        </Text>
+                        <View style={styles.progressTrack}>
+                          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+                        </View>
+                        <Text style={styles.resumeMeta}>
+                          {course.completedLessons}/{course.totalLessons} leçons
+                          {course.lastWatched ? ` · ${course.lastWatched}` : ""}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </>
+          )}
 
           {/* Featured */}
           <View style={[styles.sectionHeader, { marginTop: 24 }]}>
@@ -366,6 +448,64 @@ const styles = StyleSheet.create({
   },
   pillTextActive: {
     color: "#fff",
+  },
+
+  // Resume / reprendre
+  resumeRow: {
+    paddingHorizontal: 24,
+    gap: 14,
+  },
+  resumeCard: {
+    width: 240,
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(14,43,69,0.06)",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  resumeThumb: {
+    width: "100%",
+    height: 110,
+    resizeMode: "cover",
+  },
+  resumeInfo: {
+    padding: 12,
+    gap: 4,
+  },
+  resumeCategory: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: color.softGray,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  resumeTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: color.deepBlue,
+    letterSpacing: -0.2,
+  },
+  progressTrack: {
+    height: 4,
+    backgroundColor: "rgba(14,43,69,0.08)",
+    borderRadius: 2,
+    marginTop: 6,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: color.yellowDark,
+    borderRadius: 2,
+  },
+  resumeMeta: {
+    fontSize: 11,
+    color: color.softGray,
+    marginTop: 4,
   },
 
   // Bottom nav

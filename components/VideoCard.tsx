@@ -3,12 +3,18 @@ import { Bookmark } from "lucide-react-native";
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-export function VideoCard({ item }: { item: any }) {
+export function VideoCard({
+  item,
+  onPress,
+}: {
+  item: any;
+  onPress?: () => void;
+}) {
   const [saved, setSaved] = useState(item.bookmarked);
   const isExpert = item.tagType === "expert";
 
   return (
-    <View style={styles.videoCard}>
+    <Pressable style={styles.videoCard} onPress={onPress}>
       <View style={styles.videoThumb}>
         <Image source={{ uri: item.image }} style={styles.videoThumbImg} />
         <View style={styles.playBtn}>
@@ -59,7 +65,7 @@ export function VideoCard({ item }: { item: any }) {
           fill={saved ? color.yellowDark : "transparent"}
         />
       </Pressable>
-    </View>
+    </Pressable>
   );
 }
 

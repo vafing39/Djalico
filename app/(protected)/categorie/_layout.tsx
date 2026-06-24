@@ -12,6 +12,10 @@ export default function ParcoursLayout() {
         name="allParcoursScreen"
         options={{ headerShown: false, animation: "none" }}
       />
+      <Stack.Screen
+        name="allThemes"
+        options={{ headerShown: false, animation: "none" }}
+      />
     </Stack>
   );
 }

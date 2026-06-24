@@ -1,22 +1,24 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
 
 const { width } = Dimensions.get("window");
 
-export function ThemeCard({ item }: { item: any }) {
+export function ThemeCard({ item, onPress }: { item: any; onPress?: () => void }) {
   return (
-    <LinearGradient
-      colors={item.colors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.themeCard}
-    >
-      <Text style={styles.themeEmoji}>{item.emoji}</Text>
-      <View style={styles.themeContent}>
-        <Text style={styles.themeTitle}>{item.title}</Text>
-        <Text style={styles.themeCount}>{item.count}</Text>
-      </View>
-    </LinearGradient>
+    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
+      <LinearGradient
+        colors={item.colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.themeCard}
+      >
+        <Text style={styles.themeEmoji}>{item.emoji}</Text>
+        <View style={styles.themeContent}>
+          <Text style={styles.themeTitle}>{item.title}</Text>
+          <Text style={styles.themeCount}>{item.count}</Text>
+        </View>
+      </LinearGradient>
+    </Pressable>
   );
 }
 

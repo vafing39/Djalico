@@ -1,13 +1,13 @@
 import { ThemeCard } from "@/components/ThemeCard";
 import { VideoCard } from "@/components/VideoCard";
+import VideoModal from "@/components/VideoModal";
 import { color } from "@/config/color";
 import { THEMES, EXPLORER_PARCOURS, EXPLORER_VIDEOS } from "@/data/mockData";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import { router } from "expo-router";
+import React, { useMemo, useState } from "react";
 import {
-  Dimensions,
-  Image,
   Pressable,
   ScrollView,
   StatusBar,
@@ -17,19 +17,53 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const { width } = Dimensions.get("window");
-
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const TABS = ["Tout", "Vidéos", "Parcours"] as const;
 type Tab = (typeof TABS)[number];
 
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ExploreScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("Tout");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedVideo, setSelectedVideo] = useState<{
+    url: string;
+    title: string;
+  } | null>(null);
+
+  const q = searchQuery.toLowerCase().trim();
+
+  const filteredThemes = useMemo(() => {
+    if (!q) return THEMES;
+    return THEMES.filter((t) => t.title.toLowerCase().includes(q));
+  }, [q]);
+
+  const filteredParcours = useMemo(() => {
+    if (!q) return EXPLORER_PARCOURS;
+    return EXPLORER_PARCOURS.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.subtitle?.toLowerCase().includes(q) ||
+        p.tag?.toLowerCase().includes(q),
+    );
+  }, [q]);
+
+  const filteredVideos = useMemo(() => {
+    if (!q) return EXPLORER_VIDEOS;
+    return EXPLORER_VIDEOS.filter(
+      (v) =>
+        v.title.toLowerCase().includes(q) ||
+        v.subtitle?.toLowerCase().includes(q) ||
+        v.tag?.toLowerCase().includes(q),
+    );
+  }, [q]);
+
+  const hasNoResults =
+    q.length > 0 &&
+    filteredThemes.length === 0 &&
+    filteredParcours.length === 0 &&
+    filteredVideos.length === 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -59,7 +93,16 @@ export default function ExploreScreen() {
               placeholder="Instrument, style, artiste…"
               placeholderTextColor={color.softGray}
               style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              autoCorrect={false}
             />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery("")}>
+                <Feather name="x" size={15} color={color.softGray} />
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -92,45 +135,107 @@ export default function ExploreScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Thèmes — masqués en vue Vidéos */}
-          {activeTab !== "Vidéos" && (
+          {hasNoResults ? (
+            <View style={styles.emptyState}>
+              <Feather name="search" size={36} color={color.softGray} />
+              <Text style={styles.emptyTitle}>Aucun résultat</Text>
+              <Text style={styles.emptySubtitle}>
+                Essayez un autre instrument ou style
+              </Text>
+            </View>
+          ) : (
             <>
-              <View style={[styles.sectionHeader, { paddingHorizontal: 24 }]}>
-                <Text style={styles.sectionTitle}>Thèmes musicaux</Text>
-                <Text style={styles.sectionLink}>Voir tout</Text>
-              </View>
-              <View style={[styles.themeGrid, { paddingHorizontal: 24 }]}>
-                {THEMES.map((t) => (
-                  <ThemeCard key={t.id} item={t} />
+              {/* Thèmes — masqués en vue Vidéos */}
+              {activeTab !== "Vidéos" && filteredThemes.length > 0 && (
+                <>
+                  <View
+                    style={[styles.sectionHeader, { paddingHorizontal: 24 }]}
+                  >
+                    <Text style={styles.sectionTitle}>Thèmes musicaux</Text>
+                    <Pressable
+                      onPress={() =>
+                        router.navigate("/categorie/allThemes")
+                      }
+                    >
+                      <Text style={styles.sectionLink}>Voir tout</Text>
+                    </Pressable>
+                  </View>
+                  <View style={[styles.themeGrid, { paddingHorizontal: 24 }]}>
+                    {filteredThemes.map((t) => (
+                      <ThemeCard
+                        key={t.id}
+                        item={t}
+                        onPress={() =>
+                          router.navigate("/categorie/allParcoursScreen")
+                        }
+                      />
+                    ))}
+                  </View>
+                </>
+              )}
+
+              {/* Parcours — masqués en vue Vidéos */}
+              {activeTab !== "Vidéos" && filteredParcours.length > 0 && (
+                <View
+                  style={[
+                    styles.sectionHeader,
+                    { marginTop: 24, paddingHorizontal: 24 },
+                  ]}
+                >
+                  <Text style={styles.sectionTitle}>Parcours populaires</Text>
+                  <Pressable
+                    onPress={() =>
+                      router.navigate("/categorie/allParcoursScreen")
+                    }
+                  >
+                    <Text style={styles.sectionLink}>Voir tout</Text>
+                  </Pressable>
+                </View>
+              )}
+              {activeTab !== "Vidéos" &&
+                filteredParcours.map((p) => (
+                  <VideoCard
+                    key={p.id}
+                    item={p}
+                    onPress={() => router.navigate("/categorie/parcoursScreen")}
+                  />
                 ))}
-              </View>
+
+              {/* Vidéos — masquées en vue Parcours */}
+              {activeTab !== "Parcours" && filteredVideos.length > 0 && (
+                <View
+                  style={[
+                    styles.sectionHeader,
+                    { marginTop: 24, paddingHorizontal: 24 },
+                  ]}
+                >
+                  <Text style={styles.sectionTitle}>Tendances</Text>
+                  <Pressable
+                    onPress={() => router.navigate("/categorie/allVideos")}
+                  >
+                    <Text style={styles.sectionLink}>Voir tout</Text>
+                  </Pressable>
+                </View>
+              )}
+              {activeTab !== "Parcours" &&
+                filteredVideos.map((v) => (
+                  <VideoCard
+                    key={v.id}
+                    item={v}
+                    onPress={() =>
+                      setSelectedVideo({ url: v.url, title: v.title })
+                    }
+                  />
+                ))}
             </>
           )}
 
-          {/* Parcours — masqués en vue Vidéos */}
-          {activeTab !== "Vidéos" && (
-            <View style={[styles.sectionHeader, { marginTop: 24, paddingHorizontal: 24 }]}>
-              <Text style={styles.sectionTitle}>Parcours populaires</Text>
-              <Text style={styles.sectionLink}>Voir tout</Text>
-            </View>
-          )}
-          {activeTab !== "Vidéos" &&
-            EXPLORER_PARCOURS.map((p) => <VideoCard key={p.id} item={p} />)}
-
-          {/* Vidéos — masquées en vue Parcours */}
-          {activeTab !== "Parcours" && (
-            <View
-              style={[
-                styles.sectionHeader,
-                { marginTop: 24, paddingHorizontal: 24 },
-              ]}
-            >
-              <Text style={styles.sectionTitle}>Tendances</Text>
-              <Text style={styles.sectionLink}>Voir tout</Text>
-            </View>
-          )}
-          {activeTab !== "Parcours" &&
-            EXPLORER_VIDEOS.map((v) => <VideoCard key={v.id} item={v} />)}
+          <VideoModal
+            visible={selectedVideo !== null}
+            videoUrl={selectedVideo?.url ?? null}
+            title={selectedVideo?.title}
+            onClose={() => setSelectedVideo(null)}
+          />
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -142,7 +247,6 @@ export default function ExploreScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const CARD_GAP = 12;
-const THEME_SIZE = (width - 48 - CARD_GAP) / 2;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.bgGradientTop },
@@ -222,6 +326,26 @@ const styles = StyleSheet.create({
   // Scroll
   scrollContent: { paddingTop: 22 },
 
+  // Empty state
+  emptyState: {
+    alignItems: "center",
+    paddingTop: 64,
+    paddingHorizontal: 40,
+    gap: 10,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: color.deepBlue,
+    marginTop: 8,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: color.softGray,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+
   // Section
   sectionHeader: {
     flexDirection: "row",
@@ -243,132 +367,4 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: CARD_GAP,
   },
-  themeCard: {
-    width: THEME_SIZE,
-    height: 110,
-    borderRadius: 18,
-    overflow: "hidden",
-    justifyContent: "flex-end",
-    padding: 12,
-  },
-  themeEmoji: {
-    fontSize: 28,
-    position: "absolute",
-    top: 12,
-    right: 12,
-    opacity: 0.7,
-  },
-  themeContent: {},
-  themeTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#fff",
-    letterSpacing: -0.2,
-  },
-
-  // Teachers
-
-  // Video rows
-  videoCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "rgba(14,43,69,0.06)",
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  videoThumb: {
-    width: 68,
-    height: 68,
-    borderRadius: 12,
-    overflow: "hidden",
-    flexShrink: 0,
-    backgroundColor: color.paleBlue,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  videoThumbImg: { width: "100%", height: "100%", resizeMode: "cover" },
-  playBtn: {
-    position: "absolute",
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "rgba(14,43,69,0.7)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  playTriangle: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 5,
-    borderBottomWidth: 5,
-    borderLeftWidth: 8,
-    borderStyle: "solid",
-    borderTopColor: "transparent",
-    borderBottomColor: "transparent",
-    borderLeftColor: "#fff",
-    marginLeft: 2,
-  },
-  videoInfo: { flex: 1, minWidth: 0 },
-  videoTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: color.deepBlue,
-    letterSpacing: -0.2,
-    marginBottom: 2,
-  },
-  videoSub: { fontSize: 12, color: color.softGray, marginBottom: 6 },
-  videoTagRow: { flexDirection: "row" },
-  tag: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 8 },
-  tagExpert: { backgroundColor: "rgba(255,214,107,0.3)" },
-  tagIntermediate: { backgroundColor: "rgba(29,158,117,0.12)" },
-  tagBeginner: { backgroundColor: "rgba(181,212,244,0.4)" },
-  tagText: { fontSize: 11, fontWeight: "600" },
-  tagTextExpert: { color: "#8A6200" },
-  tagTextIntermediate: { color: "#0F6E56" },
-  tagTextBeginner: { color: "#185FA5" },
-  bookmarkBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: color.paleBlue,
-    justifyContent: "center",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-
-  // Bottom nav
-  bottomNav: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    backgroundColor: "rgba(255,255,255,0.97)",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(14,43,69,0.07)",
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingBottom: 16,
-    paddingHorizontal: 10,
-  },
-  navItem: { alignItems: "center", gap: 3 },
-  navLabel: { fontSize: 10, color: color.softGray, fontWeight: "500" },
-  navLabelActive: { color: color.deepBlue, fontWeight: "600" },
-  navDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: color.yellowDark,
-  },
-  teachersRow: { gap: 12, paddingRight: 4, paddingHorizontal: 24 },
 });

@@ -7,16 +7,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Icons (remplace par tes propres icônes/images si besoin)
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
-// ------------------- THEME -------------------
 const COLORS = {
   bg: "#F7FAFF",
   card: "#FFFFFF",
@@ -24,7 +21,7 @@ const COLORS = {
   textMuted: "#6B7280",
   blue: "#1E88E5", // vif
   blueLight: "#E9F2FF",
-  yellow: "#FFC107", // vif
+  yellow: "#FFC107",
   yellowLight: "#FFF3CD",
   green: "#4CAF50",
   red: "#F44336",
@@ -34,7 +31,6 @@ const COLORS = {
   navy: "#103149",
 };
 
-// ------------------- MOCK DATA -------------------
 const kpi = [
   {
     id: "active",
@@ -60,10 +56,10 @@ const kpi = [
 ];
 
 const satisfaction = [
-  { label: "Guitare", value: 47, color: COLORS.blue },
-  { label: "Ballafon", value: 40, color: COLORS.green },
-  { label: "Piano", value: 16, color: COLORS.yellow },
-  { label: "Saxophone", value: 3, color: COLORS.red },
+  { label: "Guitare", value: 47, color: COLORS.yellowDark },
+  { label: "Ballafon", value: 40, color: COLORS.blueLight },
+  { label: "Piano", value: 16, color: COLORS.navy },
+  { label: "Saxophone", value: 3, color: "#FFEB3B" },
 ];
 
 const activity = [
@@ -100,34 +96,20 @@ const activity = [
 // ------------------- COMPONENTS -------------------
 
 const data = [
-  { value: 47, color: "#007AFF", text: "Excellent" },
-  { value: 40, color: "#34C759", text: "Good" },
-  { value: 16, color: "#AF52DE", text: "Okay" },
-  { value: 3, color: "#FF3B30", text: "Poor" },
+  { value: 47, color: COLORS.yellowDark, text: "Excellent" }, // jaune foncé
+  { value: 40, color: "#FFEB3B", text: "Good" },             // jaune vif
+  { value: 16, color: COLORS.blueLight, text: "Okay" },      // bleu très clair
+  { value: 3, color: COLORS.navy, text: "Poor" },            // bleu foncé / navy
 ];
+
 
 const StatCard = ({ item }: { item: any }) => (
   <View style={[styles.card, styles.elevated]}>
-    <View style={[styles.iconWrap, {backgroundColor:COLORS.navy}]}>
-      <Ionicons name={item.icon as any} size={25} color={COLORS.yellowDark} />
+    <View style={[styles.iconWrap, {backgroundColor:COLORS.yellowDark}]}>
+      <Ionicons name={item.icon as any} size={25} color={COLORS.navy} />
     </View>
     <Text style={styles.cardTitle}>{item.label}</Text>
     <Text style={styles.cardValue}>{item.value}</Text>
-    {item.id === "active" && (
-      <TouchableOpacity style={styles.primaryBtn}>
-        <Text style={styles.primaryBtnText}>Ajouter</Text>
-      </TouchableOpacity>
-    )}
-    {item.id === "new" && (
-      <TouchableOpacity style={styles.primaryBtn}>
-        <Text style={styles.primaryBtnText}>Ajouter</Text>
-      </TouchableOpacity>
-    )}
-    {item.id === "pending" && (
-      <TouchableOpacity style={styles.primaryBtn}>
-        <Text style={styles.primaryBtnText}>Gérer</Text>
-      </TouchableOpacity>
-    )}
   </View>
 );
 
@@ -163,7 +145,7 @@ const ActivityItem: React.FC<{ item: (typeof activity)[number] }> = ({
 // ------------------- SCREEN -------------------
 const home = () => {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
@@ -227,9 +209,6 @@ const home = () => {
             />
             <View style={{ marginLeft: 16, flex: 1 }}>
               <Text style={styles.sectionTitle}>Activity</Text>
-              <Text style={styles.trendText}>
-                +5% par rapport au mois dernier
-              </Text>
               <View style={{ marginTop: 8 }}>
                 {satisfaction.map((s) => (
                   <LegendItem
@@ -299,10 +278,12 @@ const styles = StyleSheet.create({
   // Cards
   card: {
     width: 128,
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.blueLight,
     borderRadius: 18,
     padding: 16,
     marginVertical: 12,
+    justifyContent:'center',
+    alignItems:'center'
   },
   elevated: {
     shadowColor: COLORS.shadow,
@@ -319,22 +300,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
-  cardTitle: { color: COLORS.textPrimary, fontWeight: "600" },
+  cardTitle: { color: COLORS.navy, fontWeight: "600" },
   cardValue: {
     fontSize: 28,
     fontWeight: "800",
-    color: COLORS.textPrimary,
+    color: COLORS.navy,
     marginVertical: 6,
   },
 
   primaryBtn: {
-    backgroundColor: COLORS.yellowDark,
+    backgroundColor: '#fff',
     paddingVertical: 10,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 6,
   },
-  primaryBtnText: { color: "white", fontWeight: "700" },
+  primaryBtnText: { color: COLORS.navy, fontWeight: "700" },
   primaryBtnOutline: {
     borderWidth: 1,
     borderColor: COLORS.yellowDark,

@@ -1,5 +1,5 @@
-import { Stack, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Stack, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 
 export default function ProtectedLayout() {
   const router = useRouter();
@@ -8,21 +8,31 @@ export default function ProtectedLayout() {
 
   // On marque le layout comme monté
   useEffect(() => {
-    setMounted(true);
+    setMounted(false);
   }, []);
 
   // Redirection après que le layout soit monté
   useEffect(() => {
     if (mounted && loggedUser) {
-      router.replace('/(protected)/(admin)/home');
+      router.replace("/(protected)/(admin)/home");
     }
   }, [mounted, loggedUser]);
 
   return (
     // Always render a navigator or Slot first
     <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: "none" }} />
-      <Stack.Screen name="(admin)" options={{ headerShown: false, animation: "none" }} />
+      <Stack.Screen
+        name="(tabs)"
+        options={{ headerShown: false, animation: "none" }}
+      />
+      <Stack.Screen
+        name="(admin)"
+        options={{ headerShown: false, animation: "none" }}
+      />
+      <Stack.Screen
+        name="categorie"
+        options={{ headerShown: false, animation: "none" }}
+      />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

@@ -1,7 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
-
 import {
   FlatList,
   Image,
@@ -11,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ModalView from "./modal";
 
 const COLORS = {
@@ -32,10 +31,9 @@ const videos = [
 ];
 
 export default function gestionVideo() {
-  
   const [modalVisible, setModalVisible] = useState(false);
 
-  const renderVideoItem = ({ item }:{item:any}) => (
+  const renderVideoItem = ({ item }) => (
     <View style={styles.videoCard}>
       <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
       <View style={styles.videoInfo}>
@@ -56,26 +54,25 @@ export default function gestionVideo() {
     </View>
   );
 
-  const Mylist = () => {
-    return(
-      <FlatList
-            data={videos}
-            keyExtractor={(item) => item.id}
-            renderItem={renderVideoItem}
-            scrollEnabled={false}
-          />
-    )
-  }
+  const Mylist = () => (
+    <FlatList
+      data={videos}
+      keyExtractor={(item) => item.id}
+      renderItem={renderVideoItem}
+      scrollEnabled={false}
+    />
+  );
 
   return (
-      <SafeAreaView style={{flex:1, backgroundColor:COLORS.bgGradientTop, paddingHorizontal:20}}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Gestion des vidéos</Text>
-          <Ionicons name="ellipsis-vertical" size={24} color={COLORS.deepBlue} />
-        </View>
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-          {/* Gestion / Outils */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bgGradientBottom, paddingHorizontal: 20 }}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Gestion des vidéos</Text>
+        <Ionicons name="ellipsis-vertical" size={24} color={COLORS.deepBlue} />
+      </View>
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Gestion / Outils */}
         <Text style={styles.sectionTitle}>⚙️ Gestion</Text>
         <View style={styles.tools}>
           <TouchableOpacity style={styles.toolButton}>
@@ -88,26 +85,25 @@ export default function gestionVideo() {
             <Text style={styles.toolText}>Catégories</Text>
           </TouchableOpacity>
         </View>
-          {/* Liste des vidéos */}
-          <Text style={styles.sectionTitle}>📂 Mes vidéos</Text>
-          <Mylist/>
-          {/* Ajouter une vidéo */}
-          <Text style={styles.sectionTitle}>➕ Ajouter une vidéo</Text>
-          <TouchableOpacity style={styles.addButton} onPress={()=>setModalVisible(true)}>
-            <Ionicons name="cloud-upload-outline" size={20} color={COLORS.deepBlue} />
-            <Text style={styles.addButtonText}>Ajouter une nouvelle vidéo</Text>
-          </TouchableOpacity>
-        </ScrollView>
-        <ModalView onVisible={modalVisible} onCloseModal={()=>setModalVisible(false)}/>
+
+        {/* Liste des vidéos */}
+        <Text style={styles.sectionTitle}>📂 Mes vidéos</Text>
+        <Mylist />
+
+        {/* Ajouter une vidéo */}
+        <Text style={styles.sectionTitle}>➕ Ajouter une vidéo</Text>
+        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+          <Ionicons name="cloud-upload-outline" size={20} color={COLORS.deepBlue} />
+          <Text style={styles.addButtonText}>Ajouter une nouvelle vidéo</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      <ModalView onVisible={modalVisible} onCloseModal={() => setModalVisible(false)} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -129,7 +125,7 @@ const styles = StyleSheet.create({
   videoCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
+    backgroundColor: COLORS.paleBlue,
     borderRadius: 12,
     padding: 10,
     marginBottom: 10,
@@ -176,7 +172,7 @@ const styles = StyleSheet.create({
   },
   toolButton: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: COLORS.paleBlue,
     padding: 12,
     marginHorizontal: 5,
     borderRadius: 10,

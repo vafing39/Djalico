@@ -1,372 +1,472 @@
+import { FeaturedCard } from "@/components/FeaturedCard";
+import { VideoCard } from "@/components/VideoCard";
+import VideoModal from "@/components/VideoModal";
+import { color } from "@/config/color";
 import { AntDesign, Feather } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient"; // expo alias may import differently, see note
-import { Bookmark } from "lucide-react-native";
-import React, { useRef } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Animated,
-  Dimensions,
-  FlatList,
   Image,
   Pressable,
-  SafeAreaView,
-  StatusBar,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View
+  TouchableOpacity,
+  View,
 } from "react-native";
-
-const { width } = Dimensions.get("window");
-
-const COLORS = {
-  deepBlue: "#0E2B45",       // text & deep accents
-  navy: "#103149",
-  paleBlue: "#F3F8FB",       // background card
-  bgGradientTop: "#ECF6FF",  // page gradient top
-  bgGradientBottom: "#FFFFFF",
-  yellow: "#FFD66B",         // accent pastel yellow
-  yellowDark: "#F6C04F",
-  softGray: "#9AA6B2",
-};
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const CATEGORY_DATA = [
-  { id: "1", title: "Guitare" },
-  { id: "2", title: "Basse" },
-  { id: "3", title: "Trompette" },
-  { id: "4", title: "Flûte" },
-  { id: "5", title: "Saxophone" },
+  { id: "0", title: "Tout", emoji: "🎸" },
+  { id: "1", title: "Guitare", emoji: "🎸" },
+  { id: "2", title: "Basse", emoji: "🎸" },
+  { id: "3", title: "Trompette", emoji: "🎺" },
+  { id: "4", title: "Flûte", emoji: "🪗" },
+  { id: "5", title: "Saxophone", emoji: "🎷" },
+];
+
+const FEATURED_DATA = [
+  {
+    id: "f1",
+    title: "Chemin vers la guitare",
+    subtitle: "7 vidéos · 4h 20min",
+    badge: "Expert",
+    badgeLight: false,
+    gradientStart: "#0E2B45",
+    gradientEnd: "#1A5F9A",
+    categorie: "Guitare",
+  },
+  {
+    id: "f2",
+    title: "Maîtrise du saxophone",
+    subtitle: "12 vidéos · 6h 45min",
+    badge: "Intermédiaire",
+    badgeLight: true,
+    gradientStart: "#1a3d5c",
+    gradientEnd: "#2A7FA5",
+    categorie: "Trompette",
+  },
 ];
 
 const TOP_VIDEOS = [
   {
     id: "v1",
-    title: "Chemin vers la guitare",
-    subtitle: "7 vidéos",
+    title: "Les accords de base",
+    subtitle: "Guitare acoustique · 18 min",
     image:
-      "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=800&q=60",
-    expert: true,
+      "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=200&q=60",
+    tag: "Expert",
+    tagType: "expert",
+    progress: 0.65,
+    bookmarked: true,
+    categorie: "Guitare",
+    url: "https://www.youtube.com/watch?v=g4tEghJ8E7E&list=RDg4tEghJ8E7E&start_radio=1",
   },
   {
     id: "v2",
-    title: "Chemin vers la guitare",
-    subtitle: "7 vidéos",
+    title: "Solfège pour débutants",
+    subtitle: "Théorie musicale · 25 min",
     image:
-      "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=800&q=60",
-    expert: true,
+      "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=200&q=60",
+    tag: "Débutant",
+    tagType: "beginner",
+    progress: 0.3,
+    bookmarked: false,
+    categorie: "Guitare",
+    url: "https://www.youtube.com/watch?v=g4tEghJ8E7E&list=RDg4tEghJ8E7E&start_radio=1",
+  },
+  {
+    id: "v3",
+    title: "Improvisation jazz",
+    subtitle: "Saxophone · 40 min",
+    image:
+      "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=200&q=60",
+    tag: "Expert",
+    tagType: "expert",
+    progress: 0,
+    bookmarked: false,
+    categorie: "Trompette",
+    url: "https://www.youtube.com/watch?v=g4tEghJ8E7E&list=RDg4tEghJ8E7E&start_radio=1",
   },
 ];
 
-export default function App() {
-  // Animated header shrink
+// ─── Main screen ──────────────────────────────────────────────────────────────
+export default function HomeScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [instrument, setInstrument] = useState<any>("0");
+  const categorie = CATEGORY_DATA[instrument];
+
+  const [selectedVideo, setSelectedVideo] = useState<{
+    url: string;
+    title: string;
+  } | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const openVideo = (url: string, title: string) => {
+    setSelectedVideo({ url, title });
+    setModalVisible(true);
+  };
 
   const headerHeight = scrollY.interpolate({
-    inputRange: [0, 140],
-    outputRange: [220, 110],
+    inputRange: [0, 120],
+    outputRange: [210, 110],
     extrapolate: "clamp",
   });
 
-  const titleSize = scrollY.interpolate({
-    inputRange: [0, 140],
-    outputRange: [28, 20],
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [1, 0],
     extrapolate: "clamp",
   });
+
+  const filteredData = useMemo(() => {
+    return categorie?.title === "Tout"
+      ? FEATURED_DATA
+      : FEATURED_DATA.filter((item) => item.categorie === categorie?.title);
+  }, [categorie?.title]);
+
+  const filteredVideos = useMemo(() => {
+    return categorie?.title === "Tout"
+      ? TOP_VIDEOS
+      : TOP_VIDEOS.filter((item) => item.categorie === categorie?.title);
+  }, [categorie?.title]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
       <LinearGradient
-        colors={[COLORS.bgGradientTop, COLORS.bgGradientBottom]}
+        colors={[color.bgGradientTop, color.bgGradientBottom]}
         style={styles.pageGradient}
       >
+        {/* ── Animated header ── */}
         <Animated.View style={[styles.header, { height: headerHeight }]}>
           <View style={styles.headerTop}>
             <View style={styles.profileRow}>
               <Image
                 source={{
-                  uri:
-                    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=60",
+                  uri: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=60",
                 }}
                 style={styles.avatar}
               />
-              <View style={{ marginLeft: 12 }}>
-                <Text style={styles.greetingSmall}>Hi, Magdalena</Text>
+              <View style={{ marginLeft: 10 }}>
+                <Text style={styles.greetingSmall}>Bonjour 👋</Text>
+                <Text style={styles.greetingName}>Magdalena</Text>
               </View>
             </View>
 
-            <View style={styles.badgeWrap}>
-              <View style={styles.expertBadge}>
-                <AntDesign name="star" size={14} color={COLORS.deepBlue} />
-                <Text style={styles.expertText}>Expert</Text>
-              </View>
+            <View style={styles.expertBadge}>
+              <AntDesign name="star" size={12} color={color.deepBlue} />
+              <Text style={styles.expertText}>Expert</Text>
             </View>
           </View>
 
-          <Animated.Text style={[styles.headline, { fontSize: titleSize }]}>
-            Transforme tes instants en mélodie grâce aux vidéos !
+          <Animated.Text style={[styles.headline, { opacity: titleOpacity }]}>
+            Transforme tes instants en{" "}
+            <Text style={styles.headlineAccent}>mélodie</Text>
           </Animated.Text>
 
-          <View style={styles.searchRow}>
-            <View style={styles.searchBox}>
-              <Feather name="search" size={20} color={COLORS.deepBlue} />
-              <TextInput
-                placeholder="Chercher un instrument, une vidéo..."
-                placeholderTextColor={COLORS.softGray}
-                style={styles.searchInput}
-              />
-            </View>
+          <View style={styles.searchBox}>
+            <Feather name="search" size={18} color={color.softGray} />
+            <TextInput
+              placeholder="Instrument, vidéo, cours…"
+              placeholderTextColor={color.softGray}
+              style={styles.searchInput}
+            />
           </View>
         </Animated.View>
 
-        <FlatList
-          contentContainerStyle={styles.contentContainer}
-          data={TOP_VIDEOS}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={
-            <View>
-              <Text style={styles.sectionTitle}>Categorie d'instrument</Text>
+        {/* ── Scrollable content ── */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Categories */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Instruments</Text>
+            <Text style={styles.sectionLink}>Voir tout</Text>
+          </View>
 
-              <View style={styles.categoriesRow}>
-                {CATEGORY_DATA.map((c) => (
-                  <Pressable
-                    key={c.id}
-                    style={({ pressed }) => [
-                      styles.pill,
-                      pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
-                    ]}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pillsRow}
+          >
+            {CATEGORY_DATA.map((c) => {
+              const active = instrument === c.id;
+              return (
+                <Pressable
+                  key={c.id}
+                  style={[styles.pill, active && styles.pillActive]}
+                  onPress={() => setInstrument(c.id)}
+                >
+                  <Text style={styles.pillEmoji}>{c.emoji}</Text>
+                  <Text
+                    style={[styles.pillText, active && styles.pillTextActive]}
                   >
-                    <Text style={styles.pillText}>{c.title}</Text>
-                  </Pressable>
-                ))}
-              </View>
+                    {c.title}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
 
-              <Text style={[styles.sectionTitle, { marginTop: 18 }]}>
-                Tops Vidéos
-              </Text>
-            </View>
-          }
-          renderItem={({ item }) => <VideoCard item={item} />}
-          ItemSeparatorComponent={() => <View style={{ height: 14 }} />}
-          ListFooterComponent={<View style={{ height: 100 }} />}
-        />
+          {/* Featured */}
+          <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+            <Text style={styles.sectionTitle}>À la une</Text>
+            <TouchableOpacity
+              onPress={() =>
+                router.navigate({
+                  pathname: "/categorie/allParcoursScreen",
+                })
+              }
+            >
+              <Text style={styles.sectionLink}>Tous les parcours</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.featuredRow}
+          >
+            {filteredData.map((item) => (
+              <Pressable
+                key={item.id}
+                onPress={() =>
+                  router.navigate({
+                    pathname: "/categorie/parcoursScreen",
+                  })
+                }
+              >
+                <FeaturedCard key={item.id} item={item} />
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          {/* Top Videos */}
+          <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+            <Text style={styles.sectionTitle}>Top Vidéos</Text>
+            <Pressable onPress={() => router.navigate("/categorie/allVideos")}>
+              <Text style={styles.sectionLink}>Voir tout</Text>
+            </Pressable>
+          </View>
+
+          {filteredVideos.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              onPress={() => openVideo(item.url, item.title)}
+            >
+              <VideoCard key={item.id} item={item} />
+              <VideoModal
+                visible={modalVisible}
+                videoUrl={selectedVideo?.url ?? null}
+                title={selectedVideo?.title}
+                onClose={() => {
+                  setModalVisible(false);
+                  setSelectedVideo(null);
+                }}
+              />
+            </TouchableOpacity>
+          ))}
+
+          <View style={{ height: 100 }} />
+        </ScrollView>
       </LinearGradient>
     </SafeAreaView>
   );
 }
 
-function VideoCard({ item }) {
-  return (
-    <View style={styles.cardRow}>
-      <View style={styles.card}>
-        <View style={styles.thumbWrap}>
-          <Image source={{ uri: item.image }} style={styles.thumbImage} />
-          <View style={styles.thumbBadge}>
-            <Text style={styles.thumbBadgeText}>Expert</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardFooter}>
-          <View style={{ flex: 1 }}>
-            <Text numberOfLines={2} style={styles.cardTitle}>
-              {item.title}
-            </Text>
-            <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
-          </View>
-
-          <Pressable style={styles.iconHeart}>
-            <Bookmark size={20} color={COLORS.yellowDark} />
-          </Pressable>
-        </View>
-      </View>
-
-      {/* duplicate for second column if you want side-by-side; here for single-column feed */}
-    </View>
-  );
-}
-
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bgGradientTop,
+    backgroundColor: color.bgGradientTop,
   },
   pageGradient: {
     flex: 1,
-    paddingTop: 10,
   },
+  featuredRow: {
+    paddingHorizontal: 24,
+    gap: 14,
+  },
+  // Header
   header: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingHorizontal: 24,
+    paddingTop: 10,
+    paddingBottom: 12,
     justifyContent: "flex-end",
   },
   headerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 16,
   },
   profileRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "#ddd",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.8)",
   },
   greetingSmall: {
-    color: COLORS.deepBlue,
-    fontSize: 14,
+    fontSize: 12,
+    color: color.softGray,
   },
-  badgeWrap: {},
+  greetingName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: color.deepBlue,
+    letterSpacing: -0.3,
+  },
   expertBadge: {
-    backgroundColor: COLORS.yellow,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 18,
+    backgroundColor: color.yellow,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
   },
   expertText: {
-    color: COLORS.deepBlue,
-    marginLeft: 6,
-    fontWeight: "600",
+    color: color.deepBlue,
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 4,
+    letterSpacing: 0.3,
   },
   headline: {
-    color: COLORS.deepBlue,
+    fontSize: 26,
     fontWeight: "700",
-    marginTop: 12,
-    lineHeight: 38,
+    color: color.deepBlue,
+    lineHeight: 34,
+    letterSpacing: -0.5,
+    marginBottom: 16,
   },
-  searchRow: {
-    marginTop: 12,
+  headlineAccent: {
+    fontStyle: "italic",
+    color: "#1A5F9A",
   },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    gap: 10,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: "rgba(14,43,69,0.06)",
   },
   searchInput: {
-    marginLeft: 10,
     flex: 1,
-    fontSize: 15,
-    color: COLORS.deepBlue,
+    fontSize: 14,
+    color: color.deepBlue,
   },
-  contentContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+
+  // Scroll
+  scrollContent: {
+    paddingTop: 8,
+    paddingBottom: 20,
+  },
+
+  // Section headers
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    paddingHorizontal: 24,
+    marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 20,
-    color: COLORS.deepBlue,
+    fontSize: 18,
     fontWeight: "700",
-    marginBottom: 12,
+    color: color.deepBlue,
+    letterSpacing: -0.4,
   },
-  categoriesRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  sectionLink: {
+    fontSize: 13,
+    color: color.softGray,
+    fontWeight: "500",
+  },
+
+  // Pills
+  pillsRow: {
+    paddingHorizontal: 24,
     gap: 8,
   },
   pill: {
-    backgroundColor: COLORS.yellow,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  pillText: {
-    color: COLORS.deepBlue,
-    fontWeight: "600",
-  },
-  cardRow: {
-    // single column card centered
-    alignItems: "center",
-  },
-  card: {
-    width: width - 40,
-    backgroundColor: COLORS.paleBlue,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
-    position:'relative'
-  },
-  thumbWrap: {
-    backgroundColor: "#e8f2f8",
-    height: 200,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  thumbBadge: {
-    position: "absolute",
-    top: 20,
-    left: 25,
-    backgroundColor: COLORS.yellow,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  thumbBadgeText: {
-    fontWeight: "600",
-    color: COLORS.deepBlue,
-  },
-  thumbImage: {
-    width: "92%",
-    height: "88%",
-    borderRadius: 12,
-    resizeMode: "cover",
-  },
-  cardFooter: {
-    padding: 14,
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
+    backgroundColor: "#fff",
+    borderWidth: 1.5,
+    borderColor: "rgba(14,43,69,0.1)",
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 24,
   },
-  cardTitle: {
-    color: COLORS.deepBlue,
-    fontWeight: "700",
-    fontSize: 18,
+  pillActive: {
+    backgroundColor: color.deepBlue,
+    borderColor: color.deepBlue,
   },
-  cardSubtitle: {
-    color: COLORS.softGray,
-    marginTop: 4,
+  pillEmoji: {
+    fontSize: 14,
   },
-  iconHeart: {
-    marginLeft: 12,
-    padding: 6,
+  pillText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: color.deepBlue,
   },
+  pillTextActive: {
+    color: "#fff",
+  },
+
+  // Bottom nav
   bottomNav: {
     position: "absolute",
-    bottom: 16,
-    left: 18,
-    right: 18,
-    height: 64,
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    backgroundColor: "rgba(255,255,255,0.97)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(14,43,69,0.07)",
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    paddingBottom: 16,
+    paddingHorizontal: 10,
   },
   navItem: {
     alignItems: "center",
+    gap: 3,
   },
-  navText: {
-    fontSize: 11,
-    color: COLORS.deepBlue,
-    marginTop: 2,
+  navLabel: {
+    fontSize: 10,
+    color: color.softGray,
+    fontWeight: "500",
+  },
+  navLabelActive: {
+    color: color.deepBlue,
+    fontWeight: "600",
+  },
+  navDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: color.yellowDark,
   },
 });

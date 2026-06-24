@@ -10,8 +10,8 @@ import {
   Animated,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -106,9 +106,14 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* ── Scrollable content ── */}
-        <ScrollView
+        <Animated.ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false },
+          )}
         >
           {/* Categories */}
           <View style={styles.sectionHeader}>
@@ -201,7 +206,7 @@ export default function HomeScreen() {
           />
 
           <View style={{ height: 100 }} />
-        </ScrollView>
+        </Animated.ScrollView>
       </LinearGradient>
     </SafeAreaView>
   );

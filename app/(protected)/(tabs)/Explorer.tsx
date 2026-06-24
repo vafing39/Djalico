@@ -8,6 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
+  Modal,
   Pressable,
   ScrollView,
   StatusBar,
@@ -27,10 +28,9 @@ type Tab = (typeof TABS)[number];
 export default function ExploreScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("Tout");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedVideo, setSelectedVideo] = useState<{
-    url: string;
-    title: string;
-  } | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [filterLevel, setFilterLevel] = useState<"beginner" | "intermediate" | "expert" | null>(null);
 
   const q = searchQuery.toLowerCase().trim();
 
@@ -40,24 +40,28 @@ export default function ExploreScreen() {
   }, [q]);
 
   const filteredParcours = useMemo(() => {
-    if (!q) return EXPLORER_PARCOURS;
-    return EXPLORER_PARCOURS.filter(
+    let results = EXPLORER_PARCOURS;
+    if (q) results = results.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
         p.subtitle?.toLowerCase().includes(q) ||
-        p.tag?.toLowerCase().includes(q),
+        p.tag?.toLowerCase().includes(q)
     );
-  }, [q]);
+    if (filterLevel) results = results.filter((p) => p.tagType === filterLevel);
+    return results;
+  }, [q, filterLevel]);
 
   const filteredVideos = useMemo(() => {
-    if (!q) return EXPLORER_VIDEOS;
-    return EXPLORER_VIDEOS.filter(
+    let results = EXPLORER_VIDEOS;
+    if (q) results = results.filter(
       (v) =>
         v.title.toLowerCase().includes(q) ||
         v.subtitle?.toLowerCase().includes(q) ||
-        v.tag?.toLowerCase().includes(q),
+        v.tag?.toLowerCase().includes(q)
     );
-  }, [q]);
+    if (filterLevel) results = results.filter((v) => v.tagType === filterLevel);
+    return results;
+  }, [q, filterLevel]);
 
   const hasNoResults =
     q.length > 0 &&
@@ -80,9 +84,10 @@ export default function ExploreScreen() {
               Explorer <Text style={styles.headerTitleAccent}>la musique</Text>
             </Text>
           </View>
-          <View style={styles.filterBtn}>
+          <Pressable style={styles.filterBtn} onPress={() => setFilterVisible(true)}>
             <Feather name="sliders" size={18} color="#fff" />
-          </View>
+            {filterLevel !== null && <View style={styles.filterBadge} />}
+          </Pressable>
         </View>
 
         {/* ── Search ── */}
@@ -240,6 +245,40 @@ export default function ExploreScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
       </LinearGradient>
+
+      <Modal
+        visible={filterVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFilterVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setFilterVisible(false)}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Filtrer par niveau</Text>
+
+            {([
+              { label: "Tous les niveaux", value: null },
+              { label: "Débutant", value: "beginner" },
+              { label: "Intermédiaire", value: "intermediate" },
+              { label: "Expert", value: "expert" },
+            ] as const).map((opt) => (
+              <Pressable
+                key={String(opt.value)}
+                style={[styles.filterOption, filterLevel === opt.value && styles.filterOptionActive]}
+                onPress={() => { setFilterLevel(opt.value); setFilterVisible(false); }}
+              >
+                <Text style={[styles.filterOptionText, filterLevel === opt.value && styles.filterOptionTextActive]}>
+                  {opt.label}
+                </Text>
+                {filterLevel === opt.value && (
+                  <Feather name="check" size={16} color={color.deepBlue} />
+                )}
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -277,6 +316,65 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 4,
+  },
+  filterBadge: {
+    position: "absolute",
+    top: 7,
+    right: 7,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: color.yellowDark,
+    borderWidth: 1.5,
+    borderColor: color.deepBlue,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+    gap: 10,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(14,43,69,0.12)",
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: color.deepBlue,
+    marginBottom: 8,
+  },
+  filterOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: color.paleBlue,
+  },
+  filterOptionActive: {
+    backgroundColor: color.yellow,
+  },
+  filterOptionText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: color.softGray,
+  },
+  filterOptionTextActive: {
+    color: color.deepBlue,
+    fontWeight: "700",
   },
 
   // Search

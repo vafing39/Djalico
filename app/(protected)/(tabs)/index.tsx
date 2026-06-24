@@ -92,6 +92,9 @@ export default function HomeScreen() {
     []
   );
 
+  const hasNoResults =
+    q.length > 0 && filteredData.length === 0 && filteredVideos.length === 0;
+
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
@@ -203,8 +206,8 @@ export default function HomeScreen() {
                   return (
                     <Pressable
                       key={course.id}
-                      style={styles.resumeCard}
-                      onPress={() => router.navigate("/mesCours")}
+                      style={({ pressed }) => [styles.resumeCard, { opacity: pressed ? 0.88 : 1 }]}
+                      onPress={() => router.navigate("/categorie/parcoursScreen")}
                     >
                       <Image source={{ uri: course.image }} style={styles.resumeThumb} />
                       <View style={styles.resumeInfo}>
@@ -249,13 +252,10 @@ export default function HomeScreen() {
             {filteredData.map((item) => (
               <Pressable
                 key={item.id}
-                onPress={() =>
-                  router.navigate({
-                    pathname: "/categorie/parcoursScreen",
-                  })
-                }
+                style={({ pressed }) => ({ opacity: pressed ? 0.88 : 1 })}
+                onPress={() => router.navigate({ pathname: "/categorie/parcoursScreen" })}
               >
-                <FeaturedCard key={item.id} item={item} />
+                <FeaturedCard item={item} />
               </Pressable>
             ))}
           </ScrollView>
@@ -276,6 +276,16 @@ export default function HomeScreen() {
               <VideoCard item={item} />
             </TouchableOpacity>
           ))}
+
+          {hasNoResults && (
+            <View style={styles.emptyState}>
+              <Feather name="search" size={36} color={color.softGray} />
+              <Text style={styles.emptyTitle}>Aucun résultat</Text>
+              <Text style={styles.emptySubtitle}>
+                Essayez un autre terme ou changez d'instrument
+              </Text>
+            </View>
+          )}
 
           <VideoModal
             visible={modalVisible}
@@ -448,6 +458,26 @@ const styles = StyleSheet.create({
   },
   pillTextActive: {
     color: "#fff",
+  },
+
+  // Empty state
+  emptyState: {
+    alignItems: "center",
+    paddingTop: 48,
+    paddingHorizontal: 40,
+    gap: 10,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: color.deepBlue,
+    marginTop: 8,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: color.softGray,
+    textAlign: "center",
+    lineHeight: 20,
   },
 
   // Resume / reprendre

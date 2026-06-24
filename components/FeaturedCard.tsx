@@ -40,10 +40,6 @@ export function FeaturedCard({ item }: { item: any }) {
 }
 
 const styles = StyleSheet.create({
-  featuredRow: {
-    paddingHorizontal: 24,
-    gap: 14,
-  },
   featuredCard: {
     width: 260,
     height: 160,

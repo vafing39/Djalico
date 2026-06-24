@@ -1,5 +1,4 @@
-// UserManagementPage.js
-import { Ionicons } from "@expo/vector-icons"; // expo install @expo/vector-icons
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   FlatList,
@@ -10,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ADMIN_USERS_INITIAL } from "@/data/mockData";
 
 const COLORS = {
   deepBlue: "#0E2B45",
@@ -23,11 +23,7 @@ const COLORS = {
 };
 
 export default function gestionUser() {
-  const [users, setUsers] = useState([
-    { id: "1", name: "Alice Dupont", email: "alice@mail.com", role: "Admin" },
-    { id: "2", name: "Jean Martin", email: "jean@mail.com", role: "Utilisateur" },
-    { id: "3", name: "Sophie Leroy", email: "sophie@mail.com", role: "Modérateur" },
-  ]);
+  const [users, setUsers] = useState(ADMIN_USERS_INITIAL);
   const [search, setSearch] = useState("");
 
   const filteredUsers = users.filter(

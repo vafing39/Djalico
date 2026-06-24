@@ -13,13 +13,14 @@ import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { ADMIN_KPI, ADMIN_PIE_DATA, ADMIN_SATISFACTION, ADMIN_ACTIVITY } from "@/data/mockData";
 
 const COLORS = {
   bg: "#F7FAFF",
   card: "#FFFFFF",
   textPrimary: "#1F2937",
   textMuted: "#6B7280",
-  blue: "#1E88E5", // vif
+  blue: "#1E88E5",
   blueLight: "#E9F2FF",
   yellow: "#FFC107",
   yellowLight: "#FFF3CD",
@@ -31,76 +32,10 @@ const COLORS = {
   navy: "#103149",
 };
 
-const kpi = [
-  {
-    id: "active",
-    label: "Utilisateurs",
-    value: 56,
-    icon: "people-outline",
-    bg: COLORS.blueLight,
-  },
-  {
-    id: "new",
-    label: "Videos",
-    value: 12,
-    icon: "person-add-outline",
-    bg: COLORS.yellowLight,
-  },
-  {
-    id: "pending",
-    label: "A valider",
-    value: 4,
-    icon: "hourglass-outline",
-    bg: "#FFE7E7",
-  },
-];
-
-const satisfaction = [
-  { label: "Guitare", value: 47, color: COLORS.yellowDark },
-  { label: "Ballafon", value: 40, color: COLORS.blueLight },
-  { label: "Piano", value: 16, color: COLORS.navy },
-  { label: "Saxophone", value: 3, color: "#FFEB3B" },
-];
-
-const activity = [
-  {
-    id: "1",
-    icon: "person-outline",
-    color: COLORS.blue,
-    text: "Marie Dupont a rejoint la plateforme",
-    time: "il y a 2h",
-  },
-  {
-    id: "2",
-    icon: "videocam-outline",
-    color: "#FF7043",
-    text: 'Nouvelle vidéo ajoutée : "Formation UX Design"',
-    time: "il y a 4h",
-  },
-  {
-    id: "3",
-    icon: "checkmark-circle-outline",
-    color: COLORS.green,
-    text: "8 utilisateurs ont complété leur profil aujourd'hui",
-    time: "il y a 6h",
-  },
-  {
-    id: "4",
-    icon: "alert-circle-outline",
-    color: COLORS.red,
-    text: "2 comptes signalés pour vérification",
-    time: "il y a 8h",
-  },
-];
-
-// ------------------- COMPONENTS -------------------
-
-const data = [
-  { value: 47, color: COLORS.yellowDark, text: "Excellent" }, // jaune foncé
-  { value: 40, color: "#FFEB3B", text: "Good" },             // jaune vif
-  { value: 16, color: COLORS.blueLight, text: "Okay" },      // bleu très clair
-  { value: 3, color: COLORS.navy, text: "Poor" },            // bleu foncé / navy
-];
+const kpi = ADMIN_KPI;
+const satisfaction = ADMIN_SATISFACTION;
+const activity = ADMIN_ACTIVITY;
+const data = ADMIN_PIE_DATA;
 
 
 const StatCard = ({ item }: { item: any }) => (

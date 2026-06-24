@@ -30,11 +30,11 @@ app/
 
 ### Contexts
 
-| File | Purpose |
-|------|---------|
-| `contexts/authContext.tsx` | `isLoggedIn`, `isAdmin`, `logIn/logOut` helpers, persisted to AsyncStorage |
-| `contexts/LanguageContext.tsx` | `t(key)` i18n helper, supports fr/en/es/de/it/pt, persisted to AsyncStorage |
-| `contexts/api.tsx` | `logIn(username, password)` (JWT → AsyncStorage) and `fetchUsers()` — calls WordPress WP REST API |
+| File                           | Purpose                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `contexts/authContext.tsx`     | `isLoggedIn`, `isAdmin`, `logIn/logOut` helpers, persisted to AsyncStorage                        |
+| `contexts/LanguageContext.tsx` | `t(key)` i18n helper, supports fr/en/es/de/it/pt, persisted to AsyncStorage                       |
+| `contexts/api.tsx`             | `logIn(username, password)` (JWT → AsyncStorage) and `fetchUsers()` — calls WordPress WP REST API |
 
 ### Color system
 
@@ -43,6 +43,7 @@ Use `config/color.tsx` (named export `color`) for all brand colors in user-facin
 ### VideoModal
 
 `components/VideoModal.tsx` handles two video types:
+
 - **YouTube URLs** — detected by regex, rendered with `react-native-youtube-iframe`
 - **Direct URLs** (mp4, m3u8…) — rendered with `expo-video`'s `VideoView`
 
@@ -55,3 +56,7 @@ Use `config/color.tsx` (named export `color`) for all brand colors in user-facin
 - `contexts/api.tsx` `logIn` has an empty fetch URL — the WordPress JWT endpoint is not yet wired
 - `(protected)/_layout.tsx` bypasses real auth (`loggedUser = true`) and always redirects to admin
 - Home screen data (categories, featured courses, videos) is hardcoded mock data, not fetched from the API
+
+### Important
+
+- Always ask for validation before implementation

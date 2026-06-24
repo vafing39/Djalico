@@ -11,24 +11,20 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ModalView from "./modal";
+import { ADMIN_VIDEOS } from "@/data/mockData";
 
 const COLORS = {
-  deepBlue: "#0E2B45",       // text & deep accents
+  deepBlue: "#0E2B45",
   navy: "#103149",
-  paleBlue: "#F3F8FB",       // background card
-  bgGradientTop: "#ECF6FF",  // page gradient top
+  paleBlue: "#F3F8FB",
+  bgGradientTop: "#ECF6FF",
   bgGradientBottom: "#FFFFFF",
-  yellow: "#FFD66B",         // accent pastel yellow
+  yellow: "#FFD66B",
   yellowDark: "#F6C04F",
   softGray: "#9AA6B2",
 };
 
-// Fake data
-const videos = [
-  { id: "1", title: "Présentation produit", duration: "2:45", thumbnail: "https://images.pexels.com/photos/9437696/pexels-photo-9437696.jpeg" },
-  { id: "2", title: "Tutoriel installation", duration: "5:12", thumbnail: "https://images.pexels.com/photos/9437696/pexels-photo-9437696.jpeg" },
-  { id: "3", title: "Campagne marketing", duration: "1:30", thumbnail: "https://images.pexels.com/photos/9437696/pexels-photo-9437696.jpeg" },
-];
+const videos = ADMIN_VIDEOS;
 
 export default function gestionVideo() {
   const [modalVisible, setModalVisible] = useState(false);

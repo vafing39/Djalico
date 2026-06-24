@@ -4,48 +4,9 @@ import ParcoursCard from "@/components/ParcoursCard";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import Screen from "@/components/Screen";
+import { ALL_PARCOURS } from "@/data/mockData";
 
-const TOP_VIDEOS = [
-  {
-    id: "v1",
-    title: "Les accords de base",
-    subtitle: "Guitare acoustique · 18 min",
-    image:
-      "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=200&q=60",
-    tag: "Expert",
-    tagType: "expert",
-    progress: 0.65,
-    bookmarked: true,
-    categorie: "Guitare",
-    url: "https://www.youtube.com/watch?v=g4tEghJ8E7E&list=RDg4tEghJ8E7E&start_radio=1",
-  },
-  {
-    id: "v2",
-    title: "Solfège pour débutants",
-    subtitle: "Théorie musicale · 25 min",
-    image:
-      "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=200&q=60",
-    tag: "Débutant",
-    tagType: "beginner",
-    progress: 0.3,
-    bookmarked: false,
-    categorie: "Guitare",
-    url: "https://www.youtube.com/watch?v=g4tEghJ8E7E&list=RDg4tEghJ8E7E&start_radio=1",
-  },
-  {
-    id: "v3",
-    title: "Improvisation jazz",
-    subtitle: "Saxophone · 40 min",
-    image:
-      "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=200&q=60",
-    tag: "Expert",
-    tagType: "expert",
-    progress: 0,
-    bookmarked: false,
-    categorie: "Trompette",
-    url: "https://www.youtube.com/watch?v=g4tEghJ8E7E&list=RDg4tEghJ8E7E&start_radio=1",
-  },
-];
+const TOP_VIDEOS = ALL_PARCOURS;
 
 function Header() {
   return (

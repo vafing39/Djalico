@@ -1,10 +1,9 @@
-import { TeacherCard } from "@/components/TeacherCard";
 import { ThemeCard } from "@/components/ThemeCard";
 import { VideoCard } from "@/components/VideoCard";
 import { color } from "@/config/color";
+import { THEMES, EXPLORER_PARCOURS, EXPLORER_VIDEOS } from "@/data/mockData";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Bookmark } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   Dimensions,
@@ -23,78 +22,14 @@ const { width } = Dimensions.get("window");
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const TABS = ["Tout", "Vidéos", "Parcours"];
+const TABS = ["Tout", "Vidéos", "Parcours"] as const;
+type Tab = (typeof TABS)[number];
 
-const THEMES = [
-  {
-    id: "t1",
-    title: "Cordes",
-    count: "42 vidéos",
-    emoji: "🎸",
-    colors: ["#0E2B45", "#1A5F9A"] as [string, string],
-  },
-  {
-    id: "t2",
-    title: "Cuivres",
-    count: "28 vidéos",
-    emoji: "🎷",
-    colors: ["#7B4F2E", "#C4813D"] as [string, string],
-  },
-  {
-    id: "t3",
-    title: "Claviers",
-    count: "35 vidéos",
-    emoji: "🎹",
-    colors: ["#1a3d5c", "#2E7D6B"] as [string, string],
-  },
-  {
-    id: "t4",
-    title: "Percussions",
-    count: "19 vidéos",
-    emoji: "🥁",
-    colors: ["#3D1A5E", "#7A3BAA"] as [string, string],
-  },
-];
-
-const VIDEOS = [
-  {
-    id: "v1",
-    title: "Fingerstyle acoustique",
-    subtitle: "Guitare · 32 min",
-    tag: "Expert",
-    tagType: "expert" as const,
-    bookmarked: true,
-    image:
-      "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=200&q=60",
-  },
-  {
-    id: "v2",
-    title: "Gammes pentatoniques",
-    subtitle: "Piano · 20 min",
-    tag: "Intermédiaire",
-    tagType: "intermediate" as const,
-    bookmarked: false,
-    image:
-      "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=200&q=60",
-  },
-  {
-    id: "v3",
-    title: "Intro au jazz manouche",
-    subtitle: "Guitare · 45 min",
-    tag: "Débutant",
-    tagType: "beginner" as const,
-    bookmarked: false,
-    image:
-      "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=200&q=60",
-  },
-];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ExploreScreen() {
-  const [activeTab, setActiveTab] = useState<"Tout" | "Videos" | "Parcours">(
-    "Tout",
-  );
+  const [activeTab, setActiveTab] = useState<Tab>("Tout");
 
   return (
     <SafeAreaView style={styles.container}>
@@ -157,30 +92,45 @@ export default function ExploreScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Thèmes */}
-          <View style={[styles.sectionHeader, { paddingHorizontal: 24 }]}>
-            <Text style={styles.sectionTitle}>Thèmes musicaux</Text>
-            <Text style={styles.sectionLink}>Voir tout</Text>
-          </View>
-          <View style={[styles.themeGrid, { paddingHorizontal: 24 }]}>
-            {THEMES.map((t) => (
-              <ThemeCard key={t.id} item={t} />
-            ))}
-          </View>
+          {/* Thèmes — masqués en vue Vidéos */}
+          {activeTab !== "Vidéos" && (
+            <>
+              <View style={[styles.sectionHeader, { paddingHorizontal: 24 }]}>
+                <Text style={styles.sectionTitle}>Thèmes musicaux</Text>
+                <Text style={styles.sectionLink}>Voir tout</Text>
+              </View>
+              <View style={[styles.themeGrid, { paddingHorizontal: 24 }]}>
+                {THEMES.map((t) => (
+                  <ThemeCard key={t.id} item={t} />
+                ))}
+              </View>
+            </>
+          )}
 
-          {/* Tendances */}
-          <View
-            style={[
-              styles.sectionHeader,
-              { marginTop: 24, paddingHorizontal: 24 },
-            ]}
-          >
-            <Text style={styles.sectionTitle}>Tendances</Text>
-            <Text style={styles.sectionLink}>Voir tout</Text>
-          </View>
-          {VIDEOS.map((v) => (
-            <VideoCard key={v.id} item={v} />
-          ))}
+          {/* Parcours — masqués en vue Vidéos */}
+          {activeTab !== "Vidéos" && (
+            <View style={[styles.sectionHeader, { marginTop: 24, paddingHorizontal: 24 }]}>
+              <Text style={styles.sectionTitle}>Parcours populaires</Text>
+              <Text style={styles.sectionLink}>Voir tout</Text>
+            </View>
+          )}
+          {activeTab !== "Vidéos" &&
+            EXPLORER_PARCOURS.map((p) => <VideoCard key={p.id} item={p} />)}
+
+          {/* Vidéos — masquées en vue Parcours */}
+          {activeTab !== "Parcours" && (
+            <View
+              style={[
+                styles.sectionHeader,
+                { marginTop: 24, paddingHorizontal: 24 },
+              ]}
+            >
+              <Text style={styles.sectionTitle}>Tendances</Text>
+              <Text style={styles.sectionLink}>Voir tout</Text>
+            </View>
+          )}
+          {activeTab !== "Parcours" &&
+            EXPLORER_VIDEOS.map((v) => <VideoCard key={v.id} item={v} />)}
 
           <View style={{ height: 100 }} />
         </ScrollView>

@@ -11,67 +11,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { color } from "@/config/color";
+import { SAVED_PARCOURS } from "@/data/mockData";
 
-// ─── Theme ────────────────────────────────────────────────────────────────────
-const color = {
-  deepBlue: "#0E2B45",
-  navy: "#103149",
-  paleBlue: "#F3F8FB",
-  bgGradientTop: "#ECF6FF",
-  bgGradientBottom: "#FFFFFF",
-  yellow: "#FFD66B",
-  yellowDark: "#F6C04F",
-  softGray: "#9AA6B2",
-};
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
-const TOP_VIDEOS = [
-  {
-    id: "v1",
-    title: "Chemin vers la guitare",
-    subtitle: "7 vidéos · Débutant",
-    level: "Expert",
-    duration: "3h 20min",
-    image:
-      "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "v2",
-    title: "Maîtriser les accords",
-    subtitle: "5 vidéos · Intermédiaire",
-    level: "Pro",
-    duration: "1h 45min",
-    image:
-      "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "v3",
-    title: "Rythme & fingerpicking",
-    subtitle: "9 vidéos · Avancé",
-    level: "Expert",
-    duration: "4h 10min",
-    image:
-      "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "v4",
-    title: "Théorie musicale",
-    subtitle: "12 vidéos · Tous niveaux",
-    level: "Pro",
-    duration: "5h 30min",
-    image:
-      "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "v5",
-    title: "Improvisation Jazz",
-    subtitle: "6 vidéos · Expert",
-    level: "Expert",
-    duration: "2h 55min",
-    image:
-      "https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?auto=format&fit=crop&w=800&q=60",
-  },
-];
+const TOP_VIDEOS = SAVED_PARCOURS;
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 52) / 2; // 2 columns with 16px gap + 20px sides

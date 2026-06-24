@@ -19,85 +19,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const CATEGORY_DATA = [
-  { id: "0", title: "Tout", emoji: "🎸" },
-  { id: "1", title: "Guitare", emoji: "🎸" },
-  { id: "2", title: "Basse", emoji: "🎸" },
-  { id: "3", title: "Trompette", emoji: "🎺" },
-  { id: "4", title: "Flûte", emoji: "🪗" },
-  { id: "5", title: "Saxophone", emoji: "🎷" },
-];
-
-const FEATURED_DATA = [
-  {
-    id: "f1",
-    title: "Chemin vers la guitare",
-    subtitle: "7 vidéos · 4h 20min",
-    badge: "Expert",
-    badgeLight: false,
-    gradientStart: "#0E2B45",
-    gradientEnd: "#1A5F9A",
-    categorie: "Guitare",
-  },
-  {
-    id: "f2",
-    title: "Maîtrise du saxophone",
-    subtitle: "12 vidéos · 6h 45min",
-    badge: "Intermédiaire",
-    badgeLight: true,
-    gradientStart: "#1a3d5c",
-    gradientEnd: "#2A7FA5",
-    categorie: "Trompette",
-  },
-];
-
-const TOP_VIDEOS = [
-  {
-    id: "v1",
-    title: "Les accords de base",
-    subtitle: "Guitare acoustique · 18 min",
-    image:
-      "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=200&q=60",
-    tag: "Expert",
-    tagType: "expert",
-    progress: 0.65,
-    bookmarked: true,
-    categorie: "Guitare",
-    url: "https://www.youtube.com/watch?v=g4tEghJ8E7E&list=RDg4tEghJ8E7E&start_radio=1",
-  },
-  {
-    id: "v2",
-    title: "Solfège pour débutants",
-    subtitle: "Théorie musicale · 25 min",
-    image:
-      "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=200&q=60",
-    tag: "Débutant",
-    tagType: "beginner",
-    progress: 0.3,
-    bookmarked: false,
-    categorie: "Guitare",
-    url: "https://www.youtube.com/watch?v=g4tEghJ8E7E&list=RDg4tEghJ8E7E&start_radio=1",
-  },
-  {
-    id: "v3",
-    title: "Improvisation jazz",
-    subtitle: "Saxophone · 40 min",
-    image:
-      "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=200&q=60",
-    tag: "Expert",
-    tagType: "expert",
-    progress: 0,
-    bookmarked: false,
-    categorie: "Trompette",
-    url: "https://www.youtube.com/watch?v=g4tEghJ8E7E&list=RDg4tEghJ8E7E&start_radio=1",
-  },
-];
+import { CATEGORIES, FEATURED_PARCOURS, HOME_VIDEOS } from "@/data/mockData";
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [instrument, setInstrument] = useState<any>("0");
-  const categorie = CATEGORY_DATA[instrument];
+  const categorie = CATEGORIES[instrument];
 
   const [selectedVideo, setSelectedVideo] = useState<{
     url: string;
@@ -124,14 +52,14 @@ export default function HomeScreen() {
 
   const filteredData = useMemo(() => {
     return categorie?.title === "Tout"
-      ? FEATURED_DATA
-      : FEATURED_DATA.filter((item) => item.categorie === categorie?.title);
+      ? FEATURED_PARCOURS
+      : FEATURED_PARCOURS.filter((item) => item.categorie === categorie?.title);
   }, [categorie?.title]);
 
   const filteredVideos = useMemo(() => {
     return categorie?.title === "Tout"
-      ? TOP_VIDEOS
-      : TOP_VIDEOS.filter((item) => item.categorie === categorie?.title);
+      ? HOME_VIDEOS
+      : HOME_VIDEOS.filter((item) => item.categorie === categorie?.title);
   }, [categorie?.title]);
 
   return (
@@ -193,7 +121,7 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.pillsRow}
           >
-            {CATEGORY_DATA.map((c) => {
+            {CATEGORIES.map((c) => {
               const active = instrument === c.id;
               return (
                 <Pressable
@@ -258,18 +186,19 @@ export default function HomeScreen() {
               key={item.id}
               onPress={() => openVideo(item.url, item.title)}
             >
-              <VideoCard key={item.id} item={item} />
-              <VideoModal
-                visible={modalVisible}
-                videoUrl={selectedVideo?.url ?? null}
-                title={selectedVideo?.title}
-                onClose={() => {
-                  setModalVisible(false);
-                  setSelectedVideo(null);
-                }}
-              />
+              <VideoCard item={item} />
             </TouchableOpacity>
           ))}
+
+          <VideoModal
+            visible={modalVisible}
+            videoUrl={selectedVideo?.url ?? null}
+            title={selectedVideo?.title}
+            onClose={() => {
+              setModalVisible(false);
+              setSelectedVideo(null);
+            }}
+          />
 
           <View style={{ height: 100 }} />
         </ScrollView>

@@ -1,4 +1,5 @@
 import { color } from "@/config/color";
+import { Course, MY_COURSES } from "@/data/mockData";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useRef, useEffect, useState } from "react";
@@ -17,105 +18,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type CourseStatus = "en_cours" | "termine" | "non_commence";
-
-interface Course {
-  id: string;
-  title: string;
-  instructor: string;
-  tag: string;
-  tagType: "expert" | "intermediate" | "beginner";
-  totalLessons: number;
-  completedLessons: number;
-  duration: string;
-  status: CourseStatus;
-  image: string;
-  category: string;
-  lastWatched?: string;
-}
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
 const FILTER_TABS = ["Tous", "En cours", "Terminés"];
 
-const COURSES: Course[] = [
-  {
-    id: "c1",
-    title: "Fingerstyle acoustique",
-    instructor: "Marc Dupont",
-    tag: "Expert",
-    tagType: "expert",
-    totalLessons: 12,
-    completedLessons: 8,
-    duration: "4h 30min",
-    status: "en_cours",
-    category: "Guitare",
-    lastWatched: "il y a 2 jours",
-    image:
-      "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "c2",
-    title: "Gammes pentatoniques",
-    instructor: "Sophie Martin",
-    tag: "Intermédiaire",
-    tagType: "intermediate",
-    totalLessons: 8,
-    completedLessons: 8,
-    duration: "2h 15min",
-    status: "termine",
-    category: "Piano",
-    lastWatched: "il y a 1 sem.",
-    image:
-      "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "c3",
-    title: "Intro au jazz manouche",
-    instructor: "Louis Berger",
-    tag: "Débutant",
-    tagType: "beginner",
-    totalLessons: 10,
-    completedLessons: 3,
-    duration: "3h 45min",
-    status: "en_cours",
-    category: "Guitare",
-    lastWatched: "hier",
-    image:
-      "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "c4",
-    title: "Batterie pour débutants",
-    instructor: "Alex Torres",
-    tag: "Débutant",
-    tagType: "beginner",
-    totalLessons: 15,
-    completedLessons: 0,
-    duration: "5h 00min",
-    status: "non_commence",
-    category: "Percussions",
-    image:
-      "https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "c5",
-    title: "Harmonie & composition",
-    instructor: "Claire Vidal",
-    tag: "Expert",
-    tagType: "expert",
-    totalLessons: 20,
-    completedLessons: 20,
-    duration: "7h 10min",
-    status: "termine",
-    category: "Théorie",
-    lastWatched: "il y a 3 sem.",
-    image:
-      "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&w=800&q=60",
-  },
-];
+const COURSES: Course[] = MY_COURSES;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -2,6 +2,7 @@ import { color } from "@/config/color";
 import { Course, MY_COURSES } from "@/data/mockData";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useRef, useEffect, useState } from "react";
 import {
   Animated,
@@ -48,20 +49,16 @@ const TAG_STYLES = {
   },
 };
 
-const STATUS_LABEL: Record<CourseStatus, string> = {
-  en_cours: "En cours",
-  termine: "Terminé",
-  non_commence: "À commencer",
-};
-
 // ─── Featured (currently watching) card ──────────────────────────────────────
 
 function HeroCard({ course }: { course: Course }) {
   const progress = getProgress(course);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const router = useRouter();
 
   return (
     <Pressable
+      onPress={() => router.push(`/(protected)/(tabs)/mesCours/${course.id}` as any)}
       onPressIn={() =>
         Animated.spring(scaleAnim, {
           toValue: 0.97,
@@ -167,6 +164,7 @@ function CourseRow({ course, index }: { course: Course; index: number }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateX = useRef(new Animated.Value(-18)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const router = useRouter();
 
   useEffect(() => {
     Animated.parallel([
@@ -192,6 +190,7 @@ function CourseRow({ course, index }: { course: Course; index: number }) {
 
   return (
     <Pressable
+      onPress={() => router.push(`/(protected)/(tabs)/mesCours/${course.id}` as any)}
       onPressIn={() =>
         Animated.spring(scaleAnim, {
           toValue: 0.97,
@@ -669,7 +668,10 @@ const styles = StyleSheet.create({
   courseThumb: { width: "100%", height: "100%", resizeMode: "cover" },
   completedOverlay: {
     position: "absolute",
-    inset: 0,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: "rgba(29,158,117,0.55)",
     justifyContent: "center",
     alignItems: "center",
@@ -677,7 +679,10 @@ const styles = StyleSheet.create({
   completedCheck: { fontSize: 22, color: "#fff", fontWeight: "800" },
   notStartedOverlay: {
     position: "absolute",
-    inset: 0,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: "rgba(14,43,69,0.45)",
     justifyContent: "center",
     alignItems: "center",

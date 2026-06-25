@@ -19,7 +19,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { CATEGORIES, CURRENT_USER, FEATURED_PARCOURS, HOME_VIDEOS, MY_COURSES } from "@/data/mockData";
+import {
+  CATEGORIES,
+  CURRENT_USER,
+  FEATURED_PARCOURS,
+  HOME_VIDEOS,
+  MY_COURSES,
+} from "@/data/mockData";
 
 const LEVEL_LABEL: Record<string, string> = {
   expert: "Expert",
@@ -47,7 +53,7 @@ export default function HomeScreen() {
 
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 120],
-    outputRange: [210, 110],
+    outputRange: [210, 70],
     extrapolate: "clamp",
   });
 
@@ -63,13 +69,15 @@ export default function HomeScreen() {
     const byInstrument =
       categorie?.title === "Tout"
         ? FEATURED_PARCOURS
-        : FEATURED_PARCOURS.filter((item) => item.categorie === categorie?.title);
+        : FEATURED_PARCOURS.filter(
+            (item) => item.categorie === categorie?.title,
+          );
     if (!q) return byInstrument;
     return byInstrument.filter(
       (item) =>
         item.title.toLowerCase().includes(q) ||
         item.categorie?.toLowerCase().includes(q) ||
-        item.instructor?.toLowerCase().includes(q)
+        item.instructor?.toLowerCase().includes(q),
     );
   }, [categorie?.title, q]);
 
@@ -83,13 +91,13 @@ export default function HomeScreen() {
       (item) =>
         item.title.toLowerCase().includes(q) ||
         item.subtitle?.toLowerCase().includes(q) ||
-        item.categorie?.toLowerCase().includes(q)
+        item.categorie?.toLowerCase().includes(q),
     );
   }, [categorie?.title, q]);
 
   const inProgressCourses = useMemo(
     () => MY_COURSES.filter((c) => c.status === "en_cours"),
-    []
+    [],
   );
 
   const hasNoResults =
@@ -117,7 +125,9 @@ export default function HomeScreen() {
 
             <View style={styles.expertBadge}>
               <AntDesign name="star" size={12} color={color.deepBlue} />
-              <Text style={styles.expertText}>{LEVEL_LABEL[CURRENT_USER.level]}</Text>
+              <Text style={styles.expertText}>
+                {LEVEL_LABEL[CURRENT_USER.level]}
+              </Text>
             </View>
           </View>
 
@@ -202,21 +212,37 @@ export default function HomeScreen() {
                 contentContainerStyle={styles.resumeRow}
               >
                 {inProgressCourses.map((course) => {
-                  const progress = course.completedLessons / course.totalLessons;
+                  const progress =
+                    course.completedLessons / course.totalLessons;
                   return (
                     <Pressable
                       key={course.id}
-                      style={({ pressed }) => [styles.resumeCard, { opacity: pressed ? 0.88 : 1 }]}
-                      onPress={() => router.navigate("/categorie/parcoursScreen")}
+                      style={({ pressed }) => [
+                        styles.resumeCard,
+                        { opacity: pressed ? 0.88 : 1 },
+                      ]}
+                      onPress={() =>
+                        router.navigate("/categorie/parcoursScreen")
+                      }
                     >
-                      <Image source={{ uri: course.image }} style={styles.resumeThumb} />
+                      <Image
+                        source={{ uri: course.image }}
+                        style={styles.resumeThumb}
+                      />
                       <View style={styles.resumeInfo}>
-                        <Text style={styles.resumeCategory}>{course.category}</Text>
+                        <Text style={styles.resumeCategory}>
+                          {course.category}
+                        </Text>
                         <Text style={styles.resumeTitle} numberOfLines={1}>
                           {course.title}
                         </Text>
                         <View style={styles.progressTrack}>
-                          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+                          <View
+                            style={[
+                              styles.progressFill,
+                              { width: `${progress * 100}%` },
+                            ]}
+                          />
                         </View>
                         <Text style={styles.resumeMeta}>
                           {course.completedLessons}/{course.totalLessons} leçons
@@ -253,7 +279,9 @@ export default function HomeScreen() {
               <Pressable
                 key={item.id}
                 style={({ pressed }) => ({ opacity: pressed ? 0.88 : 1 })}
-                onPress={() => router.navigate({ pathname: "/categorie/parcoursScreen" })}
+                onPress={() =>
+                  router.navigate({ pathname: "/categorie/parcoursScreen" })
+                }
               >
                 <FeaturedCard item={item} />
               </Pressable>

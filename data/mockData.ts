@@ -2,7 +2,7 @@
 
 export type TagType = "expert" | "intermediate" | "beginner";
 export type CourseStatus = "en_cours" | "termine" | "non_commence";
-export type LessonStatus = "done" | "current" | "locked";
+export type LessonStatus = "done" | "current" | "available" | "locked";
 
 export interface Category {
   id: string;
@@ -57,13 +57,20 @@ export interface Course {
   instructor: string;
   tag: string;
   tagType: TagType;
-  totalLessons: number;
-  completedLessons: number;
   duration: string;
   status: CourseStatus;
   image: string;
   category: string;
   lastWatched?: string;
+}
+
+export interface CourseLesson {
+  id: string;
+  courseId: string;
+  index: number;
+  title: string;
+  duration: string;
+  url: string;
 }
 
 export interface Lesson {
@@ -415,8 +422,6 @@ export const MY_COURSES: Course[] = [
     instructor: "Marc Dupont",
     tag: "Expert",
     tagType: "expert",
-    totalLessons: 12,
-    completedLessons: 8,
     duration: "4h 30min",
     status: "en_cours",
     category: "Guitare",
@@ -429,8 +434,6 @@ export const MY_COURSES: Course[] = [
     instructor: "Sophie Martin",
     tag: "Intermédiaire",
     tagType: "intermediate",
-    totalLessons: 8,
-    completedLessons: 8,
     duration: "2h 15min",
     status: "termine",
     category: "Piano",
@@ -443,8 +446,6 @@ export const MY_COURSES: Course[] = [
     instructor: "Louis Berger",
     tag: "Débutant",
     tagType: "beginner",
-    totalLessons: 10,
-    completedLessons: 3,
     duration: "3h 45min",
     status: "en_cours",
     category: "Guitare",
@@ -457,8 +458,6 @@ export const MY_COURSES: Course[] = [
     instructor: "Kofi Mensah",
     tag: "Débutant",
     tagType: "beginner",
-    totalLessons: 15,
-    completedLessons: 0,
     duration: "5h 00min",
     status: "non_commence",
     category: "Percussions",
@@ -470,14 +469,49 @@ export const MY_COURSES: Course[] = [
     instructor: "Claire Vidal",
     tag: "Expert",
     tagType: "expert",
-    totalLessons: 20,
-    completedLessons: 20,
     duration: "7h 10min",
     status: "termine",
     category: "Théorie",
     lastWatched: "il y a 3 sem.",
     image: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&w=800&q=60",
   },
+];
+
+// ─── Cours leçons (table liée par courseId) ───────────────────────────────────
+
+const YT   = "https://www.youtube.com/watch?v=g4tEghJ8E7E";
+const MP4A = "https://media.w3.org/2010/05/bunny/trailer.mp4";
+const MP4B = "https://media.w3.org/2010/05/sintel/trailer.mp4";
+
+export const COURSE_LESSONS: CourseLesson[] = [
+  // c1 — Fingerstyle acoustique
+  { id: "lc1_1", courseId: "c1", index: 1, title: "Introduction & posture",         duration: "12 min", url: YT   },
+  { id: "lc1_2", courseId: "c1", index: 2, title: "Accords fondamentaux",            duration: "18 min", url: MP4A },
+  { id: "lc1_3", courseId: "c1", index: 3, title: "Techniques fingerstyle de base",  duration: "25 min", url: MP4B },
+  { id: "lc1_4", courseId: "c1", index: 4, title: "Enchaînements et fluidité",       duration: "22 min", url: YT   },
+
+  // c2 — Gammes pentatoniques
+  { id: "lc2_1", courseId: "c2", index: 1, title: "Les 5 positions de la gamme",     duration: "20 min", url: MP4B },
+  { id: "lc2_2", courseId: "c2", index: 2, title: "Application sur le manche",       duration: "15 min", url: YT   },
+  { id: "lc2_3", courseId: "c2", index: 3, title: "Improvisation guidée",            duration: "30 min", url: MP4A },
+
+  // c3 — Intro au jazz manouche
+  { id: "lc3_1", courseId: "c3", index: 1, title: "Histoire & esthétique",           duration: "15 min", url: YT   },
+  { id: "lc3_2", courseId: "c3", index: 2, title: "La pompe manouche",               duration: "25 min", url: MP4A },
+  { id: "lc3_3", courseId: "c3", index: 3, title: "Accords de jazz",                 duration: "20 min", url: MP4B },
+  { id: "lc3_4", courseId: "c3", index: 4, title: "Phrases mélodiques typiques",     duration: "30 min", url: YT   },
+
+  // c4 — Percussions africaines
+  { id: "lc4_1", courseId: "c4", index: 1, title: "Origines et tenue du djembé",     duration: "10 min", url: MP4A },
+  { id: "lc4_2", courseId: "c4", index: 2, title: "Sons de base : basse, ton, gifle","duration": "20 min", url: MP4B },
+  { id: "lc4_3", courseId: "c4", index: 3, title: "Premier rythme : Kuku",           duration: "25 min", url: YT   },
+  { id: "lc4_4", courseId: "c4", index: 4, title: "Polyrhythmie et dialogue",        duration: "35 min", url: MP4A },
+
+  // c5 — Harmonie & composition
+  { id: "lc5_1", courseId: "c5", index: 1, title: "Intervalles et gammes",           duration: "20 min", url: MP4B },
+  { id: "lc5_2", courseId: "c5", index: 2, title: "Construction des accords",        duration: "25 min", url: YT   },
+  { id: "lc5_3", courseId: "c5", index: 3, title: "Progressions harmoniques",        duration: "30 min", url: MP4A },
+  { id: "lc5_4", courseId: "c5", index: 4, title: "Composition d'une mélodie",       duration: "35 min", url: MP4B },
 ];
 
 // ─── Sauvegardes screen ───────────────────────────────────────────────────────

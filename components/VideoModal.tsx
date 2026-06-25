@@ -1,20 +1,19 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Modal,
   View,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   Text,
   StatusBar,
-  Dimensions,
   Platform,
   ActivityIndicator,
+  useWindowDimensions,
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import YoutubeIframe from "react-native-youtube-iframe";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const VIDEO_HEIGHT = SCREEN_WIDTH * (9 / 16);
+import YoutubeIframe, { YoutubeIframeRef } from "react-native-youtube-iframe";
+import * as ScreenOrientation from "expo-screen-orientation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +22,8 @@ interface VideoModalProps {
   videoUrl: string | null;
   title?: string;
   onClose: () => void;
+  initialTime?: number;
+  onProgress?: (currentTime: number, pct: number) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -44,18 +45,48 @@ function isYouTubeUrl(url: string): boolean {
   return /youtube\.com|youtu\.be/.test(url);
 }
 
-// ─── Sous-composant : lecteur natif (mp4, m3u8...) ───────────────────────────
+// ─── Native player (mp4, m3u8…) ──────────────────────────────────────────────
 
-function NativePlayer({ url }: { url: string }) {
+function NativePlayer({
+  url,
+  initialTime,
+  onProgress,
+  videoWidth,
+  videoHeight,
+}: {
+  url: string;
+  initialTime?: number;
+  onProgress?: (currentTime: number, pct: number) => void;
+  videoWidth: number;
+  videoHeight: number;
+}) {
   const player = useVideoPlayer(url, (p) => {
     p.loop = false;
+    p.timeUpdateEventInterval = 3; // fire every 3 s
     p.play();
   });
+
+  // Resume position once mounted
+  useEffect(() => {
+    if (initialTime && initialTime > 0) {
+      player.currentTime = initialTime;
+    }
+  }, []);
+
+  // Report progress every 3 s via timeUpdate
+  useEffect(() => {
+    if (!onProgress) return;
+    const sub = player.addListener("timeUpdate", ({ currentTime }) => {
+      const dur = player.duration;
+      if (dur > 0) onProgress(currentTime, currentTime / dur);
+    });
+    return () => sub.remove();
+  }, [onProgress]);
 
   return (
     <VideoView
       player={player}
-      style={styles.video}
+      style={{ width: videoWidth, height: videoHeight, backgroundColor: "#000" }}
       allowsFullscreen
       allowsPictureInPicture
       contentFit="contain"
@@ -63,45 +94,90 @@ function NativePlayer({ url }: { url: string }) {
   );
 }
 
-// ─── Sous-composant : lecteur YouTube ────────────────────────────────────────
+// ─── YouTube player ───────────────────────────────────────────────────────────
 
-function YouTubePlayer({ videoId }: { videoId: string }) {
+function YouTubePlayer({
+  videoId,
+  initialTime,
+  onProgress,
+  videoWidth,
+  videoHeight,
+}: {
+  videoId: string;
+  initialTime?: number;
+  onProgress?: (currentTime: number, pct: number) => void;
+  videoWidth: number;
+  videoHeight: number;
+}) {
   const [ready, setReady] = useState(false);
+  const iframeRef = useRef<YoutubeIframeRef>(null);
+
+  // Poll progress every 3 s once the player is ready
+  useEffect(() => {
+    if (!ready || !onProgress) return;
+    const interval = setInterval(async () => {
+      if (!iframeRef.current) return;
+      const [currentTime, duration] = await Promise.all([
+        iframeRef.current.getCurrentTime(),
+        iframeRef.current.getDuration(),
+      ]);
+      if (duration > 0) onProgress(currentTime, currentTime / duration);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [ready, onProgress]);
 
   return (
-    <View style={styles.video}>
-      {/* Spinner pendant le chargement */}
+    <View style={{ width: videoWidth, height: videoHeight, backgroundColor: "#000" }}>
       {!ready && (
         <View style={styles.loader}>
           <ActivityIndicator color="#fff" size="large" />
         </View>
       )}
       <YoutubeIframe
+        ref={iframeRef}
         videoId={videoId}
-        width={SCREEN_WIDTH}
-        height={VIDEO_HEIGHT}
-        play={true} // autoplay dès que prêt
+        width={videoWidth}
+        height={videoHeight}
+        play={true}
         onReady={() => setReady(true)}
         initialPlayerParams={{
           controls: true,
           rel: false,
           modestbranding: true,
           preventFullScreen: false,
+          start: initialTime ? Math.floor(initialTime) : 0,
         }}
       />
     </View>
   );
 }
 
-// ─── Composant principal ──────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function VideoModal({
   visible,
   videoUrl,
   title,
   onClose,
+  initialTime,
+  onProgress,
 }: VideoModalProps) {
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const videoWidth = width;
+  const videoHeight = isLandscape ? height : width * (9 / 16);
+
+  // Unlock orientation when modal opens, lock back to portrait on close
+  useEffect(() => {
+    if (visible) {
+      ScreenOrientation.unlockAsync();
+    } else {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    }
+  }, [visible]);
+
   const handleClose = useCallback(() => {
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
     onClose();
   }, [onClose]);
 
@@ -117,41 +193,65 @@ export default function VideoModal({
       transparent
       animationType="fade"
       statusBarTranslucent
+      supportedOrientations={["portrait", "landscape"]}
       onRequestClose={handleClose}
     >
       <StatusBar hidden />
 
       <View style={styles.overlay}>
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            {title ? (
-              <Text style={styles.title} numberOfLines={1}>
-                {title}
-              </Text>
-            ) : (
-              <View />
-            )}
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={handleClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.closeIcon}>✕</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.container, isLandscape && styles.containerLandscape]}>
 
-          {/* YouTube */}
-          {isYouTube && <YouTubePlayer videoId={youtubeId!} />}
+          {/* Portrait: header with title + close button */}
+          {!isLandscape && (
+            <View style={styles.header}>
+              {title ? (
+                <Text style={styles.title} numberOfLines={1}>{title}</Text>
+              ) : (
+                <View />
+              )}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleClose}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.closeIcon}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-          {/* Fichier direct (mp4, m3u8...) */}
-          {isNative && <NativePlayer url={videoUrl!} />}
+          {isYouTube && (
+            <YouTubePlayer
+              key={youtubeId!}
+              videoId={youtubeId!}
+              initialTime={initialTime}
+              onProgress={onProgress}
+              videoWidth={videoWidth}
+              videoHeight={videoHeight}
+            />
+          )}
 
-          {/* URL non reconnue */}
+          {isNative && (
+            <NativePlayer
+              key={videoUrl!}
+              url={videoUrl!}
+              initialTime={initialTime}
+              onProgress={onProgress}
+              videoWidth={videoWidth}
+              videoHeight={videoHeight}
+            />
+          )}
+
           {!isYouTube && !isNative && videoUrl && (
-            <View style={styles.errorContainer}>
+            <View style={[styles.errorContainer, { width: videoWidth, height: videoHeight }]}>
               <Text style={styles.errorText}>Format vidéo non supporté</Text>
             </View>
+          )}
+
+          {/* Landscape: floating close button over the video */}
+          {isLandscape && (
+            <Pressable style={styles.floatingClose} onPress={handleClose}>
+              <Text style={styles.closeIcon}>✕</Text>
+            </Pressable>
           )}
         </View>
       </View>
@@ -169,10 +269,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   container: {
-    width: SCREEN_WIDTH,
     backgroundColor: "#0f0f0f",
     borderRadius: Platform.OS === "ios" ? 16 : 8,
     overflow: "hidden",
+  },
+  containerLandscape: {
+    borderRadius: 0,
   },
   header: {
     flexDirection: "row",
@@ -202,11 +304,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
-  video: {
-    width: SCREEN_WIDTH,
-    height: VIDEO_HEIGHT,
-    backgroundColor: "#000",
-  },
   loader: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
@@ -215,8 +312,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   errorContainer: {
-    width: SCREEN_WIDTH,
-    height: VIDEO_HEIGHT,
     backgroundColor: "#111",
     justifyContent: "center",
     alignItems: "center",
@@ -224,5 +319,16 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#888",
     fontSize: 14,
+  },
+  floatingClose: {
+    position: "absolute",
+    top: 16,
+    right: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -1,8 +1,10 @@
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { Stack } from "expo-router";
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 
 
 
@@ -12,6 +14,10 @@ export default function RootLayout () {
       });
  */
     const colorScheme = useColorScheme();
+
+    useEffect(() => {
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    }, []);
     
     return (
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

@@ -202,7 +202,7 @@ export default function ExploreScreen() {
                   <VideoCard
                     key={p.id}
                     item={p}
-                    onPress={() => router.navigate("/categorie/parcoursScreen")}
+                    onPress={() => router.navigate({ pathname: "/categorie/parcoursScreen", params: { parcoursId: p.id } } as any)}
                   />
                 ))}
 

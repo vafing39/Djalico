@@ -222,7 +222,7 @@ export default function HomeScreen() {
                         { opacity: pressed ? 0.88 : 1 },
                       ]}
                       onPress={() =>
-                        router.navigate("/categorie/parcoursScreen")
+                        router.navigate(`/categorie/parcoursScreen?courseId=${course.id}` as any)
                       }
                     >
                       <Image
@@ -280,7 +280,7 @@ export default function HomeScreen() {
                 key={item.id}
                 style={({ pressed }) => ({ opacity: pressed ? 0.88 : 1 })}
                 onPress={() =>
-                  router.navigate({ pathname: "/categorie/parcoursScreen" })
+                  router.navigate({ pathname: "/categorie/parcoursScreen", params: { parcoursId: item.id } })
                 }
               >
                 <FeaturedCard item={item} />

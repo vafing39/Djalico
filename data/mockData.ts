@@ -80,12 +80,12 @@ export interface Lesson {
   title: string;
   duration: string;
   status: LessonStatus;
+  url: string;
 }
 
-export interface Module {
+export interface ParcoursSection {
   id: string;
-  title: string;
-  lessons: Lesson[];
+  courseId: string; // references MY_COURSES[].id
 }
 
 export interface ParcoursDetail {
@@ -95,13 +95,11 @@ export interface ParcoursDetail {
   instructorAvatar: string;
   tag: string;
   tagType: TagType;
-  totalLessons: number;
-  completedLessons: number;
   totalDuration: string;
   category: string;
   description: string;
   coverImage: string;
-  modules: Module[];
+  courses: ParcoursSection[];
 }
 
 export interface AdminKpi {
@@ -565,64 +563,113 @@ export const SAVED_PARCOURS: ParcoursItem[] = [
   },
 ];
 
-// ─── Parcours detail (shared by parcoursScreen & sauvegardes/[id]) ────────────
+// ─── Parcours details ─────────────────────────────────────────────────────────
 
-export const PARCOURS_DETAIL: ParcoursDetail = {
+// MY_COURSES ids: c1=Fingerstyle, c2=Gammes pentatoniques, c3=Jazz manouche, c4=Percussions, c5=Harmonie
+const GUITARE_DETAIL: ParcoursDetail = {
   id: "p1",
   title: "Chemin vers la guitare",
   instructor: "Marc Dupont",
   instructorAvatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=100&q=60",
-  tag: "Expert",
-  tagType: "expert",
-  totalLessons: 14,
-  completedLessons: 7,
-  totalDuration: "6h 45min",
-  category: "Guitare",
-  description:
-    "Un parcours complet pour maîtriser la guitare acoustique, des bases aux techniques avancées de fingerstyle et d'improvisation.",
-  coverImage:
-    "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=800&q=60",
-  modules: [
-    {
-      id: "m1",
-      title: "Les fondamentaux",
-      lessons: [
-        { id: "l1", index: 1, title: "Posture & prise en main", duration: "12 min", status: "done" },
-        { id: "l2", index: 2, title: "Premiers accords ouverts", duration: "18 min", status: "done" },
-        { id: "l3", index: 3, title: "Changer d'accord fluidement", duration: "22 min", status: "done" },
-        { id: "l4", index: 4, title: "Strumming & rythme de base", duration: "15 min", status: "done" },
-      ],
-    },
-    {
-      id: "m2",
-      title: "Technique & expressivité",
-      lessons: [
-        { id: "l5", index: 5, title: "Introduction au fingerpicking", duration: "25 min", status: "done" },
-        { id: "l6", index: 6, title: "Gammes pentatoniques", duration: "20 min", status: "done" },
-        { id: "l7", index: 7, title: "Bends, slides & vibratos", duration: "28 min", status: "done" },
-        { id: "l8", index: 8, title: "Improvisation guidée", duration: "35 min", status: "current" },
-      ],
-    },
-    {
-      id: "m3",
-      title: "Styles avancés",
-      lessons: [
-        { id: "l9", index: 9, title: "Fingerstyle acoustique", duration: "32 min", status: "locked" },
-        { id: "l10", index: 10, title: "Intro au jazz manouche", duration: "40 min", status: "locked" },
-        { id: "l11", index: 11, title: "Arpèges & patterns avancés", duration: "30 min", status: "locked" },
-      ],
-    },
-    {
-      id: "m4",
-      title: "Projet final",
-      lessons: [
-        { id: "l12", index: 12, title: "Analyse d'un morceau complet", duration: "38 min", status: "locked" },
-        { id: "l13", index: 13, title: "Composition fingerstyle", duration: "45 min", status: "locked" },
-        { id: "l14", index: 14, title: "Enregistrement & retour", duration: "20 min", status: "locked" },
-      ],
-    },
+  tag: "Expert", tagType: "expert",
+  totalDuration: "6h 45min", category: "Guitare",
+  description: "Un parcours complet pour maîtriser la guitare acoustique, des bases aux techniques avancées de fingerstyle et d'improvisation.",
+  coverImage: "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=800&q=60",
+  courses: [
+    { id: "p1s1", courseId: "c3" }, // Intro au jazz manouche
+    { id: "p1s2", courseId: "c1" }, // Fingerstyle acoustique
   ],
 };
+
+const SAXOPHONE_DETAIL: ParcoursDetail = {
+  id: "p2",
+  title: "Maîtriser le saxophone alto",
+  instructor: "Sophie Martin",
+  instructorAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=60",
+  tag: "Intermédiaire", tagType: "intermediate",
+  totalDuration: "5h 20min", category: "Saxophone",
+  description: "Apprenez les bases et les techniques intermédiaires du saxophone alto, des premières notes aux improvisations jazz.",
+  coverImage: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=800&q=60",
+  courses: [
+    { id: "p2s1", courseId: "c3" }, // Intro au jazz manouche
+    { id: "p2s2", courseId: "c5" }, // Harmonie & composition
+  ],
+};
+
+const FINGERPICKING_DETAIL: ParcoursDetail = {
+  id: "p3",
+  title: "Rythme & fingerpicking",
+  instructor: "Lucas Bernard",
+  instructorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=60",
+  tag: "Expert", tagType: "expert",
+  totalDuration: "4h 10min", category: "Guitare",
+  description: "Maîtrisez les techniques de rythmique et de fingerpicking pour guitare acoustique, du Travis picking aux patterns complexes.",
+  coverImage: "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?auto=format&fit=crop&w=800&q=60",
+  courses: [
+    { id: "p3s1", courseId: "c1" }, // Fingerstyle acoustique
+    { id: "p3s2", courseId: "c5" }, // Harmonie & composition
+  ],
+};
+
+const PIANO_DETAIL: ParcoursDetail = {
+  id: "p4",
+  title: "Piano classique — Niveau 1",
+  instructor: "Claire Vidal",
+  instructorAvatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&q=60",
+  tag: "Débutant", tagType: "beginner",
+  totalDuration: "7h 00min", category: "Piano",
+  description: "Un parcours progressif pour apprendre le piano classique en partant de zéro, jusqu'aux premières pièces de répertoire.",
+  coverImage: "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=800&q=60",
+  courses: [
+    { id: "p4s1", courseId: "c2" }, // Gammes pentatoniques
+    { id: "p4s2", courseId: "c5" }, // Harmonie & composition
+  ],
+};
+
+const BALAFON_DETAIL: ParcoursDetail = {
+  id: "p5",
+  title: "Balafon traditionnel",
+  instructor: "Sékou Diabaté",
+  instructorAvatar: "https://images.unsplash.com/photo-1530268729831-4b0b9e170218?auto=format&fit=crop&w=100&q=60",
+  tag: "Expert", tagType: "expert",
+  totalDuration: "2h 30min", category: "Percussions",
+  description: "Découvrez le balafon, instrument traditionnel d'Afrique de l'Ouest, et maîtrisez ses rythmes fondamentaux.",
+  coverImage: "https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?auto=format&fit=crop&w=800&q=60",
+  courses: [
+    { id: "p5s1", courseId: "c4" }, // Percussions africaines — Djembé
+  ],
+};
+
+const JAZZ_DETAIL: ParcoursDetail = {
+  id: "p6",
+  title: "Improvisation jazz manouche",
+  instructor: "Django Rémy",
+  instructorAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=60",
+  tag: "Expert", tagType: "expert",
+  totalDuration: "3h 55min", category: "Guitare",
+  description: "Plongez dans l'univers du jazz manouche et apprenez à improviser dans le style de Django Reinhardt.",
+  coverImage: "https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?auto=format&fit=crop&w=800&q=60",
+  courses: [
+    { id: "p6s1", courseId: "c3" }, // Intro au jazz manouche
+    { id: "p6s2", courseId: "c5" }, // Harmonie & composition
+  ],
+};
+
+export const PARCOURS_DETAILS: Record<string, ParcoursDetail> = {
+  p1: GUITARE_DETAIL,      p2: SAXOPHONE_DETAIL,     p3: FINGERPICKING_DETAIL,
+  p4: PIANO_DETAIL,        p5: BALAFON_DETAIL,        p6: JAZZ_DETAIL,
+  // saved
+  s1: GUITARE_DETAIL,      s2: SAXOPHONE_DETAIL,     s3: FINGERPICKING_DETAIL,
+  s4: PIANO_DETAIL,        s5: BALAFON_DETAIL,
+  // catalogue
+  ap1: GUITARE_DETAIL,     ap2: SAXOPHONE_DETAIL,    ap3: FINGERPICKING_DETAIL,
+  ap4: PIANO_DETAIL,       ap5: BALAFON_DETAIL,       ap6: JAZZ_DETAIL,
+  // featured
+  f1: GUITARE_DETAIL,      f2: SAXOPHONE_DETAIL,
+  f3: PIANO_DETAIL,        f4: BALAFON_DETAIL,
+};
+
+export const PARCOURS_DETAIL = GUITARE_DETAIL;
 
 // ─── All parcours list (categorie/allParcoursScreen) ──────────────────────────
 

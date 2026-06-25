@@ -49,6 +49,7 @@ export interface ParcoursItem {
   level: string;
   duration: string;
   image: string;
+  progress?: number; // 0–1
 }
 
 export interface Course {
@@ -524,6 +525,7 @@ export const SAVED_PARCOURS: ParcoursItem[] = [
     level: "Expert",
     duration: "3h 20min",
     image: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=800&q=60",
+    progress: 0.5,
   },
   {
     id: "s2",
@@ -532,6 +534,7 @@ export const SAVED_PARCOURS: ParcoursItem[] = [
     level: "Pro",
     duration: "5h 20min",
     image: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=800&q=60",
+    progress: 0.22,
   },
   {
     id: "s3",
@@ -540,6 +543,7 @@ export const SAVED_PARCOURS: ParcoursItem[] = [
     level: "Expert",
     duration: "4h 10min",
     image: "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?auto=format&fit=crop&w=800&q=60",
+    progress: 0.75,
   },
   {
     id: "s4",
@@ -548,6 +552,7 @@ export const SAVED_PARCOURS: ParcoursItem[] = [
     level: "Pro",
     duration: "7h 00min",
     image: "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=800&q=60",
+    progress: 0.1,
   },
   {
     id: "s5",
@@ -556,6 +561,7 @@ export const SAVED_PARCOURS: ParcoursItem[] = [
     level: "Expert",
     duration: "2h 30min",
     image: "https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?auto=format&fit=crop&w=800&q=60",
+    progress: 0,
   },
 ];
 

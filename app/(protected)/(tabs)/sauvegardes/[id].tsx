@@ -1,7 +1,9 @@
 import { color } from "@/config/color";
 import { PARCOURS_DETAIL, Module, Lesson } from "@/data/mockData";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useRef, useEffect, useState } from "react";
 import {
   Animated,
@@ -15,12 +17,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle } from "react-native-svg";
 
 const { width } = Dimensions.get("window");
-
-const PARCOURS = PARCOURS_DETAIL;
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const TAG_STYLES = {
   expert: {
@@ -36,7 +35,7 @@ const TAG_STYLES = {
   beginner: { bg: "rgba(181,212,244,0.4)", text: "#185FA5", dot: "#3A8FD4" },
 };
 
-// ─── Circular progress ────────────────────────────────────────────────────────
+// ─── Circular progress (real SVG arc) ────────────────────────────────────────
 
 function CircularProgress({
   progress,
@@ -45,53 +44,47 @@ function CircularProgress({
   progress: number;
   size?: number;
 }) {
-  const r = (size - 8) / 2;
+  const strokeWidth = 4;
+  const r = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * r;
-  const strokeDash = circ * progress;
+  const strokeDashoffset = circ * (1 - progress);
 
   return (
-    <View style={{ width: size, height: size, position: "relative" }}>
-      {/* SVG-like via View trick: use a ring */}
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: 4,
-          borderColor: "rgba(14,43,69,0.1)",
-          position: "absolute",
-        }}
-      />
-      {/* Filled arc approximation using rotation */}
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: 4,
-          borderColor: "transparent",
-          borderTopColor: color.yellowDark,
-          borderRightColor: progress > 0.25 ? color.yellowDark : "transparent",
-          borderBottomColor: progress > 0.5 ? color.yellowDark : "transparent",
-          borderLeftColor: progress > 0.75 ? color.yellowDark : "transparent",
-          transform: [{ rotate: "-90deg" }],
-          position: "absolute",
-        }}
-      />
-      <View
-        style={{
-          position: "absolute",
-          inset: 0,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
+    <View
+      style={{ width: size, height: size, justifyContent: "center", alignItems: "center" }}
+    >
+      <Svg
+        width={size}
+        height={size}
+        style={{ position: "absolute" }}
       >
-        <Text
-          style={{ fontSize: 12, fontWeight: "800", color: color.deepBlue }}
-        >
-          {Math.round(progress * 100)}%
-        </Text>
-      </View>
+        {/* Track */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="rgba(14,43,69,0.1)"
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        {/* Fill */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={color.yellowDark}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={`${circ}`}
+          strokeDashoffset={`${strokeDashoffset}`}
+          strokeLinecap="round"
+          rotation="-90"
+          origin={`${size / 2}, ${size / 2}`}
+        />
+      </Svg>
+      <Text style={{ fontSize: 12, fontWeight: "800", color: color.deepBlue }}>
+        {Math.round(progress * 100)}%
+      </Text>
     </View>
   );
 }
@@ -108,6 +101,7 @@ function LessonRow({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateX = useRef(new Animated.Value(16)).current;
   const scale = useRef(new Animated.Value(1)).current;
+  const { t } = useLanguage();
 
   useEffect(() => {
     Animated.parallel([
@@ -149,7 +143,7 @@ function LessonRow({
           { opacity: fadeAnim, transform: [{ translateX }, { scale }] },
         ]}
       >
-        {/* Index / status icon */}
+        {/* Status icon */}
         <View
           style={[
             styles.lessonIcon,
@@ -167,17 +161,6 @@ function LessonRow({
           )}
         </View>
 
-        {/* Connector line (not last) */}
-        <View style={styles.lessonConnectorWrap}>
-          <View
-            style={[
-              styles.lessonConnector,
-              isDone && styles.connectorDone,
-              isCurrent && styles.connectorCurrent,
-            ]}
-          />
-        </View>
-
         {/* Content */}
         <View style={styles.lessonContent}>
           <View style={styles.lessonTop}>
@@ -189,7 +172,7 @@ function LessonRow({
             </Text>
             {isCurrent && (
               <View style={styles.currentPill}>
-                <Text style={styles.currentPillText}>En cours</Text>
+                <Text style={styles.currentPillText}>{t("saves.inProgress")}</Text>
               </View>
             )}
           </View>
@@ -233,13 +216,13 @@ function ModuleBlock({
   module: Module;
   globalOffset: number;
 }) {
+  const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const doneCount = module.lessons.filter((l) => l.status === "done").length;
   const allDone = doneCount === module.lessons.length;
 
   return (
     <View style={styles.moduleBlock}>
-      {/* Module header */}
       <Pressable
         onPress={() => setCollapsed((v) => !v)}
         style={styles.moduleHeader}
@@ -249,7 +232,7 @@ function ModuleBlock({
           <View>
             <Text style={styles.moduleTitle}>{module.title}</Text>
             <Text style={styles.moduleMeta}>
-              {doneCount}/{module.lessons.length} leçons complétées
+              {doneCount}/{module.lessons.length} {t("saves.lessonsCompleted")}
             </Text>
           </View>
         </View>
@@ -260,7 +243,6 @@ function ModuleBlock({
         />
       </Pressable>
 
-      {/* Lessons */}
       {!collapsed &&
         module.lessons.map((lesson, i) => (
           <LessonRow
@@ -276,11 +258,13 @@ function ModuleBlock({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ParcoursDetailScreen() {
-  const p = PARCOURS;
+  const { t } = useLanguage();
+  // id param is available for when real API is wired; using mock data for now
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const p = PARCOURS_DETAIL;
   const progress = p.completedLessons / p.totalLessons;
   const tagStyle = TAG_STYLES[p.tagType];
 
-  // Compute global lesson offset per module for staggered animation
   let offset = 0;
 
   return (
@@ -300,7 +284,7 @@ export default function ParcoursDetailScreen() {
           />
 
           {/* Back button */}
-          <Pressable style={styles.backBtn}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()}>
             <Feather name="arrow-left" size={18} color="#fff" />
           </Pressable>
 
@@ -317,7 +301,6 @@ export default function ParcoursDetailScreen() {
             <Text style={styles.heroCategory}>{p.category}</Text>
             <Text style={styles.heroTitle}>{p.title}</Text>
 
-            {/* Instructor row */}
             <View style={styles.heroInstructorRow}>
               <Image
                 source={{ uri: p.instructorAvatar }}
@@ -326,7 +309,6 @@ export default function ParcoursDetailScreen() {
               <Text style={styles.heroInstructor}>{p.instructor}</Text>
             </View>
 
-            {/* Stats row */}
             <View style={styles.heroStats}>
               <View style={styles.heroStat}>
                 <Feather
@@ -334,7 +316,9 @@ export default function ParcoursDetailScreen() {
                   size={12}
                   color="rgba(255,255,255,0.7)"
                 />
-                <Text style={styles.heroStatText}>{p.totalLessons} leçons</Text>
+                <Text style={styles.heroStatText}>
+                  {p.totalLessons} {t("saves.lessons")}
+                </Text>
               </View>
               <View style={styles.heroStatDot} />
               <View style={styles.heroStat}>
@@ -349,11 +333,11 @@ export default function ParcoursDetailScreen() {
         <View style={styles.progressCard}>
           <CircularProgress progress={progress} size={60} />
           <View style={styles.progressCardInfo}>
-            <Text style={styles.progressCardTitle}>Ta progression</Text>
+            <Text style={styles.progressCardTitle}>{t("saves.progression")}</Text>
             <Text style={styles.progressCardSub}>
-              {p.completedLessons} leçons sur {p.totalLessons} terminées
+              {p.completedLessons} {t("saves.lessons")} {t("saves.lessonsOn")}{" "}
+              {p.totalLessons} {t("saves.completed")}
             </Text>
-            {/* Linear bar */}
             <View style={styles.progressBarTrack}>
               <View
                 style={[
@@ -363,8 +347,11 @@ export default function ParcoursDetailScreen() {
               />
             </View>
           </View>
-          <Pressable style={styles.resumeBtn}>
-            <Text style={styles.resumeBtnText}>Reprendre</Text>
+          <Pressable
+            style={styles.resumeBtn}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.resumeBtnText}>{t("saves.resume")}</Text>
             <View style={styles.resumePlay}>
               <View style={styles.playTriangleTiny} />
             </View>
@@ -378,7 +365,7 @@ export default function ParcoursDetailScreen() {
 
         {/* ── Modules & lessons ── */}
         <View style={styles.modulesSection}>
-          <Text style={styles.sectionTitle}>Contenu du parcours</Text>
+          <Text style={styles.sectionTitle}>{t("saves.content")}</Text>
 
           {p.modules.map((module) => {
             const thisOffset = offset;
@@ -648,12 +635,6 @@ const styles = StyleSheet.create({
     borderLeftColor: color.deepBlue,
     marginLeft: 2,
   },
-
-  // Connector line (vertical, purely decorative spacing)
-  lessonConnectorWrap: { display: "none" }, // hidden — using padding spacing instead
-  lessonConnector: {},
-  connectorDone: {},
-  connectorCurrent: {},
 
   // Content
   lessonContent: { flex: 1, gap: 3 },

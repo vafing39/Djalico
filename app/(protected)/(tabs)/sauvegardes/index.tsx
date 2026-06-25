@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -13,20 +13,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { color } from "@/config/color";
 import { SAVED_PARCOURS } from "@/data/mockData";
-
-const TOP_VIDEOS = SAVED_PARCOURS;
+import { useLanguage } from "@/contexts/LanguageContext";
+import { Feather } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 52) / 2; // 2 columns with 16px gap + 20px sides
 
 // ─── VideoCard ─────────────────────────────────────────────────────────────────
 function VideoCard({
   item,
   index,
+  onRemove,
 }: {
-  item: (typeof TOP_VIDEOS)[0];
+  item: (typeof SAVED_PARCOURS)[0];
   index: number;
+  onRemove: (id: string) => void;
 }) {
+  const { t } = useLanguage();
   const scale = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(24)).current;
@@ -48,14 +50,18 @@ function VideoCard({
     ]).start();
   }, []);
 
-  const onPressIn = () => {
-    router.navigate({ pathname: "/sauvegardes/[id]" });
+  const onPress = () => {
+    router.push(`/sauvegardes/${item.id}`);
   };
+
+  const onPressIn = () =>
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
 
   const onPressOut = () =>
     Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
 
   const isExpert = item.level === "Expert";
+  const progress = item.progress ?? 0;
 
   return (
     <Animated.View
@@ -68,6 +74,7 @@ function VideoCard({
       ]}
     >
       <Pressable
+        onPress={onPress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         style={styles.card}
@@ -95,10 +102,14 @@ function VideoCard({
             <Text style={styles.badgeText}>{item.level}</Text>
           </View>
 
-          {/* Heart */}
-          <View style={styles.heartButton}>
+          {/* Heart — tapping removes from saved */}
+          <Pressable
+            hitSlop={8}
+            onPress={() => onRemove(item.id)}
+            style={styles.heartButton}
+          >
             <Text style={styles.heartIcon}>♥</Text>
-          </View>
+          </Pressable>
 
           {/* Duration chip on thumb */}
           <View style={styles.durationChip}>
@@ -115,10 +126,10 @@ function VideoCard({
             {item.subtitle}
           </Text>
 
-          {/* Progress bar (decorative) */}
+          {/* Progress bar */}
           <View style={styles.progressTrack}>
             <View
-              style={[styles.progressFill, { width: `${30 + index * 14}%` }]}
+              style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]}
             />
           </View>
         </View>
@@ -127,16 +138,31 @@ function VideoCard({
   );
 }
 
+// ─── Empty state ──────────────────────────────────────────────────────────────
+function EmptyState() {
+  const { t } = useLanguage();
+  return (
+    <View style={styles.emptyWrap}>
+      <View style={styles.emptyIcon}>
+        <Feather name="bookmark" size={36} color={color.softGray} />
+      </View>
+      <Text style={styles.emptyTitle}>{t("saves.empty")}</Text>
+      <Text style={styles.emptyDesc}>{t("saves.emptyDesc")}</Text>
+    </View>
+  );
+}
+
 // ─── Header ───────────────────────────────────────────────────────────────────
-function Header() {
+function Header({ count }: { count: number }) {
+  const { t } = useLanguage();
   return (
     <View style={styles.header}>
       <View>
-        <Text style={styles.headerEyebrow}>Ma bibliothèque</Text>
-        <Text style={styles.headerTitle}>Mes favoris</Text>
+        <Text style={styles.headerEyebrow}>{t("saves.library")}</Text>
+        <Text style={styles.headerTitle}>{t("saves.favorites")}</Text>
       </View>
       <View style={styles.headerCount}>
-        <Text style={styles.headerCountText}>{TOP_VIDEOS.length}</Text>
+        <Text style={styles.headerCountText}>{count}</Text>
       </View>
     </View>
   );
@@ -144,18 +170,25 @@ function Header() {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function Favoris() {
+  const [saved, setSaved] = useState(SAVED_PARCOURS);
+
+  const handleRemove = (id: string) => {
+    setSaved((prev) => prev.filter((item) => item.id !== id));
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
-        data={TOP_VIDEOS}
+        data={saved}
         keyExtractor={(item) => item.id}
         numColumns={2}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
-        columnWrapperStyle={styles.columnWrapper}
-        ListHeaderComponent={<Header />}
+        columnWrapperStyle={saved.length > 0 ? styles.columnWrapper : undefined}
+        ListHeaderComponent={<Header count={saved.length} />}
+        ListEmptyComponent={<EmptyState />}
         renderItem={({ item, index }) => (
-          <VideoCard item={item} index={index} />
+          <VideoCard item={item} index={index} onRemove={handleRemove} />
         )}
         ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
         ListFooterComponent={<View style={{ height: 110 }} />}
@@ -347,5 +380,34 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: color.yellow,
     borderRadius: 4,
+  },
+
+  // ── Empty state
+  emptyWrap: {
+    alignItems: "center",
+    paddingTop: 60,
+    paddingHorizontal: 40,
+    gap: 12,
+  },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: "#EAF1F7",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: color.deepBlue,
+    textAlign: "center",
+  },
+  emptyDesc: {
+    fontSize: 13,
+    color: color.softGray,
+    textAlign: "center",
+    lineHeight: 19,
   },
 });

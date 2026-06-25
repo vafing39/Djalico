@@ -141,6 +141,20 @@ const translations = {
     'common.search': 'Rechercher',
     'common.all': 'Tous',
     'common.years': 'ans',
+
+    // Sauvegardes
+    'saves.library': 'Ma bibliothèque',
+    'saves.favorites': 'Mes favoris',
+    'saves.empty': 'Aucun favori',
+    'saves.emptyDesc': 'Sauvegardez des parcours pour les retrouver ici',
+    'saves.progression': 'Ta progression',
+    'saves.lessons': 'leçons',
+    'saves.lessonsOn': 'sur',
+    'saves.completed': 'terminées',
+    'saves.resume': 'Reprendre',
+    'saves.inProgress': 'En cours',
+    'saves.content': 'Contenu du parcours',
+    'saves.lessonsCompleted': 'leçons complétées',
   },
   en: {
     // Navigation
@@ -299,6 +313,20 @@ const translations = {
     'common.search': 'Search',
     'common.all': 'All',
     'common.years': 'years old',
+
+    // Saves
+    'saves.library': 'My library',
+    'saves.favorites': 'My favorites',
+    'saves.empty': 'No favorites',
+    'saves.emptyDesc': 'Save courses to find them here',
+    'saves.progression': 'Your progress',
+    'saves.lessons': 'lessons',
+    'saves.lessonsOn': 'out of',
+    'saves.completed': 'completed',
+    'saves.resume': 'Resume',
+    'saves.inProgress': 'In progress',
+    'saves.content': 'Course content',
+    'saves.lessonsCompleted': 'lessons completed',
   },
   es: {
     // Navigation

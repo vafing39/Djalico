@@ -108,6 +108,9 @@ export interface AdminKpi {
   value: number;
   icon: string;
   bg: string;
+  iconColor: string;
+  trend: string;
+  trendUp: boolean;
 }
 
 export interface AdminPieSlice {
@@ -727,9 +730,9 @@ export const ALL_PARCOURS: ParcoursItem[] = [
 // ─── Admin dashboard ──────────────────────────────────────────────────────────
 
 export const ADMIN_KPI: AdminKpi[] = [
-  { id: "active", label: "Utilisateurs", value: 56, icon: "people-outline", bg: "#E9F2FF" },
-  { id: "videos", label: "Vidéos", value: 34, icon: "videocam-outline", bg: "#FFF3CD" },
-  { id: "pending", label: "À valider", value: 4, icon: "hourglass-outline", bg: "#FFE7E7" },
+  { id: "active",  label: "Utilisateurs", value: 56, icon: "people-outline",    bg: "#E9F2FF", iconColor: "#1E88E5", trend: "+12%", trendUp: true  },
+  { id: "videos",  label: "Vidéos",       value: 34, icon: "videocam-outline",  bg: "#FFF3CD", iconColor: "#F59E0B", trend: "+5%",  trendUp: true  },
+  { id: "pending", label: "À valider",    value: 4,  icon: "hourglass-outline", bg: "#FFE7E7", iconColor: "#F44336", trend: "+2",   trendUp: false },
 ];
 
 export const ADMIN_PIE_DATA: AdminPieSlice[] = [

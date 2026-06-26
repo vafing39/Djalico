@@ -1,38 +1,72 @@
-import { logIn } from '@/contexts/api'
-import { AuthContext } from '@/contexts/authContext'
-import { router } from 'expo-router'
-import React, { useContext, useState } from 'react'
-import { Button, StyleSheet, Text } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useAuth } from "@/hooks/useAuth";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Button,
+  StyleSheet,
+  Text,
+  TextInput,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const login = () => {
-  const authState = useContext(AuthContext);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+export default function LoginScreen() {
+  const { login, loginPending, loginError } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  
-  const handleLogin = async () => {
-    try {
-      const token = await logIn(username, password)
-      if (token) {
-        router.replace('/(protected)/(admin)/home');
-      } else {
-        console.error('Échec de la connexion');
-      }
-    }catch (error) {
-      console.error("Impossible de recuperer les users",error)
-    }
-  }
+  const handleLogin = () => {
+    console.log(password);
+    login({ email, password });
+  };
 
   return (
-    <SafeAreaView>
-      <Text>login</Text>
-        <Button title='Login as user' onPress={authState.logIn}/>
-        <Button title='Login as admin' onPress={authState.logInAsAdmin}/>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Connexion</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Mot de passe"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+      {loginError ? <Text style={styles.error}>{loginError}</Text> : null}
+      {loginPending ? (
+        <ActivityIndicator />
+      ) : (
+        <Button title="Se connecter" onPress={handleLogin} />
+      )}
     </SafeAreaView>
-  )
+  );
 }
 
-export default login
-
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 24,
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 24,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  error: {
+    color: "red",
+    marginBottom: 12,
+  },
+});

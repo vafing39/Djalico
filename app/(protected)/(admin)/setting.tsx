@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Modal,
   Pressable,
@@ -14,6 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/hooks/useAuth";
 
 // ── Placeholder — replace with auth context later ─────────────────────────────
 const ADMIN = {
@@ -50,6 +52,7 @@ type SettingItemProps = {
   toggle?: boolean;
   value?: boolean;
   destructive?: boolean;
+  loading?: boolean;
   isLast?: boolean;
 };
 
@@ -63,6 +66,7 @@ function SettingItem({
   toggle,
   value,
   destructive,
+  loading,
   isLast,
 }: SettingItemProps) {
   return (
@@ -91,6 +95,11 @@ function SettingItem({
           onValueChange={onPress}
           trackColor={{ false: C.border, true: C.yellow }}
           thumbColor={value ? C.navy : C.white}
+        />
+      ) : loading ? (
+        <ActivityIndicator
+          size="small"
+          color={destructive ? C.red : C.textMuted}
         />
       ) : (
         <Ionicons
@@ -136,8 +145,10 @@ export default function Setting() {
   const [notifications, setNotifications] = useState(true);
   const [langModalVisible, setLangModalVisible] = useState(false);
   const { language, setLanguage } = useLanguage();
+  const { logOut, logoutPending } = useAuth();
 
-  const currentLang = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
+  const currentLang =
+    LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -297,6 +308,8 @@ export default function Setting() {
             iconBg={C.redLight}
             iconColor={C.red}
             label="Se déconnecter"
+            onPress={logOut}
+            loading={logoutPending}
             destructive
             isLast
           />
@@ -441,7 +454,11 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   langRowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
-  langRowSelected: { backgroundColor: "rgba(246,192,79,0.08)", borderRadius: 12, paddingHorizontal: 8 },
+  langRowSelected: {
+    backgroundColor: "rgba(246,192,79,0.08)",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+  },
   langFlag: { fontSize: 22 },
   langName: { flex: 1, fontSize: 15, fontWeight: "500", color: C.textPrimary },
   langNameSelected: { fontWeight: "700", color: C.navy },

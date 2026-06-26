@@ -3,8 +3,8 @@ import { Redirect } from "expo-router";
 import { useContext } from "react";
 import { ActivityIndicator, View } from "react-native";
 
-export default function ProtectedIndex() {
-  const { isAdmin, isLoading } = useContext(AuthContext);
+export default function Index() {
+  const { session, isAdmin, isLoading, loginPending } = useContext(AuthContext);
 
   if (isLoading) {
     return (
@@ -13,6 +13,8 @@ export default function ProtectedIndex() {
       </View>
     );
   }
+
+  if (!session) return <Redirect href="/login" />;
 
   return (
     <Redirect

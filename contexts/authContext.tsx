@@ -1,103 +1,117 @@
 import { supabase } from "@/utils/supabase";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Session } from "@supabase/supabase-js";
 import { router } from "expo-router";
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
 
-type authState = {
-  isLoggedIn: boolean;
+type AuthType = {
+  session: Session | null;
   isAdmin: boolean;
-  logIn: (email: string, password: string) => void;
-  logOut: () => void;
-  logInAsAdmin: () => void;
-  logOutAsAdmin: () => void;
-  ready: boolean;
+  isLoading: boolean;
+  login: (credentials: { email: string; password: string }) => void;
   loginPending: boolean;
-  loginError: Error | null;
+  loginError: string | null;
+  logOut: () => void;
+  logoutPending: boolean;
 };
 
-const authStorageKey = "my-key";
+export const AuthContext = createContext<AuthType>({} as AuthType);
 
-export const AuthContext = createContext<authState>({
-  isLoggedIn: false,
-  logIn: () => {},
-  logOut: () => {},
-  isAdmin: true,
-  logInAsAdmin: () => {},
-  logOutAsAdmin: () => {},
-  ready: false,
-  loginPending: false,
-  loginError: null,
+const roleQueryOptions = (userId: string) => ({
+  queryKey: ["user-role", userId],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", userId)
+      .single();
+    if (error) throw error;
+    return data as { role: "eleve" | "professeur" | "admin" };
+  },
 });
 
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [ready, setIsready] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const storeAuthState = async (newState: { isLoggedIn: boolean }) => {
-    try {
-      const jsonValue = JSON.stringify(newState);
-      await AsyncStorage.setItem(authStorageKey, jsonValue);
-    } catch (error) {
-      console.log("Error saving", error);
-    }
-  };
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setSessionLoading(false);
+    });
 
-  const loginMutation = useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const { data: userProfile, isLoading: profileLoading } = useQuery({
+    ...roleQueryOptions(session?.user?.id ?? ""),
+    enabled: !!session?.user?.id,
+  });
+
+  //General state for admin and login
+  const isAdmin = userProfile?.role === "admin";
+  const isLoading = sessionLoading || (!!session && profileLoading);
+
+  //Connection de l'utilisateur
+  const { mutate: login, isPending: loginPending, error: loginMutationError } = useMutation({
+    mutationFn: async ({
+      email,
+      password,
+    }: {
+      email: string;
+      password: string;
+    }) => {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setSession(data.session);
-      router.replace("/(protected)/(tabs)");
+      const profile = await queryClient.fetchQuery(
+        roleQueryOptions(data.user.id),
+      );
+      router.replace(
+        profile?.role === "admin"
+          ? "/(protected)/(admin)/home"
+          : "/(protected)/(tabs)",
+      );
     },
   });
 
-  const logIn = (email: string, password: string) => {
-    loginMutation.mutate({ email, password });
-  };
-
-  const logOut = () => {};
-
-  const logInAsAdmin = () => {};
-
-  const logOutAsAdmin = () => {
-    setIsLoggedIn(false);
-    router.replace("/login");
-  };
-
-  useEffect(() => {
-    const getAuthFromStorage = async () => {
-      try {
-        const value = await AsyncStorage.getItem(authStorageKey);
-        if (value !== null) {
-          const auth = JSON.parse(value);
-          setIsLoggedIn(auth.isLoggedIn);
-        }
-      } catch (error) {
-        console.log("Error fetching from storage", error);
-      }
-      setIsready(true);
-    };
-    getAuthFromStorage();
-  }, []);
+  // deconnexion de l'utilisateur
+  const { mutate: logOut, isPending: logoutPending } = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setSession(null);
+      queryClient.removeQueries({ queryKey: ["user-role"] });
+      router.replace("/login");
+    },
+  });
 
   return (
     <AuthContext.Provider
       value={{
-        ready,
-        isLoggedIn,
-        logIn,
-        logOut,
+        session,
         isAdmin,
-        logInAsAdmin,
-        logOutAsAdmin,
-        loginPending: loginMutation.isPending,
-        loginError: loginMutation.error,
+        isLoading,
+        login,
+        loginPending,
+        loginError: loginMutationError?.message ?? null,
+        logOut,
+        logoutPending,
       }}
     >
       {children}

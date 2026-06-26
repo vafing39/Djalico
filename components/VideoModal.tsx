@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import YoutubeIframe, { YoutubeIframeRef } from "react-native-youtube-iframe";
-import * as ScreenOrientation from "expo-screen-orientation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -167,17 +166,7 @@ export default function VideoModal({
   const videoWidth = width;
   const videoHeight = isLandscape ? height : width * (9 / 16);
 
-  // Unlock orientation when modal opens, lock back to portrait on close
-  useEffect(() => {
-    if (visible) {
-      ScreenOrientation.unlockAsync();
-    } else {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-    }
-  }, [visible]);
-
   const handleClose = useCallback(() => {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
     onClose();
   }, [onClose]);
 

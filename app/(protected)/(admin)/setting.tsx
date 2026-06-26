@@ -3,14 +3,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ── Placeholder — replace with auth context later ─────────────────────────────
 const ADMIN = {
@@ -119,9 +122,22 @@ function Section({
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
+const LANGUAGES = [
+  { code: "fr", name: "Français", flag: "🇫🇷" },
+  { code: "en", name: "English", flag: "🇺🇸" },
+  { code: "es", name: "Español", flag: "🇪🇸" },
+  { code: "de", name: "Deutsch", flag: "🇩🇪" },
+  { code: "it", name: "Italiano", flag: "🇮🇹" },
+  { code: "pt", name: "Português", flag: "🇵🇹" },
+] as const;
+
 export default function Setting() {
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
+  const [langModalVisible, setLangModalVisible] = useState(false);
+  const { language, setLanguage } = useLanguage();
+
+  const currentLang = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -180,6 +196,14 @@ export default function Setting() {
         {/* ── Préférences ── */}
         <Section title="Préférences">
           <SettingItem
+            icon="language-outline"
+            iconBg="#E9F2FF"
+            iconColor="#1E88E5"
+            label="Langue"
+            sublabel={`${currentLang.flag}  ${currentLang.name}`}
+            onPress={() => setLangModalVisible(true)}
+          />
+          <SettingItem
             icon="moon-outline"
             iconBg="#1F2937"
             iconColor="#E5E7EB"
@@ -200,6 +224,54 @@ export default function Setting() {
             isLast
           />
         </Section>
+
+        {/* ── Language modal ── */}
+        <Modal
+          visible={langModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setLangModalVisible(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setLangModalVisible(false)}
+          >
+            <Pressable style={styles.modalSheet} onPress={() => {}}>
+              <View style={styles.modalHandle} />
+              <Text style={styles.modalTitle}>Langue</Text>
+              {LANGUAGES.map((lang, i) => {
+                const selected = lang.code === language;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    style={[
+                      styles.langRow,
+                      i < LANGUAGES.length - 1 && styles.langRowBorder,
+                      selected && styles.langRowSelected,
+                    ]}
+                    onPress={() => {
+                      setLanguage(lang.code as any);
+                      setLangModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.langFlag}>{lang.flag}</Text>
+                    <Text
+                      style={[
+                        styles.langName,
+                        selected && styles.langNameSelected,
+                      ]}
+                    >
+                      {lang.name}
+                    </Text>
+                    {selected && (
+                      <Ionicons name="checkmark" size={18} color={C.yellow} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         {/* ── Sécurité & gestion ── */}
         <Section title="Sécurité & gestion">
@@ -333,4 +405,44 @@ const styles = StyleSheet.create({
   settingLabel: { fontSize: 15, fontWeight: "500", color: C.textPrimary },
   settingLabelDestructive: { color: C.red, fontWeight: "600" },
   settingSublabel: { fontSize: 12, color: C.textMuted, marginTop: 1 },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: C.card,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 12,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: C.border,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: C.textPrimary,
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+  langRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    gap: 14,
+  },
+  langRowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+  langRowSelected: { backgroundColor: "rgba(246,192,79,0.08)", borderRadius: 12, paddingHorizontal: 8 },
+  langFlag: { fontSize: 22 },
+  langName: { flex: 1, fontSize: 15, fontWeight: "500", color: C.textPrimary },
+  langNameSelected: { fontWeight: "700", color: C.navy },
 });

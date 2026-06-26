@@ -17,15 +17,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
 
-// ── Placeholder — replace with auth context later ─────────────────────────────
-const ADMIN = {
-  name: "Kamal Cheikh",
-  role: "Administrateur",
-  email: "kamal@djalico.com",
-  avatar:
-    "https://images.unsplash.com/photo-1603415526960-f7e0328d13db?q=80&w=200",
-};
-
 const C = {
   navy: "#103149",
   navyDeep: "#0B2035",
@@ -145,7 +136,7 @@ export default function Setting() {
   const [notifications, setNotifications] = useState(true);
   const [langModalVisible, setLangModalVisible] = useState(false);
   const { language, setLanguage } = useLanguage();
-  const { logOut, logoutPending } = useAuth();
+  const { logOut, logoutPending, profile } = useAuth();
 
   const currentLang =
     LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
@@ -164,11 +155,19 @@ export default function Setting() {
 
         {/* Profile card */}
         <View style={styles.profileCard}>
-          <Image source={{ uri: ADMIN.avatar }} style={styles.avatar} />
+          {profile?.avatar_url ? (
+            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarInitial}>
+                {profile?.name?.[0]?.toUpperCase() ?? "?"}
+              </Text>
+            </View>
+          )}
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{ADMIN.name}</Text>
-            <Text style={styles.profileRole}>{ADMIN.role}</Text>
-            <Text style={styles.profileEmail}>{ADMIN.email}</Text>
+            <Text style={styles.profileName}>{profile?.name ?? "—"}</Text>
+            <Text style={styles.profileRole}>{profile?.role ?? "—"}</Text>
+            <Text style={styles.profileEmail}>{profile?.email ?? "—"}</Text>
           </View>
           <Pressable style={styles.editAvatarBtn}>
             <Ionicons name="camera-outline" size={16} color={C.navy} />
@@ -193,7 +192,7 @@ export default function Setting() {
             iconBg="#FFF3CD"
             iconColor="#F59E0B"
             label="Changer l'email"
-            sublabel={ADMIN.email}
+            sublabel={profile?.email}
           />
           <SettingItem
             icon="lock-closed-outline"
@@ -361,6 +360,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 2,
     borderColor: C.yellow,
+  },
+  avatarPlaceholder: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarInitial: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: C.yellow,
   },
   profileInfo: { flex: 1, gap: 2 },
   profileName: { fontSize: 16, fontWeight: "800", color: C.white },

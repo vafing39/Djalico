@@ -4,8 +4,16 @@ import { Session } from "@supabase/supabase-js";
 import { router } from "expo-router";
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
 
+export type UserProfile = {
+  name: string;
+  email: string;
+  avatar_url: string | null;
+  role: "eleve" | "professeur" | "admin";
+};
+
 type AuthType = {
   session: Session | null;
+  profile: UserProfile | null;
   isAdmin: boolean;
   isLoading: boolean;
   login: (credentials: { email: string; password: string }) => void;
@@ -17,16 +25,16 @@ type AuthType = {
 
 export const AuthContext = createContext<AuthType>({} as AuthType);
 
-const roleQueryOptions = (userId: string) => ({
-  queryKey: ["user-role", userId],
+const profileQueryOptions = (userId: string) => ({
+  queryKey: ["profile", userId],
   queryFn: async () => {
     const { data, error } = await supabase
       .from("users")
-      .select("role")
+      .select("name, email, avatar_url, role")
       .eq("id", userId)
       .single();
     if (error) throw error;
-    return data as { role: "eleve" | "professeur" | "admin" };
+    return data as UserProfile;
   },
 });
 
@@ -50,13 +58,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const { data: userProfile, isLoading: profileLoading } = useQuery({
-    ...roleQueryOptions(session?.user?.id ?? ""),
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    ...profileQueryOptions(session?.user?.id ?? ""),
     enabled: !!session?.user?.id,
   });
 
   //General state for admin and login
-  const isAdmin = userProfile?.role === "admin";
+  const isAdmin = profile?.role === "admin";
   const isLoading = sessionLoading || (!!session && profileLoading);
 
   //Connection de l'utilisateur
@@ -77,11 +85,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     },
     onSuccess: async (data) => {
       setSession(data.session);
-      const profile = await queryClient.fetchQuery(
-        roleQueryOptions(data.user.id),
+      const fetched = await queryClient.fetchQuery(
+        profileQueryOptions(data.user.id),
       );
       router.replace(
-        profile?.role === "admin"
+        fetched?.role === "admin"
           ? "/(protected)/(admin)/home"
           : "/(protected)/(tabs)",
       );
@@ -96,7 +104,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     },
     onSuccess: () => {
       setSession(null);
-      queryClient.removeQueries({ queryKey: ["user-role"] });
+      queryClient.removeQueries({ queryKey: ["profile"] });
       router.replace("/login");
     },
   });
@@ -105,6 +113,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     <AuthContext.Provider
       value={{
         session,
+        profile: profile ?? null,
         isAdmin,
         isLoading,
         login,

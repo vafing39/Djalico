@@ -7,6 +7,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/hooks/useAuth";
 import { useUsers } from "@/hooks/useUsers";
 import { useVideos } from "@/hooks/useVideos";
+import { useParcours } from "@/hooks/useParcours";
+import { useCourses } from "@/hooks/useCourses";
+import { useLessons } from "@/hooks/useLessons";
 
 const C = {
   navy: "#103149",
@@ -85,7 +88,7 @@ const StatCard = ({ item }: { item: KpiItem }) => (
       <View
         style={[styles.iconWrap, { backgroundColor: `${item.iconColor}22` }]}
       >
-        <Ionicons name={item.icon as any} size={22} color={item.iconColor} />
+        <Ionicons name={item.icon as any} size={17} color={item.iconColor} />
       </View>
       <View
         style={[
@@ -147,11 +150,12 @@ export default function Home() {
   const { profile } = useAuth();
   const { users } = useUsers();
   const { videos } = useVideos();
+  const { parcours } = useParcours();
+  const { courses } = useCourses();
+  const { lessons } = useLessons();
 
   const publishedCount = videos.filter((v) => v.published).length;
   const pendingCount = videos.filter((v) => !v.published).length;
-
-  console.log(users);
 
   const kpis: KpiItem[] = useMemo(
     () => [
@@ -183,10 +187,40 @@ export default function Home() {
         bg: "#FFE7E7",
         iconColor: "#F44336",
         trend: `${pendingCount}`,
-        trendUp: false,
+        trendUp: pendingCount === 0,
+      },
+      {
+        id: "parcours",
+        label: "Parcours",
+        value: parcours.length,
+        icon: "map-outline",
+        bg: "#F3E8FF",
+        iconColor: "#9333EA",
+        trend: `${parcours.length}`,
+        trendUp: true,
+      },
+      {
+        id: "courses",
+        label: "Cours",
+        value: courses.length,
+        icon: "book-outline",
+        bg: "#DCFCE7",
+        iconColor: "#22C55E",
+        trend: `${courses.length}`,
+        trendUp: true,
+      },
+      {
+        id: "lessons",
+        label: "Leçons",
+        value: lessons.length,
+        icon: "play-circle-outline",
+        bg: "#FFF0E6",
+        iconColor: "#FF7043",
+        trend: `${lessons.length}`,
+        trendUp: true,
       },
     ],
-    [users.length, publishedCount, pendingCount],
+    [users.length, publishedCount, pendingCount, parcours.length, courses.length, lessons.length],
   );
 
   const { pieData, pieLegend } = useMemo(() => {
@@ -456,37 +490,37 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
 
-  card: { width: 148, borderRadius: 20, padding: 16, paddingBottom: 18 },
+  card: { width: 116, borderRadius: 18, padding: 12, paddingBottom: 14 },
   cardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 14,
+    marginBottom: 10,
   },
   iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
   trendBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 10,
+    gap: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
-  trendText: { fontSize: 11, fontWeight: "700" },
+  trendText: { fontSize: 10, fontWeight: "700" },
   cardValue: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: "800",
     color: C.textPrimary,
-    letterSpacing: -1,
+    letterSpacing: -0.5,
   },
   cardLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: C.textMuted,
     fontWeight: "500",
     marginTop: 2,

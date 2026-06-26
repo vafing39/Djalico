@@ -39,16 +39,34 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="gestionVideo"
         options={{
-          title: "Gestion video",
+          title: "Vidéos",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="plus.circle.fill" color={color} />
+            <IconSymbol size={28} name="play.rectangle.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="gestionCours"
+        options={{
+          title: "Cours",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="book.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="gestionParcours"
+        options={{
+          title: "Parcours",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="map.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="gestionUser"
         options={{
-          title: "Gestion utilisateur",
+          title: "Utilisateurs",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="person.badge.plus.fill" color={color} />
           ),
@@ -57,9 +75,9 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="setting"
         options={{
-          title: "Settings",
+          title: "Réglages",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+            <IconSymbol size={28} name="gearshape.fill" color={color} />
           ),
         }}
       />

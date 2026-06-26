@@ -14,8 +14,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Video, VideoContext } from "@/contexts/videoContext";
+import VideoModal from "@/components/VideoModal";
 import ModalView from "./modal";
-import { color } from "@/config/adminTheme";
+import { color, TAG_STYLES } from "@/config/adminTheme";
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -35,6 +36,7 @@ export default function GestionVideo() {
   const { videos, isLoading, error, deleteVideo } = useContext(VideoContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
+  const [playingVideo, setPlayingVideo] = useState<Video | null>(null);
   const [search, setSearch] = useState("");
   const [activeLevel, setActiveLevel] = useState<LevelKey>("all");
   const [activeCategoryId, setActiveCategoryId] = useState<string>("all");
@@ -242,7 +244,7 @@ export default function GestionVideo() {
                     i < filteredVideos.length - 1 && styles.videoCardBorder,
                   ]}
                 >
-                  <View style={styles.thumbnailWrap}>
+                  <Pressable style={styles.thumbnailWrap} onPress={() => setPlayingVideo(item)}>
                     {item.image_url ? (
                       <Image
                         source={{ uri: item.image_url }}
@@ -260,24 +262,28 @@ export default function GestionVideo() {
                     <View style={styles.playOverlay}>
                       <Ionicons name="play" size={14} color="#fff" />
                     </View>
-                  </View>
+                  </Pressable>
 
                   <View style={styles.videoInfo}>
-                    <Text style={styles.videoTitle} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-                    <View style={styles.videoMeta}>
-                      <Ionicons
-                        name="videocam-outline"
-                        size={12}
-                        color={color.textMuted}
-                      />
-                      <Text style={styles.videoMetaText}>
-                        {item.category
-                          ? `${item.category.emoji} ${item.category.title}`
-                          : "Vidéo"}{" "}
-                        · {duration}
+                    <View style={styles.videoTitleRow}>
+                      <Text style={styles.videoTitle} numberOfLines={1}>
+                        {item.title}
                       </Text>
+                      <View style={[styles.tagBadge, { backgroundColor: TAG_STYLES[item.tag_type].bg }]}>
+                        <Text style={[styles.tagText, { color: TAG_STYLES[item.tag_type].text }]}>
+                          {item.tag_type === "beginner" ? "Déb." : item.tag_type === "intermediate" ? "Inter." : "Expert"}
+                        </Text>
+                      </View>
+                    </View>
+                    {item.subtitle ? (
+                      <Text style={styles.videoSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+                    ) : null}
+                    <View style={styles.videoMeta}>
+                      <Ionicons name="videocam-outline" size={12} color={color.textMuted} />
+                      <Text style={styles.videoMetaText}>
+                        {item.category ? `${item.category.emoji} ${item.category.title}` : "Vidéo"} · {duration}
+                      </Text>
+                      <View style={[styles.publishedDot, { backgroundColor: item.published ? color.green : color.border }]} />
                     </View>
                   </View>
 
@@ -316,6 +322,12 @@ export default function GestionVideo() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         video={editingVideo}
+      />
+      <VideoModal
+        visible={!!playingVideo}
+        videoUrl={playingVideo?.url ?? null}
+        title={playingVideo?.title}
+        onClose={() => setPlayingVideo(null)}
       />
     </SafeAreaView>
   );
@@ -466,16 +478,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.2)",
   },
 
-  videoInfo: { flex: 1 },
-  videoTitle: {
-    fontSize: 13.5,
-    fontWeight: "600",
-    color: color.textPrimary,
-    lineHeight: 19,
-    marginBottom: 5,
-  },
+  videoInfo: { flex: 1, gap: 3 },
+  videoTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  videoTitle: { flex: 1, fontSize: 13.5, fontWeight: "600", color: color.textPrimary },
+  videoSubtitle: { fontSize: 11, color: color.textMuted },
+  tagBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  tagText: { fontSize: 9, fontWeight: "700" },
   videoMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
   videoMetaText: { fontSize: 11, color: color.textMuted },
+  publishedDot: { width: 7, height: 7, borderRadius: 4, marginLeft: 2 },
 
   actions: { flexDirection: "column", gap: 6 },
   actionBtn: {

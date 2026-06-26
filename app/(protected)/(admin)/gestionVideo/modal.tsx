@@ -181,9 +181,7 @@ export default function ModalView({
       courseId,
     })
       .then(onClose)
-      .catch((err: Error) => {
-        throw err;
-      });
+      .catch((err: Error) => Alert.alert("Erreur", err.message));
   }
 
   return (
@@ -538,7 +536,7 @@ const styles = StyleSheet.create({
   durationUnit: { fontSize: 13, color: color.textMuted, fontWeight: "500" },
 
   pickerWrap: {
-    backgroundColor: color.deepBlue,
+    backgroundColor: color.bg,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: color.border,

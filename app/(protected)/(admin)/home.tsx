@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import React, { useMemo } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,14 +25,18 @@ const C = {
   red: "#F44336",
 };
 
-const PIE_COLORS = [
-  "#F6C04F",
-  "#1E88E5",
-  "#22C55E",
-  "#F44336",
-  "#9333EA",
-  "#FF7043",
-];
+function generateThemeColors(count: number): string[] {
+  if (count === 1) return ["#F6C04F"];
+  const start = { r: 246, g: 192, b: 79 };  // #F6C04F — brand yellow
+  const end   = { r: 16,  g: 49,  b: 73  };  // #103149 — brand navy
+  return Array.from({ length: count }, (_, i) => {
+    const t = i / (count - 1);
+    const r = Math.round(start.r + t * (end.r - start.r));
+    const g = Math.round(start.g + t * (end.g - start.g));
+    const b = Math.round(start.b + t * (end.b - start.b));
+    return `rgb(${r},${g},${b})`;
+  });
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -148,14 +153,17 @@ const ActivityRow = ({ item }: { item: ActivityEvent }) => (
 
 export default function Home() {
   const { profile } = useAuth();
-  const { users } = useUsers();
-  const { videos } = useVideos();
-  const { parcours } = useParcours();
-  const { courses } = useCourses();
-  const { lessons } = useLessons();
+  const { users, isLoading: usersLoading } = useUsers();
+  const { videos, isLoading: videosLoading } = useVideos();
+  const { parcours, isLoading: parcoursLoading } = useParcours();
+  const { courses, isLoading: coursesLoading } = useCourses();
+  const { lessons, isLoading: lessonsLoading } = useLessons();
+
+  const isKpiLoading = usersLoading || videosLoading || parcoursLoading || coursesLoading || lessonsLoading;
+  const isPieLoading = videosLoading;
+  const isActivityLoading = usersLoading || videosLoading;
 
   const publishedCount = videos.filter((v) => v.published).length;
-  const pendingCount = videos.filter((v) => !v.published).length;
 
   const kpis: KpiItem[] = useMemo(
     () => [
@@ -178,16 +186,6 @@ export default function Home() {
         iconColor: "#F59E0B",
         trend: `${publishedCount}`,
         trendUp: true,
-      },
-      {
-        id: "pending",
-        label: "À valider",
-        value: pendingCount,
-        icon: "hourglass-outline",
-        bg: "#FFE7E7",
-        iconColor: "#F44336",
-        trend: `${pendingCount}`,
-        trendUp: pendingCount === 0,
       },
       {
         id: "parcours",
@@ -220,33 +218,34 @@ export default function Home() {
         trendUp: true,
       },
     ],
-    [users.length, publishedCount, pendingCount, parcours.length, courses.length, lessons.length],
+    [
+      users.length,
+      publishedCount,
+      parcours.length,
+      courses.length,
+      lessons.length,
+    ],
   );
 
   const { pieData, pieLegend } = useMemo(() => {
-    const map = new Map<string, { count: number; color: string }>();
-    videos.forEach((v, _, arr) => {
+    const countMap = new Map<string, number>();
+    videos.forEach((v) => {
       if (!v.category) return;
-      const key = v.category.title;
-      const idx = Array.from(
-        new Set(arr.filter((x) => x.category).map((x) => x.category!.title)),
-      ).indexOf(key);
-      const color = PIE_COLORS[idx % PIE_COLORS.length];
-      map.set(key, { count: (map.get(key)?.count ?? 0) + 1, color });
+      countMap.set(v.category.title, (countMap.get(v.category.title) ?? 0) + 1);
     });
-    const entries = Array.from(map.entries())
-      .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 5);
-    const total = entries.reduce((s, [, { count }]) => s + count, 0);
-    const pieData = entries.map(([text, { count, color }]) => ({
+    const entries = Array.from(countMap.entries())
+      .sort((a, b) => b[1] - a[1]);
+    const colors = generateThemeColors(entries.length);
+    const total = entries.reduce((s, [, c]) => s + c, 0);
+    const pieData = entries.map(([text, count], i) => ({
       value: total > 0 ? Math.round((count / total) * 100) : 0,
-      color,
+      color: colors[i],
       text,
     }));
-    const pieLegend = entries.map(([label, { count, color }]) => ({
+    const pieLegend = entries.map(([label, count], i) => ({
       label,
       value: total > 0 ? Math.round((count / total) * 100) : 0,
-      color,
+      color: colors[i],
     }));
     return { pieData, pieLegend };
   }, [videos]);
@@ -278,6 +277,7 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="light" backgroundColor={C.navyDeep} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -311,7 +311,7 @@ export default function Home() {
           <Text style={styles.greeting}>{getGreeting()},</Text>
           <Text style={styles.name}>{profile?.name ?? "—"} 👋</Text>
           <Text style={styles.subtitle}>
-            Voici un résumé de ton activité aujourd'hui
+            Voici un résumé de ton activité aujourd&apos;hui
           </Text>
 
           <View style={styles.summaryStrip}>
@@ -332,24 +332,32 @@ export default function Home() {
 
         {/* ── KPI Cards ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Vue d'ensemble</Text>
+          <Text style={styles.sectionTitle}>Vue d&apos;ensemble</Text>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
-        >
-          {kpis.map((it) => (
-            <StatCard key={it.id} item={it} />
-          ))}
-        </ScrollView>
+        {isKpiLoading ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={C.navy} />
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+          >
+            {kpis.map((it) => (
+              <StatCard key={it.id} item={it} />
+            ))}
+          </ScrollView>
+        )}
 
         {/* ── Popularity ── */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Popularité par catégorie</Text>
         </View>
         <View style={[styles.sectionCard, styles.elevated]}>
-          {pieData.length > 0 ? (
+          {isPieLoading ? (
+            <ActivityIndicator size="small" color={C.navy} style={{ paddingVertical: 24 }} />
+          ) : pieData.length > 0 ? (
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <PieChart
                 donut
@@ -392,16 +400,21 @@ export default function Home() {
           <Text style={styles.sectionTitle}>Activité récente</Text>
         </View>
         <View style={[styles.sectionCard, styles.elevated]}>
-          {recentActivity.map((item, i) => (
-            <View key={item.id}>
-              <ActivityRow item={item} />
-              {i < recentActivity.length - 1 && (
-                <View style={styles.separator} />
-              )}
-            </View>
-          ))}
+          {isActivityLoading ? (
+            <ActivityIndicator size="small" color={C.navy} style={{ paddingVertical: 24 }} />
+          ) : (
+            recentActivity.map((item, i) => (
+              <View key={item.id}>
+                <ActivityRow item={item} />
+                {i < recentActivity.length - 1 && (
+                  <View style={styles.separator} />
+                )}
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
+      <View style={{ height: 40 }} />
     </SafeAreaView>
   );
 }
@@ -483,6 +496,7 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 2 },
 
   sectionHeader: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 12 },
+  loadingRow: { height: 80, justifyContent: "center", alignItems: "center" },
   sectionTitle: {
     fontSize: 17,
     fontWeight: "800",

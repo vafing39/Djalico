@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import React, { useContext, useEffect, useState } from "react";
 import {
@@ -18,39 +18,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CourseContext } from "@/contexts/courseContext";
 import { Video, VideoContext } from "@/contexts/videoContext";
-import { supabase } from "@/utils/supabase"; // used only for categories fetch + course_lessons insert
+import { supabase } from "@/utils/supabase";
 import { color, LEVELS } from "@/config/adminTheme";
 
-// ─── Types & constants ────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Category = { id: string; title: string; emoji: string };
 type TagType = "beginner" | "intermediate" | "expert";
-
-
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-async function uploadToStorage(
-  uri: string,
-  bucket: string,
-  path: string,
-  contentType: string,
-): Promise<string> {
-  const response = await fetch(uri);
-  const arrayBuffer = await response.arrayBuffer();
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(path, arrayBuffer, { contentType, upsert: true });
-  if (error) throw error;
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(bucket).getPublicUrl(data.path);
-  return publicUrl;
-}
-
-function randomSuffix() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
@@ -63,7 +37,7 @@ export default function ModalView({
   onClose: () => void;
   video?: Video | null;
 }) {
-  const { addVideo, updateVideo } = useContext(VideoContext);
+  const { saveVideo, isSaving } = useContext(VideoContext);
   const { courses } = useContext(CourseContext);
   const isEdit = !!video;
 
@@ -124,18 +98,48 @@ export default function ModalView({
   });
 
   async function pickVideo() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["videos"],
-      quality: 1,
-    });
-    if (result.canceled || !result.assets[0]) return;
-    const asset = result.assets[0];
-    setVideoUri(asset.uri);
-    setVideoUrl("");
-    if (asset.duration) {
-      const totalSec = Math.round(asset.duration / 1000);
-      setDurationMin(String(Math.floor(totalSec / 60)));
-      setDurationSec(String(totalSec % 60));
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          "Accès refusé",
+          "Autorisez l'accès à la bibliothèque de photos dans Réglages > Confidentialité > Photos.",
+        );
+        return;
+      }
+      if (perm.accessPrivileges === "limited") {
+        Alert.alert(
+          "Accès limité",
+          "L'application n'a accès qu'à certaines photos. Pour sélectionner n'importe quelle vidéo, allez dans Réglages > Confidentialité > Photos et choisissez « Toutes les photos ».",
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["videos"],
+      });
+      if (result.canceled) return;
+      const asset = result.assets?.[0];
+      if (!asset?.uri) {
+        Alert.alert(
+          "Vidéo inaccessible",
+          "La vidéo est peut-être stockée dans iCloud. Téléchargez-la sur l'appareil depuis l'app Photos puis réessayez.",
+        );
+        return;
+      }
+      setVideoUri(asset.uri);
+      setVideoUrl("");
+      if (asset.duration) {
+        const totalSec = Math.round(asset.duration / 1000);
+        setDurationMin(String(Math.floor(totalSec / 60)));
+        setDurationSec(String(totalSec % 60));
+      }
+    } catch (err: unknown) {
+      Alert.alert(
+        "Erreur",
+        err instanceof Error
+          ? err.message
+          : "Impossible de sélectionner la vidéo.",
+      );
     }
   }
 
@@ -149,71 +153,6 @@ export default function ModalView({
     setImageUrl("");
   }
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const durationSeconds =
-        (parseInt(durationMin) || 0) * 60 + (parseInt(durationSec) || 0);
-
-      let finalVideoUrl = videoUrl.trim();
-      if (videoUri) {
-        const ext = videoUri.split(".").pop() ?? "mp4";
-        finalVideoUrl = await uploadToStorage(
-          videoUri,
-          "videos",
-          `${randomSuffix()}.${ext}`,
-          `video/${ext}`,
-        );
-      }
-
-      let finalImageUrl: string | null = imageUrl.trim() || null;
-      if (imageUri) {
-        const ext = imageUri.split(".").pop() ?? "jpg";
-        finalImageUrl = await uploadToStorage(
-          imageUri,
-          "videos",
-          `thumbnails/${randomSuffix()}.${ext}`,
-          `image/${ext}`,
-        );
-      }
-
-      const payload = {
-        title: title.trim(),
-        subtitle: subtitle.trim() || null,
-        category_id: categoryId || null,
-        tag_type: tagType,
-        url: finalVideoUrl,
-        image_url: finalImageUrl,
-        duration_seconds: durationSeconds,
-        published,
-      };
-
-      if (isEdit) {
-        await updateVideo(video!.id, payload);
-      } else {
-        const inserted = await addVideo(payload);
-        if (courseId) {
-          const { data: lastLesson } = await supabase
-            .from("course_lessons")
-            .select("index")
-            .eq("course_id", courseId)
-            .order("index", { ascending: false })
-            .limit(1);
-          const nextIndex =
-            lastLesson?.[0] != null ? lastLesson[0].index + 1 : 0;
-          await supabase.from("course_lessons").insert({
-            course_id: courseId,
-            title: inserted.title,
-            url: inserted.url,
-            duration_seconds: durationSeconds,
-            index: nextIndex,
-          });
-        }
-      }
-    },
-    onSuccess: onClose,
-    onError: (err: Error) => Alert.alert("Erreur", err.message),
-  });
-
   function handleSubmit() {
     if (!title.trim()) {
       Alert.alert("Champ requis", "Le titre est obligatoire.");
@@ -226,7 +165,25 @@ export default function ModalView({
       );
       return;
     }
-    mutation.mutate();
+    saveVideo({
+      editId: isEdit ? video!.id : null,
+      videoUri,
+      videoUrl,
+      imageUri,
+      imageUrl,
+      title,
+      subtitle,
+      categoryId,
+      tagType,
+      durationSeconds:
+        (parseInt(durationMin) || 0) * 60 + (parseInt(durationSec) || 0),
+      published,
+      courseId,
+    })
+      .then(onClose)
+      .catch((err: Error) => {
+        throw err;
+      });
   }
 
   return (
@@ -239,7 +196,10 @@ export default function ModalView({
       <SafeAreaView style={styles.container}>
         {/* ── Header ── */}
         <View style={styles.header}>
-          <View>
+          <Pressable style={styles.closeBtn} onPress={onClose}>
+            <Ionicons name="close" size={20} color={color.red} />
+          </Pressable>
+          <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>
               {isEdit ? "Modifier la vidéo" : "Ajouter une vidéo"}
             </Text>
@@ -247,8 +207,25 @@ export default function ModalView({
               {isEdit ? video!.title : "Nouvelle vidéo"}
             </Text>
           </View>
-          <Pressable style={styles.closeBtn} onPress={onClose}>
-            <Ionicons name="close" size={20} color={color.textMuted} />
+          <Pressable
+            style={[styles.submitBtn, isSaving && { opacity: 0.6 }]}
+            onPress={handleSubmit}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator color={color.navy} size="small" />
+            ) : (
+              <>
+                <Ionicons
+                  name={isEdit ? "save-outline" : "cloud-upload-outline"}
+                  size={15}
+                  color={color.navy}
+                />
+                <Text style={styles.submitText}>
+                  {isEdit ? "Enregistrer" : "Publier"}
+                </Text>
+              </>
+            )}
           </Pressable>
         </View>
 
@@ -257,6 +234,29 @@ export default function ModalView({
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+          {/* ── Niveau ── */}
+          <View style={styles.levelRow}>
+            {LEVELS.map((l) => (
+              <Pressable
+                key={l.value}
+                style={[
+                  styles.levelChip,
+                  tagType === l.value && styles.levelChipActive,
+                ]}
+                onPress={() => setTagType(l.value)}
+              >
+                <Text
+                  style={[
+                    styles.levelText,
+                    tagType === l.value && styles.levelTextActive,
+                  ]}
+                >
+                  {l.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
           {/* ── Video ── */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>
@@ -266,7 +266,7 @@ export default function ModalView({
               <Ionicons
                 name={videoUri ? "checkmark-circle" : "cloud-upload-outline"}
                 size={28}
-                color={videoUri ? color.green : color.navy}
+                color={videoUri ? color.green : color.white}
               />
               <Text style={styles.uploadTitle}>
                 {videoUri ? "Vidéo sélectionnée" : "Importer depuis la galerie"}
@@ -295,7 +295,7 @@ export default function ModalView({
               <Ionicons
                 name={imageUri ? "checkmark-circle" : "image-outline"}
                 size={28}
-                color={imageUri ? color.green : color.navy}
+                color={imageUri ? color.green : color.white}
               />
               <Text style={styles.uploadTitle}>
                 {imageUri ? "Image sélectionnée" : "Choisir une image"}
@@ -398,31 +398,6 @@ export default function ModalView({
               </View>
             </View>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>Niveau</Text>
-              <View style={styles.levelRow}>
-                {LEVELS.map((l) => (
-                  <Pressable
-                    key={l.value}
-                    style={[
-                      styles.levelChip,
-                      tagType === l.value && styles.levelChipActive,
-                    ]}
-                    onPress={() => setTagType(l.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.levelText,
-                        tagType === l.value && styles.levelTextActive,
-                      ]}
-                    >
-                      {l.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
             {!isEdit && (
               <View style={styles.field}>
                 <Text style={styles.label}>Cours associé</Text>
@@ -455,33 +430,6 @@ export default function ModalView({
             </View>
           </View>
 
-          {/* ── Actions ── */}
-          <View style={styles.actionRow}>
-            <Pressable style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.cancelText}>Annuler</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.submitBtn, mutation.isPending && { opacity: 0.6 }]}
-              onPress={handleSubmit}
-              disabled={mutation.isPending}
-            >
-              {mutation.isPending ? (
-                <ActivityIndicator color={color.navy} size="small" />
-              ) : (
-                <>
-                  <Ionicons
-                    name={isEdit ? "save-outline" : "cloud-upload-outline"}
-                    size={18}
-                    color={color.navy}
-                  />
-                  <Text style={styles.submitText}>
-                    {isEdit ? "Enregistrer" : "Publier"}
-                  </Text>
-                </>
-              )}
-            </Pressable>
-          </View>
-
           <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
@@ -496,31 +444,38 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
     backgroundColor: color.white,
     borderBottomWidth: 1,
     borderBottomColor: color.border,
   },
+  headerCenter: { flex: 1, alignItems: "center" },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "800",
     color: color.textPrimary,
     letterSpacing: -0.3,
+    textAlign: "center",
   },
-  headerSub: { fontSize: 13, color: color.textMuted, marginTop: 3, maxWidth: 260 },
+  headerSub: {
+    fontSize: 12,
+    color: color.textMuted,
+    marginTop: 2,
+    textAlign: "center",
+  },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: color.bg,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: color.redLight,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: color.border,
+    borderColor: color.red,
   },
 
   scrollContent: { padding: 16, gap: 12 },
@@ -539,7 +494,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 15, fontWeight: "700", color: color.textPrimary },
 
   uploadZone: {
-    backgroundColor: color.bg,
+    backgroundColor: color.deepBlue,
     borderRadius: 14,
     borderWidth: 1.5,
     borderColor: color.border,
@@ -548,8 +503,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  uploadTitle: { fontSize: 14, fontWeight: "600", color: color.textPrimary },
-  uploadSub: { fontSize: 11, color: color.textMuted },
+  uploadTitle: { fontSize: 14, fontWeight: "600", color: color.white },
+  uploadSub: { fontSize: 11, color: color.yellow },
 
   divider: {
     textAlign: "center",
@@ -583,7 +538,7 @@ const styles = StyleSheet.create({
   durationUnit: { fontSize: 13, color: color.textMuted, fontWeight: "500" },
 
   pickerWrap: {
-    backgroundColor: color.bg,
+    backgroundColor: color.deepBlue,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: color.border,
@@ -610,25 +565,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-  actionRow: { flexDirection: "row", gap: 12, marginTop: 4 },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: color.border,
-    alignItems: "center",
-  },
-  cancelText: { fontSize: 15, fontWeight: "600", color: color.textMuted },
   submitBtn: {
-    flex: 2,
     flexDirection: "row",
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     backgroundColor: color.yellow,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 6,
   },
-  submitText: { fontSize: 15, fontWeight: "700", color: color.navy },
+  submitText: { fontSize: 13, fontWeight: "700", color: color.navy },
 });

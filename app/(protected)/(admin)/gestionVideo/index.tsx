@@ -296,7 +296,11 @@ export default function GestionVideo() {
                       style={[styles.actionBtn, { backgroundColor: "#FFE7E7" }]}
                       onPress={() => handleDelete(item)}
                     >
-                      <Ionicons name="trash-outline" size={16} color={color.red} />
+                      <Ionicons
+                        name="trash-outline"
+                        size={16}
+                        color={color.red}
+                      />
                     </Pressable>
                   </View>
                 </View>
@@ -331,6 +335,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+
     marginBottom: 16,
   },
   headerEyebrow: {

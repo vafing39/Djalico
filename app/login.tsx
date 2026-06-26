@@ -1,3 +1,4 @@
+import { color } from "@/config/adminTheme";
 import { useAuth } from "@/hooks/useAuth";
 import React, { useState } from "react";
 import {
@@ -15,7 +16,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
 
   const handleLogin = () => {
-    console.log(password);
     login({ email, password });
   };
 
@@ -52,6 +52,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: "center",
+    backgroundColor: color.white,
   },
   title: {
     fontSize: 24,

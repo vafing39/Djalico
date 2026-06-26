@@ -1,17 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Video, VideoContext } from "@/contexts/videoContext";
 import ModalView from "./modal";
-import { ADMIN_VIDEOS } from "@/data/mockData";
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 const C = {
   navy:        "#103149",
@@ -26,12 +35,69 @@ const C = {
   card:        "#FFFFFF",
 };
 
-const FILTERS = ["Tous", "Récents", "En attente", "Publiés"] as const;
-type Filter = (typeof FILTERS)[number];
+const LEVELS = [
+  { key: "all",          label: "Tous" },
+  { key: "beginner",     label: "Débutant" },
+  { key: "intermediate", label: "Intermédiaire" },
+  { key: "expert",       label: "Expert" },
+] as const;
+type LevelKey = (typeof LEVELS)[number]["key"];
 
 export default function GestionVideo() {
-  const [modalVisible, setModalVisible] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<Filter>("Tous");
+  const { videos, isLoading, error, deleteVideo } = useContext(VideoContext);
+  const [modalVisible, setModalVisible]         = useState(false);
+  const [editingVideo, setEditingVideo]         = useState<Video | null>(null);
+  const [search, setSearch]                     = useState("");
+  const [activeLevel, setActiveLevel]           = useState<LevelKey>("all");
+  const [activeCategoryId, setActiveCategoryId] = useState<string>("all");
+
+  function openAdd() {
+    setEditingVideo(null);
+    setModalVisible(true);
+  }
+
+  function openEdit(video: Video) {
+    setEditingVideo(video);
+    setModalVisible(true);
+  }
+
+  function handleDelete(video: Video) {
+    Alert.alert(
+      "Supprimer la vidéo",
+      `Voulez-vous vraiment supprimer « ${video.title} » ? Cette action est irréversible.`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: () =>
+            deleteVideo(video.id).catch((err: Error) => Alert.alert("Erreur", err.message)),
+        },
+      ]
+    );
+  }
+
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    const list: { id: string; title: string; emoji: string }[] = [];
+    for (const v of videos) {
+      if (v.category && !seen.has(v.category.id)) {
+        seen.add(v.category.id);
+        list.push(v.category);
+      }
+    }
+    return list;
+  }, [videos]);
+
+  const filteredVideos = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return videos.filter((v) => {
+      if (q && !v.title.toLowerCase().includes(q)) return false;
+      if (activeLevel !== "all" && v.tag_type !== activeLevel) return false;
+      if (activeCategoryId !== "all" && v.category?.id !== activeCategoryId) return false;
+      return true;
+    });
+  }, [videos, search, activeLevel, activeCategoryId]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -50,14 +116,28 @@ export default function GestionVideo() {
           </View>
           <View style={styles.headerRight}>
             <View style={styles.countBadge}>
-              <Text style={styles.countText}>{ADMIN_VIDEOS.length}</Text>
+              <Text style={styles.countText}>{videos.length}</Text>
               <Text style={styles.countLabel}>vidéos</Text>
             </View>
-            <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
+            <Pressable style={styles.addBtn} onPress={openAdd}>
               <Ionicons name="add" size={22} color={C.navy} />
               <Text style={styles.addBtnText}>Ajouter</Text>
             </Pressable>
           </View>
+        </View>
+
+        {/* ── Search ── */}
+        <View style={styles.searchRow}>
+          <Ionicons name="search-outline" size={16} color="rgba(255,255,255,0.5)" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher une vidéo…"
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            value={search}
+            onChangeText={setSearch}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
         </View>
       </LinearGradient>
 
@@ -65,75 +145,118 @@ export default function GestionVideo() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* ── Filters ── */}
+        {/* ── Level filter ── */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filtersRow}
         >
-          {FILTERS.map((f) => (
+          {LEVELS.map((l) => (
             <Pressable
-              key={f}
-              style={[styles.filterChip, activeFilter === f && styles.filterChipActive]}
-              onPress={() => setActiveFilter(f)}
+              key={l.key}
+              style={[styles.filterChip, activeLevel === l.key && styles.filterChipActive]}
+              onPress={() => setActiveLevel(l.key)}
             >
-              <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>
-                {f}
+              <Text style={[styles.filterText, activeLevel === l.key && styles.filterTextActive]}>
+                {l.label}
               </Text>
             </Pressable>
           ))}
         </ScrollView>
 
+        {/* ── Category filter ── */}
+        {categories.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filtersRow}
+          >
+            <Pressable
+              style={[styles.filterChip, activeCategoryId === "all" && styles.filterChipActive]}
+              onPress={() => setActiveCategoryId("all")}
+            >
+              <Text style={[styles.filterText, activeCategoryId === "all" && styles.filterTextActive]}>
+                Toutes catégories
+              </Text>
+            </Pressable>
+            {categories.map((cat) => (
+              <Pressable
+                key={cat.id}
+                style={[styles.filterChip, activeCategoryId === cat.id && styles.filterChipActive]}
+                onPress={() => setActiveCategoryId(cat.id)}
+              >
+                <Text style={[styles.filterText, activeCategoryId === cat.id && styles.filterTextActive]}>
+                  {cat.emoji} {cat.title}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+
         {/* ── Video list ── */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Mes vidéos</Text>
-          <Text style={styles.sectionCount}>{ADMIN_VIDEOS.length} au total</Text>
+          <Text style={styles.sectionCount}>{filteredVideos.length} au total</Text>
         </View>
 
-        <View style={styles.listWrap}>
-          {ADMIN_VIDEOS.map((item, i) => (
-            <View
-              key={item.id}
-              style={[styles.videoCard, i < ADMIN_VIDEOS.length - 1 && styles.videoCardBorder]}
-            >
-              {/* Thumbnail with duration badge */}
-              <View style={styles.thumbnailWrap}>
-                <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
-                <View style={styles.durationBadge}>
-                  <Ionicons name="time-outline" size={9} color="#fff" />
-                  <Text style={styles.durationText}>{item.duration}</Text>
-                </View>
-                <View style={styles.playOverlay}>
-                  <Ionicons name="play" size={14} color="#fff" />
-                </View>
-              </View>
+        {isLoading ? (
+          <ActivityIndicator size="large" color={C.navy} style={{ marginTop: 40 }} />
+        ) : error ? (
+          <Text style={styles.errorText}>Erreur de chargement des vidéos</Text>
+        ) : filteredVideos.length === 0 ? (
+          <Text style={styles.emptyText}>Aucune vidéo trouvée</Text>
+        ) : (
+          <View style={styles.listWrap}>
+            {filteredVideos.map((item, i) => {
+              const duration = formatDuration(item.duration_seconds);
+              return (
+                <View
+                  key={item.id}
+                  style={[styles.videoCard, i < filteredVideos.length - 1 && styles.videoCardBorder]}
+                >
+                  <View style={styles.thumbnailWrap}>
+                    {item.image_url ? (
+                      <Image source={{ uri: item.image_url }} style={styles.thumbnail} />
+                    ) : (
+                      <View style={[styles.thumbnail, styles.thumbnailPlaceholder]} />
+                    )}
+                    <View style={styles.durationBadge}>
+                      <Ionicons name="time-outline" size={9} color="#fff" />
+                      <Text style={styles.durationText}>{duration}</Text>
+                    </View>
+                    <View style={styles.playOverlay}>
+                      <Ionicons name="play" size={14} color="#fff" />
+                    </View>
+                  </View>
 
-              {/* Info */}
-              <View style={styles.videoInfo}>
-                <Text style={styles.videoTitle} numberOfLines={2}>{item.title}</Text>
-                <View style={styles.videoMeta}>
-                  <Ionicons name="videocam-outline" size={12} color={C.textMuted} />
-                  <Text style={styles.videoMetaText}>Vidéo · {item.duration}</Text>
-                </View>
-              </View>
+                  <View style={styles.videoInfo}>
+                    <Text style={styles.videoTitle} numberOfLines={2}>{item.title}</Text>
+                    <View style={styles.videoMeta}>
+                      <Ionicons name="videocam-outline" size={12} color={C.textMuted} />
+                      <Text style={styles.videoMetaText}>
+                        {item.category ? `${item.category.emoji} ${item.category.title}` : "Vidéo"} · {duration}
+                      </Text>
+                    </View>
+                  </View>
 
-              {/* Actions */}
-              <View style={styles.actions}>
-                <Pressable style={[styles.actionBtn, { backgroundColor: "#E9F2FF" }]}>
-                  <Ionicons name="create-outline" size={16} color="#1E88E5" />
-                </Pressable>
-                <Pressable style={[styles.actionBtn, { backgroundColor: "#FFE7E7" }]}>
-                  <Ionicons name="trash-outline" size={16} color={C.red} />
-                </Pressable>
-              </View>
-            </View>
-          ))}
-        </View>
+                  <View style={styles.actions}>
+                    <Pressable style={[styles.actionBtn, { backgroundColor: "#E9F2FF" }]} onPress={() => openEdit(item)}>
+                      <Ionicons name="create-outline" size={16} color="#1E88E5" />
+                    </Pressable>
+                    <Pressable style={[styles.actionBtn, { backgroundColor: "#FFE7E7" }]} onPress={() => handleDelete(item)}>
+                      <Ionicons name="trash-outline" size={16} color={C.red} />
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <ModalView visible={modalVisible} onClose={() => setModalVisible(false)} />
+      <ModalView visible={modalVisible} onClose={() => setModalVisible(false)} video={editingVideo} />
     </SafeAreaView>
   );
 }
@@ -141,8 +264,8 @@ export default function GestionVideo() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
 
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 22, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   headerEyebrow: { fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: "500", marginBottom: 2 },
   headerTitle: { fontSize: 24, fontWeight: "800", color: C.white, letterSpacing: -0.4 },
   headerRight: { alignItems: "flex-end", gap: 10 },
@@ -152,15 +275,19 @@ const styles = StyleSheet.create({
   addBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.yellow, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
   addBtnText: { fontSize: 13, fontWeight: "700", color: C.navy },
 
+  searchRow: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 14, color: C.white },
+
   scrollContent: { paddingTop: 8, paddingBottom: 20 },
 
-  filtersRow: { paddingHorizontal: 20, paddingVertical: 16, gap: 8 },
+  filtersRow: { paddingHorizontal: 20, paddingVertical: 10, gap: 8 },
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border },
   filterChipActive: { backgroundColor: C.navy, borderColor: C.navy },
   filterText: { fontSize: 13, fontWeight: "600", color: C.textMuted },
   filterTextActive: { color: C.white },
 
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingHorizontal: 20, marginBottom: 12 },
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
   sectionTitle: { fontSize: 17, fontWeight: "800", color: C.textPrimary, letterSpacing: -0.3 },
   sectionCount: { fontSize: 12, color: C.textMuted, fontWeight: "500" },
 
@@ -170,6 +297,7 @@ const styles = StyleSheet.create({
 
   thumbnailWrap: { width: 80, height: 52, borderRadius: 10, overflow: "hidden", position: "relative", flexShrink: 0 },
   thumbnail: { width: "100%", height: "100%", resizeMode: "cover" },
+  thumbnailPlaceholder: { backgroundColor: C.border },
   durationBadge: { position: "absolute", bottom: 4, left: 4, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6 },
   durationText: { fontSize: 9, color: "#fff", fontWeight: "600" },
   playOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.2)" },
@@ -182,4 +310,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: "column", gap: 6 },
   actionBtn: { width: 32, height: 32, borderRadius: 10, justifyContent: "center", alignItems: "center" },
 
+  errorText: { textAlign: "center", marginTop: 40, color: C.red, fontSize: 14, fontWeight: "500" },
+  emptyText: { textAlign: "center", marginTop: 40, color: C.textMuted, fontSize: 14, fontWeight: "500" },
 });

@@ -16,20 +16,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/hooks/useAuth";
+import { color } from "@/config/adminTheme";
 
-const C = {
-  navy: "#103149",
-  navyDeep: "#0B2035",
-  white: "#FFFFFF",
-  textPrimary: "#1F2937",
-  textMuted: "#6B7280",
-  yellow: "#F6C04F",
-  red: "#F44336",
-  redLight: "#FFE7E7",
-  bg: "#F7FAFF",
-  card: "#FFFFFF",
-  border: "#E5E7EB",
-};
 
 // ─── Setting row ──────────────────────────────────────────────────────────────
 
@@ -84,19 +72,19 @@ function SettingItem({
         <Switch
           value={value}
           onValueChange={onPress}
-          trackColor={{ false: C.border, true: C.yellow }}
-          thumbColor={value ? C.navy : C.white}
+          trackColor={{ false: color.border, true: color.yellow }}
+          thumbColor={value ? color.navy : color.white}
         />
       ) : loading ? (
         <ActivityIndicator
           size="small"
-          color={destructive ? C.red : C.textMuted}
+          color={destructive ? color.red : color.textMuted}
         />
       ) : (
         <Ionicons
           name="chevron-forward"
           size={16}
-          color={destructive ? C.red : C.textMuted}
+          color={destructive ? color.red : color.textMuted}
         />
       )}
     </Pressable>
@@ -145,7 +133,7 @@ export default function Setting() {
     <SafeAreaView style={styles.container}>
       {/* ── Header ── */}
       <LinearGradient
-        colors={[C.navyDeep, C.navy]}
+        colors={[color.navyDeep, color.navy]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -170,7 +158,7 @@ export default function Setting() {
             <Text style={styles.profileEmail}>{profile?.email ?? "—"}</Text>
           </View>
           <Pressable style={styles.editAvatarBtn}>
-            <Ionicons name="camera-outline" size={16} color={C.navy} />
+            <Ionicons name="camera-outline" size={16} color={color.navy} />
           </Pressable>
         </View>
       </LinearGradient>
@@ -274,7 +262,7 @@ export default function Setting() {
                       {lang.name}
                     </Text>
                     {selected && (
-                      <Ionicons name="checkmark" size={18} color={C.yellow} />
+                      <Ionicons name="checkmark" size={18} color={color.yellow} />
                     )}
                   </TouchableOpacity>
                 );
@@ -304,8 +292,8 @@ export default function Setting() {
         <Section title="Compte">
           <SettingItem
             icon="log-out-outline"
-            iconBg={C.redLight}
-            iconColor={C.red}
+            iconBg={color.redLight}
+            iconColor={color.red}
             label="Se déconnecter"
             onPress={logOut}
             loading={logoutPending}
@@ -323,7 +311,7 @@ export default function Setting() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
+  container: { flex: 1, backgroundColor: color.bg },
 
   header: {
     paddingHorizontal: 20,
@@ -341,7 +329,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: "800",
-    color: C.white,
+    color: color.white,
     letterSpacing: -0.4,
     marginBottom: 20,
   },
@@ -359,7 +347,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: C.yellow,
+    borderColor: color.yellow,
   },
   avatarPlaceholder: {
     backgroundColor: "rgba(255,255,255,0.15)",
@@ -369,17 +357,17 @@ const styles = StyleSheet.create({
   avatarInitial: {
     fontSize: 22,
     fontWeight: "800",
-    color: C.yellow,
+    color: color.yellow,
   },
   profileInfo: { flex: 1, gap: 2 },
-  profileName: { fontSize: 16, fontWeight: "800", color: C.white },
-  profileRole: { fontSize: 12, color: C.yellow, fontWeight: "600" },
+  profileName: { fontSize: 16, fontWeight: "800", color: color.white },
+  profileRole: { fontSize: 12, color: color.yellow, fontWeight: "600" },
   profileEmail: { fontSize: 11, color: "rgba(255,255,255,0.5)" },
   editAvatarBtn: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: C.yellow,
+    backgroundColor: color.yellow,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -390,14 +378,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: C.textMuted,
+    color: color.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 10,
     marginLeft: 4,
   },
   sectionCard: {
-    backgroundColor: C.card,
+    backgroundColor: color.card,
     borderRadius: 20,
     overflow: "hidden",
     shadowColor: "#000",
@@ -414,7 +402,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 14,
   },
-  settingRowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+  settingRowBorder: { borderBottomWidth: 1, borderBottomColor: color.border },
   settingIcon: {
     width: 36,
     height: 36,
@@ -424,9 +412,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   settingContent: { flex: 1 },
-  settingLabel: { fontSize: 15, fontWeight: "500", color: C.textPrimary },
-  settingLabelDestructive: { color: C.red, fontWeight: "600" },
-  settingSublabel: { fontSize: 12, color: C.textMuted, marginTop: 1 },
+  settingLabel: { fontSize: 15, fontWeight: "500", color: color.textPrimary },
+  settingLabelDestructive: { color: color.red, fontWeight: "600" },
+  settingSublabel: { fontSize: 12, color: color.textMuted, marginTop: 1 },
 
   modalOverlay: {
     flex: 1,
@@ -434,7 +422,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalSheet: {
-    backgroundColor: C.card,
+    backgroundColor: color.card,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -444,7 +432,7 @@ const styles = StyleSheet.create({
   modalHandle: {
     width: 40,
     height: 4,
-    backgroundColor: C.border,
+    backgroundColor: color.border,
     borderRadius: 2,
     alignSelf: "center",
     marginBottom: 20,
@@ -452,7 +440,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: C.textPrimary,
+    color: color.textPrimary,
     marginBottom: 16,
     letterSpacing: -0.3,
   },
@@ -462,13 +450,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 14,
   },
-  langRowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+  langRowBorder: { borderBottomWidth: 1, borderBottomColor: color.border },
   langRowSelected: {
     backgroundColor: "rgba(246,192,79,0.08)",
     borderRadius: 12,
     paddingHorizontal: 8,
   },
   langFlag: { fontSize: 22 },
-  langName: { flex: 1, fontSize: 15, fontWeight: "500", color: C.textPrimary },
-  langNameSelected: { fontWeight: "700", color: C.navy },
+  langName: { flex: 1, fontSize: 15, fontWeight: "500", color: color.textPrimary },
+  langNameSelected: { fontWeight: "700", color: color.navy },
 });

@@ -4,18 +4,10 @@ import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { color, LEVELS } from "@/config/adminTheme";
 
-const C = {
-  navy: "#103149", white: "#FFFFFF", textPrimary: "#1F2937", textMuted: "#6B7280",
-  yellow: "#F6C04F", red: "#F44336", bg: "#F7FAFF", card: "#FFFFFF", border: "#E5E7EB",
-};
 
 const CATEGORIES = ["Guitare", "Saxophone", "Piano", "Percussions", "Balafon", "Jazz"];
-const LEVELS = [
-  { label: "Débutant",      value: "beginner"     },
-  { label: "Intermédiaire", value: "intermediate" },
-  { label: "Expert",        value: "expert"       },
-];
 
 export default function ModalView({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const [title, setTitle]           = useState("");
@@ -62,18 +54,18 @@ export default function ModalView({ visible, onClose }: { visible: boolean; onCl
             <Text style={styles.headerSub}>Remplis les informations du cours</Text>
           </View>
           <Pressable style={styles.closeBtn} onPress={handleClose}>
-            <Ionicons name="close" size={20} color={C.textMuted} />
+            <Ionicons name="close" size={20} color={color.textMuted} />
           </Pressable>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.form}>
             <Field label="Titre" required>
-              <TextInput style={styles.input} placeholder="Ex : Fingerstyle acoustique" placeholderTextColor={C.textMuted} value={title} onChangeText={setTitle} />
+              <TextInput style={styles.input} placeholder="Ex : Fingerstyle acoustique" placeholderTextColor={color.textMuted} value={title} onChangeText={setTitle} />
             </Field>
 
             <Field label="Instructeur" required>
-              <TextInput style={styles.input} placeholder="Ex : Marc Dupont" placeholderTextColor={C.textMuted} value={instructor} onChangeText={setInstructor} />
+              <TextInput style={styles.input} placeholder="Ex : Marc Dupont" placeholderTextColor={color.textMuted} value={instructor} onChangeText={setInstructor} />
             </Field>
 
             <View style={styles.row}>
@@ -98,7 +90,7 @@ export default function ModalView({ visible, onClose }: { visible: boolean; onCl
             </View>
 
             <Field label="Durée totale">
-              <TextInput style={styles.input} placeholder="Ex : 4h 30min" placeholderTextColor={C.textMuted} value={duration} onChangeText={setDuration} />
+              <TextInput style={styles.input} placeholder="Ex : 4h 30min" placeholderTextColor={color.textMuted} value={duration} onChangeText={setDuration} />
             </Field>
 
             <Field label="Image de couverture">
@@ -114,7 +106,7 @@ export default function ModalView({ visible, onClose }: { visible: boolean; onCl
                 ) : (
                   <>
                     <View style={styles.imageIconWrap}>
-                      <Ionicons name="image-outline" size={28} color={C.navy} />
+                      <Ionicons name="image-outline" size={28} color={color.navy} />
                     </View>
                     <Text style={styles.imagePickerTitle}>Choisir une image</Text>
                     <Text style={styles.imagePickerSub}>Format 16:9 recommandé</Text>
@@ -129,7 +121,7 @@ export default function ModalView({ visible, onClose }: { visible: boolean; onCl
               <Text style={styles.cancelText}>Annuler</Text>
             </Pressable>
             <Pressable style={styles.submitBtn} onPress={handleSubmit}>
-              <Ionicons name="checkmark" size={18} color={C.navy} />
+              <Ionicons name="checkmark" size={18} color={color.navy} />
               <Text style={styles.submitText}>Créer le cours</Text>
             </Pressable>
           </View>
@@ -151,30 +143,30 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, backgroundColor: C.white, borderBottomWidth: 1, borderBottomColor: C.border },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: C.textPrimary, letterSpacing: -0.3 },
-  headerSub: { fontSize: 13, color: C.textMuted, marginTop: 3 },
-  closeBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: C.bg, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: C.border },
+  container: { flex: 1, backgroundColor: color.bg },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, backgroundColor: color.white, borderBottomWidth: 1, borderBottomColor: color.border },
+  headerTitle: { fontSize: 20, fontWeight: "800", color: color.textPrimary, letterSpacing: -0.3 },
+  headerSub: { fontSize: 13, color: color.textMuted, marginTop: 3 },
+  closeBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: color.bg, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: color.border },
   scrollContent: { padding: 20, gap: 20 },
   form: { gap: 16 },
   row: { flexDirection: "row", gap: 12 },
   field: { gap: 7 },
-  label: { fontSize: 13, fontWeight: "700", color: C.textPrimary },
-  required: { color: C.red },
-  input: { backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: C.textPrimary, borderWidth: 1, borderColor: C.border },
-  pickerWrap: { backgroundColor: C.card, borderRadius: 12, borderWidth: 1, borderColor: C.border, overflow: "hidden" },
-  picker: { color: C.textPrimary },
-  imagePicker: { height: 160, borderRadius: 16, borderWidth: 1.5, borderColor: C.border, borderStyle: "dashed", backgroundColor: C.bg, overflow: "hidden", alignItems: "center", justifyContent: "center", gap: 8 },
+  label: { fontSize: 13, fontWeight: "700", color: color.textPrimary },
+  required: { color: color.red },
+  input: { backgroundColor: color.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: color.textPrimary, borderWidth: 1, borderColor: color.border },
+  pickerWrap: { backgroundColor: color.card, borderRadius: 12, borderWidth: 1, borderColor: color.border, overflow: "hidden" },
+  picker: { color: color.textPrimary },
+  imagePicker: { height: 160, borderRadius: 16, borderWidth: 1.5, borderColor: color.border, borderStyle: "dashed", backgroundColor: color.bg, overflow: "hidden", alignItems: "center", justifyContent: "center", gap: 8 },
   imagePreview: { width: "100%", height: "100%", resizeMode: "cover" },
   imageOverlay: { position: "absolute", bottom: 10, right: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   imageOverlayText: { fontSize: 12, fontWeight: "600", color: "#fff" },
   imageIconWrap: { width: 52, height: 52, borderRadius: 14, backgroundColor: "#E9F2FF", justifyContent: "center", alignItems: "center" },
-  imagePickerTitle: { fontSize: 14, fontWeight: "700", color: C.textPrimary },
-  imagePickerSub: { fontSize: 12, color: C.textMuted },
+  imagePickerTitle: { fontSize: 14, fontWeight: "700", color: color.textPrimary },
+  imagePickerSub: { fontSize: 12, color: color.textMuted },
   actionRow: { flexDirection: "row", gap: 12, marginTop: 4 },
-  cancelBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, borderWidth: 1.5, borderColor: C.border, alignItems: "center" },
-  cancelText: { fontSize: 15, fontWeight: "600", color: C.textMuted },
-  submitBtn: { flex: 2, flexDirection: "row", paddingVertical: 16, borderRadius: 16, backgroundColor: C.yellow, alignItems: "center", justifyContent: "center", gap: 8 },
-  submitText: { fontSize: 15, fontWeight: "700", color: C.navy },
+  cancelBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, borderWidth: 1.5, borderColor: color.border, alignItems: "center" },
+  cancelText: { fontSize: 15, fontWeight: "600", color: color.textMuted },
+  submitBtn: { flex: 2, flexDirection: "row", paddingVertical: 16, borderRadius: 16, backgroundColor: color.yellow, alignItems: "center", justifyContent: "center", gap: 8 },
+  submitText: { fontSize: 15, fontWeight: "700", color: color.navy },
 });

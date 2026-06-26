@@ -11,19 +11,8 @@ import { useVideos } from "@/hooks/useVideos";
 import { useParcours } from "@/hooks/useParcours";
 import { useCourses } from "@/hooks/useCourses";
 import { useLessons } from "@/hooks/useLessons";
+import { color } from "@/config/adminTheme";
 
-const C = {
-  navy: "#103149",
-  navyDeep: "#0B2035",
-  white: "#FFFFFF",
-  textPrimary: "#1F2937",
-  textMuted: "#6B7280",
-  border: "#E5E7EB",
-  card: "#FFFFFF",
-  yellow: "#F6C04F",
-  green: "#22C55E",
-  red: "#F44336",
-};
 
 function generateThemeColors(count: number): string[] {
   if (count === 1) return ["#F6C04F"];
@@ -104,10 +93,10 @@ const StatCard = ({ item }: { item: KpiItem }) => (
         <Ionicons
           name={item.trendUp ? "arrow-up" : "arrow-down"}
           size={10}
-          color={item.trendUp ? C.green : C.red}
+          color={item.trendUp ? color.green : color.red}
         />
         <Text
-          style={[styles.trendText, { color: item.trendUp ? C.green : C.red }]}
+          style={[styles.trendText, { color: item.trendUp ? color.green : color.red }]}
         >
           {item.trend}
         </Text>
@@ -277,21 +266,21 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" backgroundColor={C.navyDeep} />
+      <StatusBar style="light" backgroundColor={color.navyDeep} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         {/* ── Header ── */}
         <LinearGradient
-          colors={[C.navyDeep, C.navy]}
+          colors={[color.navyDeep, color.navy]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
           <View style={styles.headerTop}>
             <View style={styles.datePill}>
-              <Ionicons name="calendar-outline" size={12} color={C.yellow} />
+              <Ionicons name="calendar-outline" size={12} color={color.yellow} />
               <Text style={styles.datePillText}>{getFormattedDate()}</Text>
             </View>
             {profile?.avatar_url ? (
@@ -336,7 +325,7 @@ export default function Home() {
         </View>
         {isKpiLoading ? (
           <View style={styles.loadingRow}>
-            <ActivityIndicator size="small" color={C.navy} />
+            <ActivityIndicator size="small" color={color.navy} />
           </View>
         ) : (
           <ScrollView
@@ -356,7 +345,7 @@ export default function Home() {
         </View>
         <View style={[styles.sectionCard, styles.elevated]}>
           {isPieLoading ? (
-            <ActivityIndicator size="small" color={C.navy} style={{ paddingVertical: 24 }} />
+            <ActivityIndicator size="small" color={color.navy} style={{ paddingVertical: 24 }} />
           ) : pieData.length > 0 ? (
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <PieChart
@@ -401,7 +390,7 @@ export default function Home() {
         </View>
         <View style={[styles.sectionCard, styles.elevated]}>
           {isActivityLoading ? (
-            <ActivityIndicator size="small" color={C.navy} style={{ paddingVertical: 24 }} />
+            <ActivityIndicator size="small" color={color.navy} style={{ paddingVertical: 24 }} />
           ) : (
             recentActivity.map((item, i) => (
               <View key={item.id}>
@@ -457,19 +446,19 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: C.yellow,
+    borderColor: color.yellow,
   },
   avatarPlaceholder: {
     backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarInitial: { fontSize: 18, fontWeight: "800", color: C.yellow },
+  avatarInitial: { fontSize: 18, fontWeight: "800", color: color.yellow },
   greeting: { fontSize: 16, color: "rgba(255,255,255,0.6)", fontWeight: "500" },
   name: {
     fontSize: 30,
     fontWeight: "800",
-    color: C.white,
+    color: color.white,
     letterSpacing: -0.5,
     marginTop: 2,
   },
@@ -492,7 +481,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: "rgba(255,255,255,0.1)",
   },
-  summaryValue: { fontSize: 22, fontWeight: "800", color: C.white },
+  summaryValue: { fontSize: 22, fontWeight: "800", color: color.white },
   summaryLabel: { fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 2 },
 
   sectionHeader: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 12 },
@@ -500,7 +489,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: "800",
-    color: C.textPrimary,
+    color: color.textPrimary,
     letterSpacing: -0.3,
   },
 
@@ -530,18 +519,18 @@ const styles = StyleSheet.create({
   cardValue: {
     fontSize: 24,
     fontWeight: "800",
-    color: C.textPrimary,
+    color: color.textPrimary,
     letterSpacing: -0.5,
   },
   cardLabel: {
     fontSize: 11,
-    color: C.textMuted,
+    color: color.textMuted,
     fontWeight: "500",
     marginTop: 2,
   },
 
   sectionCard: {
-    backgroundColor: C.card,
+    backgroundColor: color.card,
     borderRadius: 22,
     padding: 18,
     marginHorizontal: 20,
@@ -554,12 +543,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  centerValue: { fontSize: 18, fontWeight: "800", color: C.navy },
-  centerLabel: { fontSize: 10, color: C.textMuted, marginTop: 1 },
+  centerValue: { fontSize: 18, fontWeight: "800", color: color.navy },
+  centerLabel: { fontSize: 10, color: color.textMuted, marginTop: 1 },
   legendRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
   legendDot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-  legendLabel: { fontSize: 13, color: C.textPrimary },
-  legendPercent: { fontSize: 13, fontWeight: "700", color: C.textPrimary },
+  legendLabel: { fontSize: 13, color: color.textPrimary },
+  legendPercent: { fontSize: 13, fontWeight: "700", color: color.textPrimary },
 
   activityRow: {
     flexDirection: "row",
@@ -575,7 +564,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
     flexShrink: 0,
   },
-  activityText: { flex: 1, fontSize: 13, color: C.textPrimary, lineHeight: 18 },
-  activityTime: { fontSize: 11, color: C.textMuted, marginLeft: 8 },
-  separator: { height: 1, backgroundColor: C.border, opacity: 0.6 },
+  activityText: { flex: 1, fontSize: 13, color: color.textPrimary, lineHeight: 18 },
+  activityTime: { fontSize: 11, color: color.textMuted, marginLeft: 8 },
+  separator: { height: 1, backgroundColor: color.border, opacity: 0.6 },
 });

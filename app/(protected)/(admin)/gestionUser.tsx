@@ -10,17 +10,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ADMIN_USERS_INITIAL } from "@/data/mockData";
+import { color } from "@/config/adminTheme";
 
-const COLORS = {
-  deepBlue: "#0E2B45",
-  navy: "#103149",
-  paleBlue: "#F3F8FB",
-  bgGradientTop: "#ECF6FF",
-  bgGradientBottom: "#FFFFFF",
-  yellow: "#FFD66B",
-  yellowDark: "#F6C04F",
-  softGray: "#9AA6B2",
-};
 
 export default function gestionUser() {
   const [users, setUsers] = useState(ADMIN_USERS_INITIAL);
@@ -41,7 +32,7 @@ export default function gestionUser() {
       </View>
       <View style={styles.actions}>
         <TouchableOpacity style={styles.iconBtn}>
-          <Ionicons name="pencil" size={20} color={COLORS.navy} />
+          <Ionicons name="pencil" size={20} color={color.navy} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn}>
           <Ionicons name="trash" size={20} color="red" />
@@ -61,12 +52,12 @@ export default function gestionUser() {
           <Ionicons
             name="search"
             size={20}
-            color={COLORS.softGray}
+            color={color.softGray}
             style={{ marginHorizontal: 8 }}
           />
           <TextInput
             placeholder="Rechercher un utilisateur"
-            placeholderTextColor={COLORS.softGray}
+            placeholderTextColor={color.softGray}
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
@@ -83,7 +74,7 @@ export default function gestionUser() {
 
         {/* Bouton flottant */}
         <TouchableOpacity style={styles.fab} activeOpacity={0.8}>
-          <Ionicons name="add" size={28} color={COLORS.navy} />
+          <Ionicons name="add" size={28} color={color.navy} />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -93,20 +84,20 @@ export default function gestionUser() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bgGradientBottom,
+    backgroundColor: color.bgBottom,
     paddingHorizontal: 16,
     paddingTop: 20,
   },
   pageTitle: {
     fontSize: 26,
     fontWeight: "700",
-    color: COLORS.deepBlue,
+    color: color.deepBlue,
     marginBottom: 16,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.paleBlue,
+    backgroundColor: color.paleBlue,
     borderRadius: 12,
     paddingVertical: 8,
     marginBottom: 16,
@@ -114,17 +105,17 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: COLORS.deepBlue,
+    color: color.deepBlue,
     paddingRight: 8,
   },
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.paleBlue,
+    backgroundColor: color.paleBlue,
     padding: 16,
     borderRadius: 16,
     marginBottom: 12,
-    shadowColor: COLORS.navy,
+    shadowColor: color.navy,
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
@@ -132,17 +123,17 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: "600",
-    color: COLORS.deepBlue,
+    color: color.deepBlue,
   },
   email: {
     fontSize: 14,
-    color: COLORS.softGray,
+    color: color.softGray,
     marginTop: 2,
   },
   role: {
     fontSize: 13,
     marginTop: 4,
-    color: COLORS.navy,
+    color: color.navy,
     fontWeight: "500",
   },
   actions: {
@@ -157,13 +148,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 90,
     right: 24,
-    backgroundColor: COLORS.yellow,
+    backgroundColor: color.yellowLight,
     width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: COLORS.navy,
+    shadowColor: color.navy,
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 4,

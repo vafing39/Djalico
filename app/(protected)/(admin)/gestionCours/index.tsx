@@ -5,18 +5,8 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MY_COURSES } from "@/data/mockData";
 import ModalView from "./modal";
+import { color, TAG_STYLES } from "@/config/adminTheme";
 
-const C = {
-  navy: "#103149", navyDeep: "#0B2035", white: "#FFFFFF",
-  textPrimary: "#1F2937", textMuted: "#6B7280",
-  yellow: "#F6C04F", red: "#F44336", border: "#E5E7EB", bg: "#F7FAFF", card: "#FFFFFF",
-};
-
-const TAG_STYLES = {
-  expert:       { bg: "#FFF3CD", text: "#92610A" },
-  intermediate: { bg: "#DCFCE7", text: "#166534" },
-  beginner:     { bg: "#E9F2FF", text: "#1E4FA5" },
-};
 
 const FILTERS = ["Tous", "Guitare", "Piano", "Saxophone", "Percussions", "Jazz"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -32,7 +22,7 @@ export default function GestionCours() {
   return (
     <SafeAreaView style={styles.container}>
       {/* ── Header ── */}
-      <LinearGradient colors={[C.navyDeep, C.navy]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
+      <LinearGradient colors={[color.navyDeep, color.navy]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.headerEyebrow}>Administration</Text>
@@ -44,7 +34,7 @@ export default function GestionCours() {
               <Text style={styles.countLabel}>cours</Text>
             </View>
             <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
-              <Ionicons name="add" size={22} color={C.navy} />
+              <Ionicons name="add" size={22} color={color.navy} />
               <Text style={styles.addBtnText}>Ajouter</Text>
             </Pressable>
           </View>
@@ -81,13 +71,13 @@ export default function GestionCours() {
                     </View>
                   </View>
                   <Text style={styles.courseInstructor}>
-                    <Ionicons name="person-outline" size={11} color={C.textMuted} /> {course.instructor}
+                    <Ionicons name="person-outline" size={11} color={color.textMuted} /> {course.instructor}
                   </Text>
                   <View style={styles.courseMeta}>
-                    <Ionicons name="musical-notes-outline" size={11} color={C.textMuted} />
+                    <Ionicons name="musical-notes-outline" size={11} color={color.textMuted} />
                     <Text style={styles.courseMetaText}>{course.category}</Text>
                     <View style={styles.metaDot} />
-                    <Ionicons name="time-outline" size={11} color={C.textMuted} />
+                    <Ionicons name="time-outline" size={11} color={color.textMuted} />
                     <Text style={styles.courseMetaText}>{course.duration}</Text>
                   </View>
                 </View>
@@ -96,7 +86,7 @@ export default function GestionCours() {
                     <Ionicons name="create-outline" size={16} color="#1E88E5" />
                   </Pressable>
                   <Pressable style={[styles.actionBtn, { backgroundColor: "#FFE7E7" }]}>
-                    <Ionicons name="trash-outline" size={16} color={C.red} />
+                    <Ionicons name="trash-outline" size={16} color={color.red} />
                   </Pressable>
                 </View>
               </View>
@@ -113,42 +103,42 @@ export default function GestionCours() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
+  container: { flex: 1, backgroundColor: color.bg },
   header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 22, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   headerEyebrow: { fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: "500", marginBottom: 2 },
-  headerTitle: { fontSize: 24, fontWeight: "800", color: C.white, letterSpacing: -0.4 },
+  headerTitle: { fontSize: 24, fontWeight: "800", color: color.white, letterSpacing: -0.4 },
   headerRight: { alignItems: "flex-end", gap: 10 },
   countBadge: { backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10, alignItems: "center" },
-  countText: { fontSize: 24, fontWeight: "800", color: C.white },
+  countText: { fontSize: 24, fontWeight: "800", color: color.white },
   countLabel: { fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 1 },
-  addBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.yellow, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
-  addBtnText: { fontSize: 13, fontWeight: "700", color: C.navy },
+  addBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: color.yellow, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
+  addBtnText: { fontSize: 13, fontWeight: "700", color: color.navy },
 
   scrollContent: { paddingTop: 8 },
   filtersRow: { paddingHorizontal: 20, paddingVertical: 16, gap: 8 },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border },
-  filterChipActive: { backgroundColor: C.navy, borderColor: C.navy },
-  filterText: { fontSize: 13, fontWeight: "600", color: C.textMuted },
-  filterTextActive: { color: C.white },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: color.card, borderWidth: 1.5, borderColor: color.border },
+  filterChipActive: { backgroundColor: color.navy, borderColor: color.navy },
+  filterText: { fontSize: 13, fontWeight: "600", color: color.textMuted },
+  filterTextActive: { color: color.white },
 
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingHorizontal: 20, marginBottom: 12 },
-  sectionTitle: { fontSize: 17, fontWeight: "800", color: C.textPrimary, letterSpacing: -0.3 },
-  sectionCount: { fontSize: 12, color: C.textMuted, fontWeight: "500" },
+  sectionTitle: { fontSize: 17, fontWeight: "800", color: color.textPrimary, letterSpacing: -0.3 },
+  sectionCount: { fontSize: 12, color: color.textMuted, fontWeight: "500" },
 
-  listWrap: { marginHorizontal: 20, backgroundColor: C.card, borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 4 },
+  listWrap: { marginHorizontal: 20, backgroundColor: color.card, borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 4 },
   courseCard: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
-  courseCardBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+  courseCardBorder: { borderBottomWidth: 1, borderBottomColor: color.border },
   thumbnail: { width: 64, height: 64, borderRadius: 12, flexShrink: 0 },
   courseInfo: { flex: 1, gap: 4 },
   courseTopRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  courseTitle: { flex: 1, fontSize: 13.5, fontWeight: "700", color: C.textPrimary },
+  courseTitle: { flex: 1, fontSize: 13.5, fontWeight: "700", color: color.textPrimary },
   tagBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   tagText: { fontSize: 10, fontWeight: "700" },
-  courseInstructor: { fontSize: 12, color: C.textMuted },
+  courseInstructor: { fontSize: 12, color: color.textMuted },
   courseMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
-  courseMetaText: { fontSize: 11, color: C.textMuted },
-  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: C.border },
+  courseMetaText: { fontSize: 11, color: color.textMuted },
+  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: color.border },
   actions: { flexDirection: "column", gap: 6 },
   actionBtn: { width: 32, height: 32, borderRadius: 10, justifyContent: "center", alignItems: "center" },
 });

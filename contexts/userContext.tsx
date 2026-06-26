@@ -19,7 +19,9 @@ type UserContextType = {
   refetch: () => void;
 };
 
-export const UserContext = createContext<UserContextType>({} as UserContextType);
+export const UserContext = createContext<UserContextType>(
+  {} as UserContextType,
+);
 
 export function UserProvider({ children }: PropsWithChildren) {
   const { data, isLoading, error, refetch } = useQuery({
@@ -30,6 +32,7 @@ export function UserProvider({ children }: PropsWithChildren) {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
+      console.log(data);
       return data as User[];
     },
   });

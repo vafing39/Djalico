@@ -1,18 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React from "react";
+import React, { useMemo } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  ADMIN_KPI,
-  ADMIN_PIE_DATA,
-  ADMIN_SATISFACTION,
-  ADMIN_ACTIVITY,
-} from "@/data/mockData";
 import { useAuth } from "@/hooks/useAuth";
-
-const ADMIN_NAME = "Kamal";
+import { useUsers } from "@/hooks/useUsers";
+import { useVideos } from "@/hooks/useVideos";
 
 const C = {
   navy: "#103149",
@@ -25,6 +19,36 @@ const C = {
   yellow: "#F6C04F",
   green: "#22C55E",
   red: "#F44336",
+};
+
+const PIE_COLORS = [
+  "#F6C04F",
+  "#1E88E5",
+  "#22C55E",
+  "#F44336",
+  "#9333EA",
+  "#FF7043",
+];
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type KpiItem = {
+  id: string;
+  label: string;
+  value: number;
+  icon: string;
+  bg: string;
+  iconColor: string;
+  trend: string;
+  trendUp: boolean;
+};
+
+type ActivityEvent = {
+  id: string;
+  icon: string;
+  color: string;
+  text: string;
+  time: string;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -44,9 +68,18 @@ function getFormattedDate() {
   });
 }
 
+function relativeTime(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const h = Math.floor(diff / 3_600_000);
+  const d = Math.floor(diff / 86_400_000);
+  if (h < 1) return "il y a moins d'1h";
+  if (h < 24) return `il y a ${h}h`;
+  return `il y a ${d}j`;
+}
+
 // ─── KPI Card ────────────────────────────────────────────────────────────────
 
-const StatCard = ({ item }: { item: (typeof ADMIN_KPI)[number] }) => (
+const StatCard = ({ item }: { item: KpiItem }) => (
   <View style={[styles.card, { backgroundColor: item.bg }]}>
     <View style={styles.cardTop}>
       <View
@@ -96,9 +129,9 @@ const LegendItem = ({
   </View>
 );
 
-// ─── Activity Item ────────────────────────────────────────────────────────────
+// ─── Activity Row ─────────────────────────────────────────────────────────────
 
-const ActivityItem = ({ item }: { item: (typeof ADMIN_ACTIVITY)[number] }) => (
+const ActivityRow = ({ item }: { item: ActivityEvent }) => (
   <View style={styles.activityRow}>
     <View style={[styles.activityIcon, { backgroundColor: `${item.color}1A` }]}>
       <Ionicons name={item.icon as any} size={18} color={item.color} />
@@ -111,8 +144,103 @@ const ActivityItem = ({ item }: { item: (typeof ADMIN_ACTIVITY)[number] }) => (
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const topSlice = ADMIN_PIE_DATA.reduce((a, b) => (a.value > b.value ? a : b));
-  const { profile }: any = useAuth();
+  const { profile } = useAuth();
+  const { users } = useUsers();
+  const { videos } = useVideos();
+
+  const publishedCount = videos.filter((v) => v.published).length;
+  const pendingCount = videos.filter((v) => !v.published).length;
+
+  console.log(users);
+
+  const kpis: KpiItem[] = useMemo(
+    () => [
+      {
+        id: "users",
+        label: "Utilisateurs",
+        value: users.length,
+        icon: "people-outline",
+        bg: "#E9F2FF",
+        iconColor: "#1E88E5",
+        trend: `${users.length}`,
+        trendUp: true,
+      },
+      {
+        id: "videos",
+        label: "Vidéos",
+        value: publishedCount,
+        icon: "videocam-outline",
+        bg: "#FFF3CD",
+        iconColor: "#F59E0B",
+        trend: `${publishedCount}`,
+        trendUp: true,
+      },
+      {
+        id: "pending",
+        label: "À valider",
+        value: pendingCount,
+        icon: "hourglass-outline",
+        bg: "#FFE7E7",
+        iconColor: "#F44336",
+        trend: `${pendingCount}`,
+        trendUp: false,
+      },
+    ],
+    [users.length, publishedCount, pendingCount],
+  );
+
+  const { pieData, pieLegend } = useMemo(() => {
+    const map = new Map<string, { count: number; color: string }>();
+    videos.forEach((v, _, arr) => {
+      if (!v.category) return;
+      const key = v.category.title;
+      const idx = Array.from(
+        new Set(arr.filter((x) => x.category).map((x) => x.category!.title)),
+      ).indexOf(key);
+      const color = PIE_COLORS[idx % PIE_COLORS.length];
+      map.set(key, { count: (map.get(key)?.count ?? 0) + 1, color });
+    });
+    const entries = Array.from(map.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5);
+    const total = entries.reduce((s, [, { count }]) => s + count, 0);
+    const pieData = entries.map(([text, { count, color }]) => ({
+      value: total > 0 ? Math.round((count / total) * 100) : 0,
+      color,
+      text,
+    }));
+    const pieLegend = entries.map(([label, { count, color }]) => ({
+      label,
+      value: total > 0 ? Math.round((count / total) * 100) : 0,
+      color,
+    }));
+    return { pieData, pieLegend };
+  }, [videos]);
+
+  const topSlice =
+    pieData.length > 0
+      ? pieData.reduce((a, b) => (a.value > b.value ? a : b))
+      : { value: 0, text: "—" };
+
+  const recentActivity: ActivityEvent[] = useMemo(() => {
+    const items: ActivityEvent[] = [
+      ...users.slice(0, 2).map((u) => ({
+        id: `user-${u.id}`,
+        icon: "person-outline",
+        color: "#1E88E5",
+        text: `${u.name} a rejoint la plateforme`,
+        time: relativeTime(u.created_at),
+      })),
+      ...videos.slice(0, 2).map((v) => ({
+        id: `video-${v.id}`,
+        icon: "videocam-outline",
+        color: "#FF7043",
+        text: `Nouvelle vidéo : « ${v.title} »`,
+        time: relativeTime(v.created_at),
+      })),
+    ];
+    return items;
+  }, [users, videos]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -127,39 +255,38 @@ export default function Home() {
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-          {/* top row */}
           <View style={styles.headerTop}>
             <View style={styles.datePill}>
               <Ionicons name="calendar-outline" size={12} color={C.yellow} />
               <Text style={styles.datePillText}>{getFormattedDate()}</Text>
             </View>
-            <Image
-              source={{
-                uri: "https://images.unsplash.com/photo-1603415526960-f7e0328d13db?q=80&w=200",
-              }}
-              style={styles.avatar}
-            />
+            {profile?.avatar_url ? (
+              <Image
+                source={{ uri: profile.avatar_url }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarInitial}>
+                  {profile?.name?.[0]?.toUpperCase() ?? "?"}
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* greeting */}
           <Text style={styles.greeting}>{getGreeting()},</Text>
-          <Text style={styles.name}>
-            {profile?.name[0].toUpperCase() +
-              profile?.name.slice(1, profile.name.length)}{" "}
-            👋
-          </Text>
+          <Text style={styles.name}>{profile?.name ?? "—"} 👋</Text>
           <Text style={styles.subtitle}>
             Voici un résumé de ton activité aujourd'hui
           </Text>
 
-          {/* summary strip */}
           <View style={styles.summaryStrip}>
-            {ADMIN_KPI.map((k, i) => (
+            {kpis.map((k, i) => (
               <View
                 key={k.id}
                 style={[
                   styles.summaryItem,
-                  i < ADMIN_KPI.length - 1 && styles.summaryItemBorder,
+                  i < kpis.length - 1 && styles.summaryItemBorder,
                 ]}
               >
                 <Text style={styles.summaryValue}>{k.value}</Text>
@@ -178,41 +305,52 @@ export default function Home() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
         >
-          {ADMIN_KPI.map((it) => (
+          {kpis.map((it) => (
             <StatCard key={it.id} item={it} />
           ))}
         </ScrollView>
 
         {/* ── Popularity ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Popularité par instrument</Text>
+          <Text style={styles.sectionTitle}>Popularité par catégorie</Text>
         </View>
         <View style={[styles.sectionCard, styles.elevated]}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <PieChart
-              donut
-              radius={65}
-              innerRadius={42}
-              data={ADMIN_PIE_DATA}
-              showText={false}
-              centerLabelComponent={() => (
-                <View style={{ alignItems: "center" }}>
-                  <Text style={styles.centerValue}>{topSlice.value}%</Text>
-                  <Text style={styles.centerLabel}>{topSlice.text}</Text>
-                </View>
-              )}
-            />
-            <View style={{ marginLeft: 20, flex: 1 }}>
-              {ADMIN_SATISFACTION.map((s) => (
-                <LegendItem
-                  key={s.label}
-                  label={s.label}
-                  value={`${s.value}%`}
-                  color={s.color}
-                />
-              ))}
+          {pieData.length > 0 ? (
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <PieChart
+                donut
+                radius={65}
+                innerRadius={42}
+                data={pieData}
+                showText={false}
+                centerLabelComponent={() => (
+                  <View style={{ alignItems: "center" }}>
+                    <Text style={styles.centerValue}>{topSlice.value}%</Text>
+                    <Text style={styles.centerLabel}>{topSlice.text}</Text>
+                  </View>
+                )}
+              />
+              <View style={{ marginLeft: 20, flex: 1 }}>
+                {pieLegend.map((s) => (
+                  <LegendItem
+                    key={s.label}
+                    label={s.label}
+                    value={`${s.value}%`}
+                    color={s.color}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
+          ) : (
+            <Text
+              style={[
+                styles.cardLabel,
+                { textAlign: "center", paddingVertical: 24 },
+              ]}
+            >
+              Aucune vidéo publiée
+            </Text>
+          )}
         </View>
 
         {/* ── Activity ── */}
@@ -220,10 +358,10 @@ export default function Home() {
           <Text style={styles.sectionTitle}>Activité récente</Text>
         </View>
         <View style={[styles.sectionCard, styles.elevated]}>
-          {ADMIN_ACTIVITY.map((item, i) => (
+          {recentActivity.map((item, i) => (
             <View key={item.id}>
-              <ActivityItem item={item} />
-              {i < ADMIN_ACTIVITY.length - 1 && (
+              <ActivityRow item={item} />
+              {i < recentActivity.length - 1 && (
                 <View style={styles.separator} />
               )}
             </View>
@@ -239,7 +377,6 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F7FAFF" },
 
-  // Header
   header: {
     paddingHorizontal: 20,
     paddingTop: 16,
@@ -275,6 +412,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: C.yellow,
   },
+  avatarPlaceholder: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarInitial: { fontSize: 18, fontWeight: "800", color: C.yellow },
   greeting: { fontSize: 16, color: "rgba(255,255,255,0.6)", fontWeight: "500" },
   name: {
     fontSize: 30,
@@ -305,7 +448,6 @@ const styles = StyleSheet.create({
   summaryValue: { fontSize: 22, fontWeight: "800", color: C.white },
   summaryLabel: { fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 2 },
 
-  // Section
   sectionHeader: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 12 },
   sectionTitle: {
     fontSize: 17,
@@ -314,7 +456,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
 
-  // KPI card
   card: { width: 148, borderRadius: 20, padding: 16, paddingBottom: 18 },
   cardTop: {
     flexDirection: "row",
@@ -351,7 +492,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Shared card
   sectionCard: {
     backgroundColor: C.card,
     borderRadius: 22,
@@ -366,7 +506,6 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  // Pie legend
   centerValue: { fontSize: 18, fontWeight: "800", color: C.navy },
   centerLabel: { fontSize: 10, color: C.textMuted, marginTop: 1 },
   legendRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
@@ -374,7 +513,6 @@ const styles = StyleSheet.create({
   legendLabel: { fontSize: 13, color: C.textPrimary },
   legendPercent: { fontSize: 13, fontWeight: "700", color: C.textPrimary },
 
-  // Activity
   activityRow: {
     flexDirection: "row",
     alignItems: "center",

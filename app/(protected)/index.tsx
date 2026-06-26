@@ -5,6 +5,8 @@ const IS_ADMIN = true;
 
 export default function ProtectedIndex() {
   return (
-    <Redirect href={IS_ADMIN ? "/(protected)/(admin)/home" : "/(protected)/(tabs)"} />
+    <Redirect
+      href={IS_ADMIN ? "/(protected)/(admin)/home" : "/(protected)/(tabs)"}
+    />
   );
 }

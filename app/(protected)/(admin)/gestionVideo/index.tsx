@@ -1,5 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useContext, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,11 +6,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Video, VideoContext } from "@/contexts/videoContext";
+import AdminHeader from "@/components/AdminHeader";
 import VideoModal from "@/components/VideoModal";
 import AdminListCard from "@/components/AdminListCard";
 import ModalView from "./modal";
@@ -89,49 +87,15 @@ export default function GestionVideo() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ── Header ── */}
-      <LinearGradient
-        colors={[color.navyDeep, color.navy]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.headerEyebrow}>Administration</Text>
-            <Text style={styles.headerTitle}>Gestion des vidéos</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <View style={styles.countBadge}>
-              <Text style={styles.countText}>{videos.length}</Text>
-              <Text style={styles.countLabel}>vidéos</Text>
-            </View>
-            <Pressable style={styles.addBtn} onPress={openAdd}>
-              <Ionicons name="add" size={22} color={color.navy} />
-              <Text style={styles.addBtnText}>Ajouter</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* ── Search ── */}
-        <View style={styles.searchRow}>
-          <Ionicons
-            name="search-outline"
-            size={16}
-            color="rgba(255,255,255,0.5)"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Rechercher une vidéo…"
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            value={search}
-            onChangeText={setSearch}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-          />
-        </View>
-      </LinearGradient>
+      <AdminHeader
+        title="Gestion des vidéos"
+        count={videos.length}
+        countLabel="vidéos"
+        onAdd={openAdd}
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Rechercher une vidéo…"
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -274,67 +238,7 @@ export default function GestionVideo() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.bg },
-
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-
-    marginBottom: 16,
-  },
-  headerEyebrow: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.5)",
-    fontWeight: "500",
-    marginBottom: 2,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: color.white,
-    letterSpacing: -0.4,
-  },
-  headerRight: { alignItems: "flex-end", gap: 10 },
-  countBadge: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  countText: { fontSize: 24, fontWeight: "800", color: color.white },
-  countLabel: { fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 1 },
-  addBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: color.yellow,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
-  },
-  addBtnText: { fontSize: 13, fontWeight: "700", color: color.navy },
-
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 14, color: color.white },
-
   scrollContent: { paddingTop: 8, paddingBottom: 20 },
-
   filtersRow: { paddingHorizontal: 20, paddingVertical: 10, gap: 8 },
   filterChip: {
     paddingHorizontal: 16,
@@ -347,7 +251,6 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: color.navy, borderColor: color.navy },
   filterText: { fontSize: 13, fontWeight: "600", color: color.textMuted },
   filterTextActive: { color: color.white },
-
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -363,7 +266,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   sectionCount: { fontSize: 12, color: color.textMuted, fontWeight: "500" },
-
   listWrap: {
     marginHorizontal: 20,
     backgroundColor: color.card,

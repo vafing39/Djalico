@@ -1,5 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useContext, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -12,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Course, CourseContext } from "@/contexts/courseContext";
+import AdminHeader from "@/components/AdminHeader";
 import AdminListCard from "@/components/AdminListCard";
 import ModalView from "./modal";
 import { color } from "@/config/adminTheme";
@@ -76,30 +75,12 @@ export default function GestionCours() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ── Header ── */}
-      <LinearGradient
-        colors={[color.navyDeep, color.navy]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.headerEyebrow}>Administration</Text>
-            <Text style={styles.headerTitle}>Gestion des cours</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <View style={styles.countBadge}>
-              <Text style={styles.countText}>{courses.length}</Text>
-              <Text style={styles.countLabel}>cours</Text>
-            </View>
-            <Pressable style={styles.addBtn} onPress={openAdd}>
-              <Ionicons name="add" size={22} color={color.navy} />
-              <Text style={styles.addBtnText}>Ajouter</Text>
-            </Pressable>
-          </View>
-        </View>
-      </LinearGradient>
+      <AdminHeader
+        title="Gestion des cours"
+        count={courses.length}
+        countLabel="cours"
+        onAdd={openAdd}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -181,51 +162,6 @@ export default function GestionCours() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.bg },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 22,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerEyebrow: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.5)",
-    fontWeight: "500",
-    marginBottom: 2,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: color.white,
-    letterSpacing: -0.4,
-  },
-  headerRight: { alignItems: "flex-end", gap: 10 },
-  countBadge: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  countText: { fontSize: 24, fontWeight: "800", color: color.white },
-  countLabel: { fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 1 },
-  addBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: color.yellow,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
-  },
-  addBtnText: { fontSize: 13, fontWeight: "700", color: color.navy },
-
   scrollContent: { paddingTop: 8 },
   filtersRow: { paddingHorizontal: 20, paddingVertical: 16, gap: 8 },
   filterChip: {
@@ -239,7 +175,6 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: color.navy, borderColor: color.navy },
   filterText: { fontSize: 13, fontWeight: "600", color: color.textMuted },
   filterTextActive: { color: color.white },
-
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -254,7 +189,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   sectionCount: { fontSize: 12, color: color.textMuted, fontWeight: "500" },
-
   listWrap: {
     marginHorizontal: 20,
     backgroundColor: color.card,

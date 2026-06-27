@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "800",
     color: color.white,
     letterSpacing: -0.4,

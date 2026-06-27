@@ -4,7 +4,6 @@ import React, { useContext, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,14 +14,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Video, VideoContext } from "@/contexts/videoContext";
 import VideoModal from "@/components/VideoModal";
+import AdminListCard from "@/components/AdminListCard";
 import ModalView from "./modal";
-import { color, TAG_STYLES } from "@/config/adminTheme";
+import { color } from "@/config/adminTheme";
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 const LEVELS = [
   { key: "all", label: "Tous" },
@@ -235,81 +230,25 @@ export default function GestionVideo() {
         ) : (
           <View style={styles.listWrap}>
             {filteredVideos.map((item, i) => {
-              const duration = formatDuration(item.duration_seconds);
+              const duration = `${Math.floor(item.duration_seconds / 60)}:${String(item.duration_seconds % 60).padStart(2, "0")}`;
               return (
-                <View
+                <AdminListCard
                   key={item.id}
-                  style={[
-                    styles.videoCard,
-                    i < filteredVideos.length - 1 && styles.videoCardBorder,
-                  ]}
-                >
-                  <Pressable style={styles.thumbnailWrap} onPress={() => setPlayingVideo(item)}>
-                    {item.image_url ? (
-                      <Image
-                        source={{ uri: item.image_url }}
-                        style={styles.thumbnail}
-                      />
-                    ) : (
-                      <View
-                        style={[styles.thumbnail, styles.thumbnailPlaceholder]}
-                      />
-                    )}
-                    <View style={styles.durationBadge}>
-                      <Ionicons name="time-outline" size={9} color="#fff" />
-                      <Text style={styles.durationText}>{duration}</Text>
-                    </View>
-                    <View style={styles.playOverlay}>
-                      <Ionicons name="play" size={14} color="#fff" />
-                    </View>
-                  </Pressable>
-
-                  <View style={styles.videoInfo}>
-                    <View style={styles.videoTitleRow}>
-                      <Text style={styles.videoTitle} numberOfLines={1}>
-                        {item.title}
-                      </Text>
-                      <View style={[styles.tagBadge, { backgroundColor: TAG_STYLES[item.tag_type].bg }]}>
-                        <Text style={[styles.tagText, { color: TAG_STYLES[item.tag_type].text }]}>
-                          {item.tag_type === "beginner" ? "Débutant" : item.tag_type === "intermediate" ? "Intermédiaire" : "Expert"}
-                        </Text>
-                      </View>
-                    </View>
-                    {item.subtitle ? (
-                      <Text style={styles.videoSubtitle} numberOfLines={1}>{item.subtitle}</Text>
-                    ) : null}
-                    <View style={styles.videoMeta}>
-                      <Ionicons name="videocam-outline" size={12} color={color.textMuted} />
-                      <Text style={styles.videoMetaText}>
-                        {item.category ? `${item.category.emoji} ${item.category.title}` : "Vidéo"} · {duration}
-                      </Text>
-                      <View style={[styles.publishedDot, { backgroundColor: item.published ? color.green : color.border }]} />
-                    </View>
-                  </View>
-
-                  <View style={styles.actions}>
-                    <Pressable
-                      style={[styles.actionBtn, { backgroundColor: "#E9F2FF" }]}
-                      onPress={() => openEdit(item)}
-                    >
-                      <Ionicons
-                        name="create-outline"
-                        size={16}
-                        color="#1E88E5"
-                      />
-                    </Pressable>
-                    <Pressable
-                      style={[styles.actionBtn, { backgroundColor: "#FFE7E7" }]}
-                      onPress={() => handleDelete(item)}
-                    >
-                      <Ionicons
-                        name="trash-outline"
-                        size={16}
-                        color={color.red}
-                      />
-                    </Pressable>
-                  </View>
-                </View>
+                  imageUrl={item.image_url}
+                  thumbnailWidth={80}
+                  thumbnailHeight={52}
+                  title={item.title}
+                  tagType={item.tag_type}
+                  subtitle={item.subtitle}
+                  durationBadge={duration}
+                  metaIcon="videocam-outline"
+                  metaText={`${item.category ? `${item.category.emoji} ${item.category.title}` : "Vidéo"} · ${duration}`}
+                  published={item.published}
+                  showBorder={i < filteredVideos.length - 1}
+                  onPlay={() => setPlayingVideo(item)}
+                  onEdit={() => openEdit(item)}
+                  onDelete={() => handleDelete(item)}
+                />
               );
             })}
           </View>
@@ -436,67 +375,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
-  videoCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    gap: 12,
-  },
-  videoCardBorder: { borderBottomWidth: 1, borderBottomColor: color.border },
-
-  thumbnailWrap: {
-    width: 80,
-    height: 52,
-    borderRadius: 10,
-    overflow: "hidden",
-    position: "relative",
-    flexShrink: 0,
-  },
-  thumbnail: { width: "100%", height: "100%", resizeMode: "cover" },
-  thumbnailPlaceholder: { backgroundColor: color.border },
-  durationBadge: {
-    position: "absolute",
-    bottom: 4,
-    left: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  durationText: { fontSize: 9, color: "#fff", fontWeight: "600" },
-  playOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.2)",
-  },
-
-  videoInfo: { flex: 1, gap: 3 },
-  videoTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  videoTitle: { flex: 1, fontSize: 13.5, fontWeight: "600", color: color.textPrimary },
-  videoSubtitle: { fontSize: 11, color: color.textMuted },
-  tagBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  tagText: { fontSize: 9, fontWeight: "700" },
-  videoMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
-  videoMetaText: { fontSize: 11, color: color.textMuted },
-  publishedDot: { width: 7, height: 7, borderRadius: 4, marginLeft: 2 },
-
-  actions: { flexDirection: "column", gap: 6 },
-  actionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
   errorText: {
     textAlign: "center",
     marginTop: 40,

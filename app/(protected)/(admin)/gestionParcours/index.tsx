@@ -1,26 +1,64 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useContext, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { PARCOURS_DETAILS, MY_COURSES } from "@/data/mockData";
+import { Parcours, ParcoursContext } from "@/contexts/parcoursContext";
+import AdminListCard from "@/components/AdminListCard";
 import ModalView from "./modal";
-import { color, TAG_STYLES } from "@/config/adminTheme";
+import { color } from "@/config/adminTheme";
 
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0 && m > 0) return `${h}h ${m}min`;
+  if (h > 0) return `${h}h`;
+  return `${m}min`;
+}
 
-const PARCOURS_LIST = Object.values(PARCOURS_DETAILS).filter(
-  (p, i, arr) => arr.findIndex((x) => x.id === p.id) === i,
-);
-const FILTERS = ["Tous", "Guitare", "Piano", "Saxophone", "Percussions", "Jazz"] as const;
-type Filter = (typeof FILTERS)[number];
+const LEVELS = [
+  { key: "all", label: "Tous" },
+  { key: "beginner", label: "Débutant" },
+  { key: "intermediate", label: "Intermédiaire" },
+  { key: "expert", label: "Expert" },
+] as const;
+type LevelKey = (typeof LEVELS)[number]["key"];
 
 export default function GestionParcours() {
+  const { parcours, isLoading, error } = useContext(ParcoursContext);
   const [modalVisible, setModalVisible] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<Filter>("Tous");
+  const [activeFilter, setActiveFilter] = useState<LevelKey>("all");
 
-  const filtered = activeFilter === "Tous"
-    ? PARCOURS_LIST
-    : PARCOURS_LIST.filter((p) => p.category === activeFilter);
+  function handleEdit(p: Parcours) {
+    Alert.alert("Modifier", `Modification de « ${p.title} » — à venir.`);
+  }
+
+  function handleDelete(p: Parcours) {
+    Alert.alert(
+      "Supprimer le parcours",
+      `Voulez-vous vraiment supprimer « ${p.title} » ? Cette action est irréversible.`,
+      [
+        { text: "Annuler", style: "cancel" },
+        { text: "Supprimer", style: "destructive", onPress: () => {} },
+      ],
+    );
+  }
+
+  const filtered = useMemo(
+    () =>
+      activeFilter === "all"
+        ? parcours
+        : parcours.filter((p) => p.tag_type === activeFilter),
+    [parcours, activeFilter],
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -33,7 +71,7 @@ export default function GestionParcours() {
           </View>
           <View style={styles.headerRight}>
             <View style={styles.countBadge}>
-              <Text style={styles.countText}>{PARCOURS_LIST.length}</Text>
+              <Text style={styles.countText}>{parcours.length}</Text>
               <Text style={styles.countLabel}>parcours</Text>
             </View>
             <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
@@ -47,9 +85,9 @@ export default function GestionParcours() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* ── Filters ── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
-          {FILTERS.map((f) => (
-            <Pressable key={f} style={[styles.filterChip, activeFilter === f && styles.filterChipActive]} onPress={() => setActiveFilter(f)}>
-              <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>{f}</Text>
+          {LEVELS.map((f) => (
+            <Pressable key={f.key} style={[styles.filterChip, activeFilter === f.key && styles.filterChipActive]} onPress={() => setActiveFilter(f.key)}>
+              <Text style={[styles.filterText, activeFilter === f.key && styles.filterTextActive]}>{f.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -60,46 +98,30 @@ export default function GestionParcours() {
           <Text style={styles.sectionCount}>{filtered.length} au total</Text>
         </View>
 
-        <View style={styles.listWrap}>
-          {filtered.map((p, i) => {
-            const tag = TAG_STYLES[p.tagType] ?? TAG_STYLES.beginner;
-            const courseCount = p.courses.length;
-            return (
-              <View key={p.id} style={[styles.parcoursCard, i < filtered.length - 1 && styles.parcoursCardBorder]}>
-                <Image source={{ uri: p.coverImage }} style={styles.thumbnail} />
-                <View style={styles.parcoursInfo}>
-                  <View style={styles.topRow}>
-                    <Text style={styles.parcoursTitle} numberOfLines={1}>{p.title}</Text>
-                    <View style={[styles.tagBadge, { backgroundColor: tag.bg }]}>
-                      <Text style={[styles.tagText, { color: tag.text }]}>{p.tag}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.instructor}>
-                    <Ionicons name="person-outline" size={11} color={color.textMuted} /> {p.instructor}
-                  </Text>
-                  <View style={styles.metaRow}>
-                    <Ionicons name="musical-notes-outline" size={11} color={color.textMuted} />
-                    <Text style={styles.metaText}>{p.category}</Text>
-                    <View style={styles.metaDot} />
-                    <Ionicons name="book-outline" size={11} color={color.textMuted} />
-                    <Text style={styles.metaText}>{courseCount} cours</Text>
-                    <View style={styles.metaDot} />
-                    <Ionicons name="time-outline" size={11} color={color.textMuted} />
-                    <Text style={styles.metaText}>{p.totalDuration}</Text>
-                  </View>
-                </View>
-                <View style={styles.actions}>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: "#E9F2FF" }]}>
-                    <Ionicons name="create-outline" size={16} color="#1E88E5" />
-                  </Pressable>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: "#FFE7E7" }]}>
-                    <Ionicons name="trash-outline" size={16} color={color.red} />
-                  </Pressable>
-                </View>
-              </View>
-            );
-          })}
-        </View>
+        {isLoading ? (
+          <ActivityIndicator size="large" color={color.navy} style={{ marginTop: 40 }} />
+        ) : error ? (
+          <Text style={styles.errorText}>Erreur de chargement des parcours</Text>
+        ) : filtered.length === 0 ? (
+          <Text style={styles.emptyText}>Aucun parcours trouvé</Text>
+        ) : (
+          <View style={styles.listWrap}>
+            {filtered.map((p, i) => (
+              <AdminListCard
+                key={p.id}
+                imageUrl={p.cover_image_url}
+                title={p.title}
+                tagType={p.tag_type}
+                instructor={p.instructor?.name ?? null}
+                metaIcon="map-outline"
+                metaText={`${p.category ? `${p.category.emoji} ${p.category.title}` : "—"} · ${formatDuration(p.total_duration_seconds)}`}
+                showBorder={i < filtered.length - 1}
+                onEdit={() => handleEdit(p)}
+                onDelete={() => handleDelete(p)}
+              />
+            ))}
+          </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -134,18 +156,6 @@ const styles = StyleSheet.create({
   sectionCount: { fontSize: 12, color: color.textMuted, fontWeight: "500" },
 
   listWrap: { marginHorizontal: 20, backgroundColor: color.card, borderRadius: 20, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 4 },
-  parcoursCard: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
-  parcoursCardBorder: { borderBottomWidth: 1, borderBottomColor: color.border },
-  thumbnail: { width: 64, height: 64, borderRadius: 12, flexShrink: 0 },
-  parcoursInfo: { flex: 1, gap: 4 },
-  topRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  parcoursTitle: { flex: 1, fontSize: 13.5, fontWeight: "700", color: color.textPrimary },
-  tagBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  tagText: { fontSize: 10, fontWeight: "700" },
-  instructor: { fontSize: 12, color: color.textMuted },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" },
-  metaText: { fontSize: 11, color: color.textMuted },
-  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: color.border },
-  actions: { flexDirection: "column", gap: 6 },
-  actionBtn: { width: 32, height: 32, borderRadius: 10, justifyContent: "center", alignItems: "center" },
+  errorText: { textAlign: "center", marginTop: 40, color: color.red, fontSize: 14, fontWeight: "500" },
+  emptyText: { textAlign: "center", marginTop: 40, color: color.textMuted, fontSize: 14, fontWeight: "500" },
 });

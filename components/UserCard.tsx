@@ -1,0 +1,121 @@
+import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { User } from "@/contexts/userContext";
+import { color } from "@/config/adminTheme";
+
+const ROLE_LABELS: Record<User["role"], string> = {
+  eleve: "Élève",
+  professeur: "Professeur",
+  admin: "Admin",
+};
+
+const ROLE_COLORS: Record<User["role"], { text: string; bg: string }> = {
+  eleve: { text: "#1E4FA5", bg: "#E9F2FF" },
+  professeur: { text: "#166534", bg: "#DCFCE7" },
+  admin: { text: color.red, bg: color.redLight },
+};
+
+type Props = {
+  item: User;
+  onEdit?: (user: User) => void;
+  onDelete?: (user: User) => void;
+};
+
+export default function UserCard({ item, onEdit, onDelete }: Props) {
+  return (
+    <View style={styles.card}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>
+          {item.name.charAt(0).toUpperCase()}
+        </Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.name}>{item.name}</Text>
+        <Text style={styles.email}>{item.email}</Text>
+        <View
+          style={[
+            styles.roleBadge,
+            { backgroundColor: ROLE_COLORS[item.role].bg },
+          ]}
+        >
+          <Text
+            style={[styles.roleText, { color: ROLE_COLORS[item.role].text }]}
+          >
+            {ROLE_LABELS[item.role]}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => onEdit?.(item)}>
+          <Ionicons name="pencil" size={20} color={color.navy} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => onDelete?.(item)}
+        >
+          <Ionicons name="trash" size={20} color={color.red} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: color.paleBlue,
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: color.navy,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: color.deepBlue,
+  },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: color.navy,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: color.white,
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: color.deepBlue,
+  },
+  email: {
+    fontSize: 13,
+    color: color.softGray,
+    marginTop: 2,
+  },
+  roleBadge: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  roleText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  iconBtn: {
+    padding: 6,
+  },
+});

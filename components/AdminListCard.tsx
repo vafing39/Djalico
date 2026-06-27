@@ -22,10 +22,10 @@ type Props = {
   thumbnailHeight?: number;
   subtitle?: string | null;
   instructor?: string | null;
-  durationBadge?: string | null;   // overlay label on the thumbnail
-  published?: boolean;              // coloured dot after metaText
+  durationBadge?: string | null; // overlay label on the thumbnail
+  published?: boolean; // coloured dot after metaText
   showBorder: boolean;
-  onPlay?: () => void;              // if set, thumbnail becomes pressable with play overlay
+  onPlay?: () => void; // if set, thumbnail becomes pressable with play overlay
   onEdit: () => void;
   onDelete: () => void;
 };
@@ -74,46 +74,72 @@ export default function AdminListCard({
     <View style={[styles.card, showBorder && styles.cardBorder]}>
       {onPlay ? (
         <Pressable
-          style={[styles.thumbnailWrap, { width: thumbnailWidth, height: thumbnailHeight }]}
+          style={[
+            styles.thumbnailWrap,
+            { width: thumbnailWidth, height: thumbnailHeight },
+          ]}
           onPress={onPlay}
         >
           {thumbnailInner}
         </Pressable>
       ) : (
-        <View style={[styles.thumbnailWrap, { width: thumbnailWidth, height: thumbnailHeight }]}>
+        <View
+          style={[
+            styles.thumbnailWrap,
+            { width: thumbnailWidth, height: thumbnailHeight },
+          ]}
+        >
           {thumbnailInner}
         </View>
       )}
 
       <View style={styles.info}>
         <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
           <View style={[styles.tagBadge, { backgroundColor: tag.bg }]}>
-            <Text style={[styles.tagText, { color: tag.text }]}>{TAG_LABELS[tagType]}</Text>
+            <Text style={[styles.tagText, { color: tag.text }]}>
+              {TAG_LABELS[tagType]}
+            </Text>
           </View>
         </View>
         {instructor ? (
           <Text style={styles.instructor}>
-            <Ionicons name="person-outline" size={11} color={color.textMuted} /> {instructor}
+            <Ionicons name="person-outline" size={11} color={color.textMuted} />{" "}
+            {instructor}
           </Text>
         ) : null}
         {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
         ) : null}
         <View style={styles.meta}>
           <Ionicons name={metaIcon} size={11} color={color.textMuted} />
           <Text style={styles.metaText}>{metaText}</Text>
           {published !== undefined ? (
-            <View style={[styles.publishedDot, { backgroundColor: published ? color.green : color.border }]} />
+            <View
+              style={[
+                styles.publishedDot,
+                { backgroundColor: published ? color.green : color.border },
+              ]}
+            />
           ) : null}
         </View>
       </View>
 
       <View style={styles.actions}>
-        <Pressable style={[styles.actionBtn, { backgroundColor: "#E9F2FF" }]} onPress={onEdit}>
+        <Pressable
+          style={[styles.actionBtn, { backgroundColor: "#E9F2FF" }]}
+          onPress={onEdit}
+        >
           <Ionicons name="create-outline" size={16} color="#1E88E5" />
         </Pressable>
-        <Pressable style={[styles.actionBtn, { backgroundColor: "#FFE7E7" }]} onPress={onDelete}>
+        <Pressable
+          style={[styles.actionBtn, { backgroundColor: "#FFE7E7" }]}
+          onPress={onDelete}
+        >
           <Ionicons name="trash-outline" size={16} color={color.red} />
         </Pressable>
       </View>
@@ -128,13 +154,38 @@ const styles = StyleSheet.create({
   thumbnailWrap: { borderRadius: 10, overflow: "hidden", flexShrink: 0 },
   thumbnail: { width: "100%", height: "100%", resizeMode: "cover" },
   thumbnailPlaceholder: { backgroundColor: color.border },
-  durationBadge: { position: "absolute", bottom: 4, left: 4, flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6 },
+  durationBadge: {
+    position: "absolute",
+    bottom: 4,
+    left: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
   durationText: { fontSize: 9, color: "#fff", fontWeight: "600" },
-  playOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.2)" },
+  playOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.2)",
+  },
 
   info: { flex: 1, gap: 3 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  title: { flex: 1, fontSize: 13.5, fontWeight: "700", color: color.textPrimary },
+  title: {
+    flex: 1,
+    fontSize: 13.5,
+    fontWeight: "700",
+    color: color.textPrimary,
+  },
   tagBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7 },
   tagText: { fontSize: 9, fontWeight: "700" },
   instructor: { fontSize: 12, color: color.textMuted },
@@ -144,5 +195,11 @@ const styles = StyleSheet.create({
   publishedDot: { width: 7, height: 7, borderRadius: 4 },
 
   actions: { flexDirection: "column", gap: 6 },
-  actionBtn: { width: 32, height: 32, borderRadius: 10, justifyContent: "center", alignItems: "center" },
+  actionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });

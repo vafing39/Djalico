@@ -16,6 +16,7 @@ import AdminListCard from "@/components/AdminListCard";
 import ModalView from "./modal";
 import { color } from "@/config/adminTheme";
 
+
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -33,12 +34,14 @@ const LEVELS = [
 type LevelKey = (typeof LEVELS)[number]["key"];
 
 export default function GestionParcours() {
-  const { parcours, isLoading, error } = useContext(ParcoursContext);
+  const { parcours, isLoading, error, deleteParcours } = useContext(ParcoursContext);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingParcours, setEditingParcours] = useState<Parcours | null>(null);
   const [activeFilter, setActiveFilter] = useState<LevelKey>("all");
 
   function handleEdit(p: Parcours) {
-    Alert.alert("Modifier", `Modification de « ${p.title} » — à venir.`);
+    setEditingParcours(p);
+    setModalVisible(true);
   }
 
   function handleDelete(p: Parcours) {
@@ -47,7 +50,14 @@ export default function GestionParcours() {
       `Voulez-vous vraiment supprimer « ${p.title} » ? Cette action est irréversible.`,
       [
         { text: "Annuler", style: "cancel" },
-        { text: "Supprimer", style: "destructive", onPress: () => {} },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: () =>
+            deleteParcours(p.id).catch((err: Error) =>
+              Alert.alert("Erreur", err.message),
+            ),
+        },
       ],
     );
   }
@@ -74,7 +84,7 @@ export default function GestionParcours() {
               <Text style={styles.countText}>{parcours.length}</Text>
               <Text style={styles.countLabel}>parcours</Text>
             </View>
-            <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
+            <Pressable style={styles.addBtn} onPress={() => { setEditingParcours(null); setModalVisible(true); }}>
               <Ionicons name="add" size={22} color={color.navy} />
               <Text style={styles.addBtnText}>Ajouter</Text>
             </Pressable>
@@ -126,7 +136,11 @@ export default function GestionParcours() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <ModalView visible={modalVisible} onClose={() => setModalVisible(false)} />
+      <ModalView
+        visible={modalVisible}
+        onClose={() => { setModalVisible(false); setEditingParcours(null); }}
+        parcours={editingParcours}
+      />
     </SafeAreaView>
   );
 }

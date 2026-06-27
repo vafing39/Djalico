@@ -1,29 +1,128 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useContext, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MY_COURSES } from "@/data/mockData";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/utils/supabase";
+import { Parcours, ParcoursContext } from "@/contexts/parcoursContext";
+import { CourseContext } from "@/contexts/courseContext";
 import { color, LEVELS } from "@/config/adminTheme";
 
+type Category = { id: string; title: string; emoji: string };
+type Instructor = { id: string; name: string };
+type TagType = "beginner" | "intermediate" | "expert";
 
-const CATEGORIES = ["Guitare", "Saxophone", "Piano", "Percussions", "Balafon", "Jazz"];
+export default function ModalView({
+  visible,
+  onClose,
+  parcours,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  parcours?: Parcours | null;
+}) {
+  const { saveParcours, isSaving } = useContext(ParcoursContext);
+  const { courses } = useContext(CourseContext);
+  const isEdit = !!parcours;
 
-export default function ModalView({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const [title, setTitle]               = useState("");
-  const [instructor, setInstructor]     = useState("");
-  const [category, setCategory]         = useState(CATEGORIES[0]);
-  const [level, setLevel]               = useState(LEVELS[0].value);
-  const [duration, setDuration]         = useState("");
-  const [description, setDescription]   = useState("");
-  const [coverImage, setCoverImage]     = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [instructorId, setInstructorId] = useState("");
+  const [level, setLevel] = useState<TagType>(LEVELS[0].value);
+  const [durationHours, setDurationHours] = useState("0");
+  const [durationMin, setDurationMin] = useState("0");
+  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
+
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, title, emoji")
+        .order("title");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: instructors = [] } = useQuery<Instructor[]>({
+    queryKey: ["instructors"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, name")
+        .in("role", ["professeur", "admin"])
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: linkedCourseIds = [] } = useQuery<string[]>({
+    queryKey: ["parcours-courses", parcours?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parcours_courses")
+        .select("course_id")
+        .eq("parcours_id", parcours!.id)
+        .order("order_index");
+      if (error) throw error;
+      return data.map((r: { course_id: string }) => r.course_id);
+    },
+    enabled: !!parcours,
+  });
+
+  useEffect(() => {
+    if (!visible) return;
+    if (parcours) {
+      setTitle(parcours.title);
+      setDescription(parcours.description ?? "");
+      setCategoryId(parcours.category?.id ?? "");
+      setInstructorId(parcours.instructor?.id ?? "");
+      setLevel(parcours.tag_type);
+      setCoverImage(null);
+      const totalSec = parcours.total_duration_seconds;
+      setDurationHours(String(Math.floor(totalSec / 3600)));
+      setDurationMin(String(Math.floor((totalSec % 3600) / 60)));
+    } else {
+      reset();
+    }
+  }, [visible, parcours]);
+
+  useEffect(() => {
+    if (isEdit && linkedCourseIds.length > 0) {
+      setSelectedCourseIds(linkedCourseIds);
+    }
+  }, [linkedCourseIds, isEdit]);
+
+  function toggleCourse(id: string) {
+    setSelectedCourseIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+    );
+  }
 
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission requise", "Autorise l'accès à ta galerie pour choisir une image.");
+      Alert.alert(
+        "Permission requise",
+        "Autorise l'accès à ta galerie pour choisir une image.",
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -35,56 +134,140 @@ export default function ModalView({ visible, onClose }: { visible: boolean; onCl
     if (!result.canceled) setCoverImage(result.assets[0].uri);
   }
 
-  function toggleCourse(id: string) {
-    setSelectedCourseIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
-    );
+  function handleSubmit() {
+    if (!title.trim()) {
+      Alert.alert("Champ requis", "Le titre est obligatoire.");
+      return;
+    }
+    const totalDurationSeconds =
+      (parseInt(durationHours) || 0) * 3600 +
+      (parseInt(durationMin) || 0) * 60;
+
+    saveParcours({
+      editId: isEdit ? parcours!.id : null,
+      coverImageUri: coverImage,
+      coverImageUrl: isEdit ? (parcours!.cover_image_url ?? "") : "",
+      title,
+      description,
+      categoryId,
+      instructorId,
+      tagType: level,
+      totalDurationSeconds,
+      courseIds: selectedCourseIds,
+    })
+      .then(() => {
+        reset();
+        onClose();
+      })
+      .catch((err: Error) => Alert.alert("Erreur", err.message));
   }
 
   function reset() {
-    setTitle(""); setInstructor(""); setCategory(CATEGORIES[0]);
-    setLevel(LEVELS[0].value); setDuration(""); setDescription("");
-    setCoverImage(null); setSelectedCourseIds([]);
+    setTitle("");
+    setDescription("");
+    setCategoryId("");
+    setInstructorId("");
+    setLevel(LEVELS[0].value);
+    setDurationHours("0");
+    setDurationMin("0");
+    setCoverImage(null);
+    setSelectedCourseIds([]);
   }
 
-  function handleSubmit() {
-    // TODO: wire to API
+  function handleClose() {
     reset();
     onClose();
   }
 
-  function handleClose() { reset(); onClose(); }
-
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="formSheet"
+      onRequestClose={handleClose}
+    >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Nouveau parcours</Text>
-            <Text style={styles.headerSub}>Remplis les informations du parcours</Text>
-          </View>
           <Pressable style={styles.closeBtn} onPress={handleClose}>
-            <Ionicons name="close" size={20} color={color.textMuted} />
+            <Ionicons name="close" size={20} color={color.red} />
+          </Pressable>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>
+              {isEdit ? "Modifier le parcours" : "Nouveau parcours"}
+            </Text>
+            <Text style={styles.headerSub} numberOfLines={1}>
+              {isEdit ? parcours!.title : "Remplis les informations du parcours"}
+            </Text>
+          </View>
+          <Pressable
+            style={[styles.submitBtn, isSaving && { opacity: 0.6 }]}
+            onPress={handleSubmit}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator color={color.navy} size="small" />
+            ) : (
+              <>
+                <Ionicons
+                  name={isEdit ? "save-outline" : "checkmark"}
+                  size={15}
+                  color={color.navy}
+                />
+                <Text style={styles.submitText}>
+                  {isEdit ? "Enregistrer" : "Créer"}
+                </Text>
+              </>
+            )}
           </Pressable>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.form}>
-
             <Field label="Titre" required>
-              <TextInput style={styles.input} placeholder="Ex : Chemin vers la guitare" placeholderTextColor={color.textMuted} value={title} onChangeText={setTitle} />
+              <TextInput
+                style={styles.input}
+                placeholder="Ex : Chemin vers la guitare"
+                placeholderTextColor={color.textMuted}
+                value={title}
+                onChangeText={setTitle}
+              />
             </Field>
 
-            <Field label="Instructeur" required>
-              <TextInput style={styles.input} placeholder="Ex : Marc Dupont" placeholderTextColor={color.textMuted} value={instructor} onChangeText={setInstructor} />
+            <Field label="Description">
+              <TextInput
+                style={[styles.input, styles.inputMultiline]}
+                placeholder="Décris le parcours…"
+                placeholderTextColor={color.textMuted}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                textAlignVertical="top"
+              />
             </Field>
 
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Field label="Catégorie">
                   <View style={styles.pickerWrap}>
-                    <Picker selectedValue={category} onValueChange={(v) => setCategory(v as string)} style={styles.picker}>
-                      {CATEGORIES.map((c) => <Picker.Item key={c} label={c} value={c} />)}
+                    <Picker
+                      selectedValue={categoryId}
+                      onValueChange={(v) => setCategoryId(v as string)}
+                      style={styles.picker}
+                      itemStyle={styles.pickerItem}
+                    >
+                      <Picker.Item label="— Aucune —" value="" color={color.white} />
+                      {categories.map((c) => (
+                        <Picker.Item
+                          key={c.id}
+                          label={`${c.emoji} ${c.title}`}
+                          value={c.id}
+                          color={color.white}
+                        />
+                      ))}
                     </Picker>
                   </View>
                 </Field>
@@ -92,20 +275,72 @@ export default function ModalView({ visible, onClose }: { visible: boolean; onCl
               <View style={{ flex: 1 }}>
                 <Field label="Niveau">
                   <View style={styles.pickerWrap}>
-                    <Picker selectedValue={level} onValueChange={(v) => setLevel(v as string)} style={styles.picker}>
-                      {LEVELS.map((l) => <Picker.Item key={l.value} label={l.label} value={l.value} />)}
+                    <Picker
+                      selectedValue={level}
+                      onValueChange={(v) => setLevel(v as TagType)}
+                      style={styles.picker}
+                      itemStyle={styles.pickerItem}
+                    >
+                      {LEVELS.map((l) => (
+                        <Picker.Item
+                          key={l.value}
+                          label={l.label}
+                          value={l.value}
+                          color={color.white}
+                        />
+                      ))}
                     </Picker>
                   </View>
                 </Field>
               </View>
             </View>
 
-            <Field label="Durée totale">
-              <TextInput style={styles.input} placeholder="Ex : 6h 45min" placeholderTextColor={color.textMuted} value={duration} onChangeText={setDuration} />
+            <Field label="Instructeur">
+              <View style={styles.pickerWrap}>
+                <Picker
+                  selectedValue={instructorId}
+                  onValueChange={(v) => setInstructorId(v as string)}
+                  style={styles.picker}
+                  itemStyle={styles.pickerItem}
+                >
+                  <Picker.Item label="— Aucun —" value="" color={color.white} />
+                  {instructors.map((u) => (
+                    <Picker.Item
+                      key={u.id}
+                      label={u.name}
+                      value={u.id}
+                      color={color.white}
+                    />
+                  ))}
+                </Picker>
+              </View>
             </Field>
 
-            <Field label="Description">
-              <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Décris le parcours…" placeholderTextColor={color.textMuted} value={description} onChangeText={setDescription} multiline textAlignVertical="top" />
+            <Field label="Durée totale">
+              <View style={styles.durationRow}>
+                <View style={styles.durationField}>
+                  <TextInput
+                    style={[styles.input, styles.durationInput]}
+                    placeholder="0"
+                    placeholderTextColor={color.textMuted}
+                    value={durationHours}
+                    onChangeText={setDurationHours}
+                    keyboardType="number-pad"
+                  />
+                  <Text style={styles.durationUnit}>h</Text>
+                </View>
+                <View style={styles.durationField}>
+                  <TextInput
+                    style={[styles.input, styles.durationInput]}
+                    placeholder="0"
+                    placeholderTextColor={color.textMuted}
+                    value={durationMin}
+                    onChangeText={setDurationMin}
+                    keyboardType="number-pad"
+                  />
+                  <Text style={styles.durationUnit}>min</Text>
+                </View>
+              </View>
             </Field>
 
             <Field label="Image de couverture">
@@ -114,7 +349,7 @@ export default function ModalView({ visible, onClose }: { visible: boolean; onCl
                   <>
                     <Image source={{ uri: coverImage }} style={styles.imagePreview} />
                     <View style={styles.imageOverlay}>
-                      <Ionicons name="camera-outline" size={20} color="#fff" />
+                      <Ionicons name="camera-outline" size={20} color={color.white} />
                       <Text style={styles.imageOverlayText}>Changer</Text>
                     </View>
                   </>
@@ -130,37 +365,45 @@ export default function ModalView({ visible, onClose }: { visible: boolean; onCl
               </Pressable>
             </Field>
 
-            {/* ── Course selection ── */}
-            <Field label="Cours inclus" required>
-              <Text style={styles.fieldHint}>{selectedCourseIds.length} cours sélectionné{selectedCourseIds.length !== 1 ? "s" : ""}</Text>
+            <Field label="Cours inclus">
+              <Text style={styles.fieldHint}>
+                {selectedCourseIds.length} cours sélectionné
+                {selectedCourseIds.length !== 1 ? "s" : ""}
+              </Text>
               <View style={styles.courseList}>
-                {MY_COURSES.map((course) => {
+                {courses.map((course) => {
                   const selected = selectedCourseIds.includes(course.id);
                   return (
-                    <Pressable key={course.id} style={[styles.courseRow, selected && styles.courseRowSelected]} onPress={() => toggleCourse(course.id)}>
+                    <Pressable
+                      key={course.id}
+                      style={[styles.courseRow, selected && styles.courseRowSelected]}
+                      onPress={() => toggleCourse(course.id)}
+                    >
                       <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
-                        {selected && <Ionicons name="checkmark" size={12} color={color.white} />}
+                        {selected && (
+                          <Ionicons name="checkmark" size={12} color={color.white} />
+                        )}
                       </View>
                       <View style={styles.courseRowInfo}>
-                        <Text style={[styles.courseRowTitle, selected && styles.courseRowTitleSelected]} numberOfLines={1}>{course.title}</Text>
-                        <Text style={styles.courseRowMeta}>{course.category} · {course.duration}</Text>
+                        <Text
+                          style={[styles.courseRowTitle, selected && styles.courseRowTitleSelected]}
+                          numberOfLines={1}
+                        >
+                          {course.title}
+                        </Text>
+                        <Text style={styles.courseRowMeta}>
+                          {course.category
+                            ? `${course.category.emoji} ${course.category.title}`
+                            : "—"}
+                          {" · "}
+                          {course.instructor}
+                        </Text>
                       </View>
                     </Pressable>
                   );
                 })}
               </View>
             </Field>
-
-          </View>
-
-          <View style={styles.actionRow}>
-            <Pressable style={styles.cancelBtn} onPress={handleClose}>
-              <Text style={styles.cancelText}>Annuler</Text>
-            </Pressable>
-            <Pressable style={styles.submitBtn} onPress={handleSubmit}>
-              <Ionicons name="checkmark" size={18} color={color.navy} />
-              <Text style={styles.submitText}>Créer le parcours</Text>
-            </Pressable>
           </View>
 
           <View style={{ height: 40 }} />
@@ -170,10 +413,21 @@ export default function ModalView({ visible, onClose }: { visible: boolean; onCl
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}{required && <Text style={styles.required}> *</Text>}</Text>
+      <Text style={styles.label}>
+        {label}
+        {required && <Text style={styles.required}> *</Text>}
+      </Text>
       {children}
     </View>
   );
@@ -181,10 +435,52 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.bg },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, backgroundColor: color.white, borderBottomWidth: 1, borderBottomColor: color.border },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: color.textPrimary, letterSpacing: -0.3 },
-  headerSub: { fontSize: 13, color: color.textMuted, marginTop: 3 },
-  closeBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: color.bg, justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: color.border },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+    backgroundColor: color.white,
+    borderBottomWidth: 1,
+    borderBottomColor: color.border,
+  },
+  headerCenter: { flex: 1, alignItems: "center" },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: color.textPrimary,
+    letterSpacing: -0.3,
+    textAlign: "center",
+  },
+  headerSub: {
+    fontSize: 12,
+    color: color.textMuted,
+    marginTop: 2,
+    textAlign: "center",
+  },
+  closeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: color.redLight,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: color.red,
+  },
+  submitBtn: {
+    flexDirection: "row",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: color.yellow,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  submitText: { fontSize: 13, fontWeight: "700", color: color.navy },
   scrollContent: { padding: 20, gap: 20 },
   form: { gap: 16 },
   row: { flexDirection: "row", gap: 12 },
@@ -192,32 +488,95 @@ const styles = StyleSheet.create({
   fieldHint: { fontSize: 12, color: color.textMuted, marginBottom: 6 },
   label: { fontSize: 13, fontWeight: "700", color: color.textPrimary },
   required: { color: color.red },
-  input: { backgroundColor: color.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: color.textPrimary, borderWidth: 1, borderColor: color.border },
+  input: {
+    backgroundColor: color.card,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 14,
+    color: color.textPrimary,
+    borderWidth: 1,
+    borderColor: color.border,
+  },
   inputMultiline: { height: 90, paddingTop: 13 },
-  pickerWrap: { backgroundColor: color.card, borderRadius: 12, borderWidth: 1, borderColor: color.border, overflow: "hidden" },
-  picker: { color: color.textPrimary },
-  imagePicker: { height: 160, borderRadius: 16, borderWidth: 1.5, borderColor: color.border, borderStyle: "dashed", backgroundColor: color.bg, overflow: "hidden", alignItems: "center", justifyContent: "center", gap: 8 },
+  pickerWrap: {
+    backgroundColor: color.deepBlue,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: color.border,
+    overflow: "hidden",
+  },
+  picker: { color: color.white },
+  pickerItem: {
+    color: color.white,
+    backgroundColor: color.deepBlue,
+    fontSize: 14,
+  },
+  durationRow: { flexDirection: "row", gap: 12 },
+  durationField: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+  durationInput: { flex: 1 },
+  durationUnit: { fontSize: 13, fontWeight: "600", color: color.textMuted },
+  imagePicker: {
+    height: 160,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: color.border,
+    borderStyle: "dashed",
+    backgroundColor: color.deepBlue,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
   imagePreview: { width: "100%", height: "100%", resizeMode: "cover" },
-  imageOverlay: { position: "absolute", bottom: 10, right: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  imageOverlayText: { fontSize: 12, fontWeight: "600", color: "#fff" },
-  imageIconWrap: { width: 52, height: 52, borderRadius: 14, backgroundColor: "#E9F2FF", justifyContent: "center", alignItems: "center" },
-  imagePickerTitle: { fontSize: 14, fontWeight: "700", color: color.textPrimary },
-  imagePickerSub: { fontSize: 12, color: color.textMuted },
-
-  // Course multi-select
+  imageOverlay: {
+    position: "absolute",
+    bottom: 10,
+    right: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  imageOverlayText: { fontSize: 12, fontWeight: "600", color: color.white },
+  imageIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#E9F2FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imagePickerTitle: { fontSize: 14, fontWeight: "700", color: color.white },
+  imagePickerSub: { fontSize: 12, color: color.yellow },
   courseList: { gap: 8 },
-  courseRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 12, backgroundColor: color.card, borderWidth: 1.5, borderColor: color.border },
+  courseRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: color.card,
+    borderWidth: 1.5,
+    borderColor: color.border,
+  },
   courseRowSelected: { borderColor: color.navy, backgroundColor: "#EEF4FA" },
-  checkbox: { width: 22, height: 22, borderRadius: 7, borderWidth: 2, borderColor: color.border, justifyContent: "center", alignItems: "center", flexShrink: 0 },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: color.border,
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+  },
   checkboxSelected: { backgroundColor: color.navy, borderColor: color.navy },
   courseRowInfo: { flex: 1 },
   courseRowTitle: { fontSize: 13.5, fontWeight: "600", color: color.textMuted },
   courseRowTitleSelected: { color: color.textPrimary },
   courseRowMeta: { fontSize: 11, color: color.textMuted, marginTop: 2 },
-
-  actionRow: { flexDirection: "row", gap: 12, marginTop: 4 },
-  cancelBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, borderWidth: 1.5, borderColor: color.border, alignItems: "center" },
-  cancelText: { fontSize: 15, fontWeight: "600", color: color.textMuted },
-  submitBtn: { flex: 2, flexDirection: "row", paddingVertical: 16, borderRadius: 16, backgroundColor: color.yellow, alignItems: "center", justifyContent: "center", gap: 8 },
-  submitText: { fontSize: 15, fontWeight: "700", color: color.navy },
 });

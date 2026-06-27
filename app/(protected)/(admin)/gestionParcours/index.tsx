@@ -37,6 +37,7 @@ export default function GestionParcours() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingParcours, setEditingParcours] = useState<Parcours | null>(null);
   const [activeFilter, setActiveFilter] = useState<LevelKey>("all");
+  const [search, setSearch] = useState("");
 
   function handleEdit(p: Parcours) {
     setEditingParcours(p);
@@ -61,13 +62,14 @@ export default function GestionParcours() {
     );
   }
 
-  const filtered = useMemo(
-    () =>
-      activeFilter === "all"
-        ? parcours
-        : parcours.filter((p) => p.tag_type === activeFilter),
-    [parcours, activeFilter],
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return parcours.filter((p) => {
+      if (activeFilter !== "all" && p.tag_type !== activeFilter) return false;
+      if (q && !p.title.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [parcours, activeFilter, search]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -76,6 +78,9 @@ export default function GestionParcours() {
         count={parcours.length}
         countLabel="parcours"
         onAdd={() => { setEditingParcours(null); setModalVisible(true); }}
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Rechercher un parcours"
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

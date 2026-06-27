@@ -36,6 +36,7 @@ export default function GestionCours() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [activeFilter, setActiveFilter] = useState<LevelKey>("all");
+  const [search, setSearch] = useState("");
 
   function openAdd() {
     setEditingCourse(null);
@@ -65,13 +66,14 @@ export default function GestionCours() {
     );
   }
 
-  const filtered = useMemo(
-    () =>
-      activeFilter === "all"
-        ? courses
-        : courses.filter((c) => c.tag_type === activeFilter),
-    [courses, activeFilter],
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return courses.filter((c) => {
+      if (activeFilter !== "all" && c.tag_type !== activeFilter) return false;
+      if (q && !c.title.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [courses, activeFilter, search]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -80,6 +82,9 @@ export default function GestionCours() {
         count={courses.length}
         countLabel="cours"
         onAdd={openAdd}
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Rechercher un cours"
       />
 
       <ScrollView

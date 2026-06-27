@@ -1,23 +1,78 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useContext, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MY_COURSES } from "@/data/mockData";
+import { Course, CourseContext } from "@/contexts/courseContext";
 import ModalView from "./modal";
 import { color, TAG_STYLES } from "@/config/adminTheme";
 
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0 && m > 0) return `${h}h ${m}min`;
+  if (h > 0) return `${h}h`;
+  return `${m}min`;
+}
 
-const FILTERS = ["Tous", "Guitare", "Piano", "Saxophone", "Percussions", "Jazz"] as const;
-type Filter = (typeof FILTERS)[number];
+const LEVELS = [
+  { key: "all", label: "Tous" },
+  { key: "beginner", label: "Débutant" },
+  { key: "intermediate", label: "Intermédiaire" },
+  { key: "expert", label: "Expert" },
+] as const;
+type LevelKey = (typeof LEVELS)[number]["key"];
 
 export default function GestionCours() {
+  const { courses, isLoading, error, deleteCourse } = useContext(CourseContext);
   const [modalVisible, setModalVisible] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<Filter>("Tous");
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [activeFilter, setActiveFilter] = useState<LevelKey>("all");
 
-  const filtered = activeFilter === "Tous"
-    ? MY_COURSES
-    : MY_COURSES.filter((c) => c.category === activeFilter);
+  function openAdd() {
+    setEditingCourse(null);
+    setModalVisible(true);
+  }
+
+  function openEdit(course: Course) {
+    setEditingCourse(course);
+    setModalVisible(true);
+  }
+
+  function handleDelete(course: Course) {
+    Alert.alert(
+      "Supprimer le cours",
+      `Voulez-vous vraiment supprimer « ${course.title} » ? Cette action est irréversible.`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: () =>
+            deleteCourse(course.id).catch((err: Error) =>
+              Alert.alert("Erreur", err.message),
+            ),
+        },
+      ],
+    );
+  }
+
+  const filtered = useMemo(
+    () =>
+      activeFilter === "all"
+        ? courses
+        : courses.filter((c) => c.tag_type === activeFilter),
+    [courses, activeFilter],
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -30,10 +85,10 @@ export default function GestionCours() {
           </View>
           <View style={styles.headerRight}>
             <View style={styles.countBadge}>
-              <Text style={styles.countText}>{MY_COURSES.length}</Text>
+              <Text style={styles.countText}>{courses.length}</Text>
               <Text style={styles.countLabel}>cours</Text>
             </View>
-            <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
+            <Pressable style={styles.addBtn} onPress={openAdd}>
               <Ionicons name="add" size={22} color={color.navy} />
               <Text style={styles.addBtnText}>Ajouter</Text>
             </Pressable>
@@ -44,9 +99,9 @@ export default function GestionCours() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* ── Filters ── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
-          {FILTERS.map((f) => (
-            <Pressable key={f} style={[styles.filterChip, activeFilter === f && styles.filterChipActive]} onPress={() => setActiveFilter(f)}>
-              <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>{f}</Text>
+          {LEVELS.map((f) => (
+            <Pressable key={f.key} style={[styles.filterChip, activeFilter === f.key && styles.filterChipActive]} onPress={() => setActiveFilter(f.key)}>
+              <Text style={[styles.filterText, activeFilter === f.key && styles.filterTextActive]}>{f.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -57,47 +112,65 @@ export default function GestionCours() {
           <Text style={styles.sectionCount}>{filtered.length} au total</Text>
         </View>
 
-        <View style={styles.listWrap}>
-          {filtered.map((course, i) => {
-            const tag = TAG_STYLES[course.tagType] ?? TAG_STYLES.beginner;
-            return (
-              <View key={course.id} style={[styles.courseCard, i < filtered.length - 1 && styles.courseCardBorder]}>
-                <Image source={{ uri: course.image }} style={styles.thumbnail} />
-                <View style={styles.courseInfo}>
-                  <View style={styles.courseTopRow}>
-                    <Text style={styles.courseTitle} numberOfLines={1}>{course.title}</Text>
-                    <View style={[styles.tagBadge, { backgroundColor: tag.bg }]}>
-                      <Text style={[styles.tagText, { color: tag.text }]}>{course.tag}</Text>
+        {isLoading ? (
+          <ActivityIndicator size="large" color={color.navy} style={{ marginTop: 40 }} />
+        ) : error ? (
+          <Text style={styles.errorText}>Erreur de chargement des cours</Text>
+        ) : filtered.length === 0 ? (
+          <Text style={styles.emptyText}>Aucun cours trouvé</Text>
+        ) : (
+          <View style={styles.listWrap}>
+            {filtered.map((course, i) => {
+              const tag = TAG_STYLES[course.tag_type] ?? TAG_STYLES.beginner;
+              const tagLabel =
+                course.tag_type === "beginner" ? "Débutant"
+                : course.tag_type === "intermediate" ? "Intermédiaire"
+                : "Expert";
+              return (
+                <View key={course.id} style={[styles.courseCard, i < filtered.length - 1 && styles.courseCardBorder]}>
+                  {course.image_url ? (
+                    <Image source={{ uri: course.image_url }} style={styles.thumbnail} />
+                  ) : (
+                    <View style={[styles.thumbnail, { backgroundColor: color.border }]} />
+                  )}
+                  <View style={styles.courseInfo}>
+                    <View style={styles.courseTopRow}>
+                      <Text style={styles.courseTitle} numberOfLines={1}>{course.title}</Text>
+                      <View style={[styles.tagBadge, { backgroundColor: tag.bg }]}>
+                        <Text style={[styles.tagText, { color: tag.text }]}>{tagLabel}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.courseInstructor}>
+                      <Ionicons name="person-outline" size={11} color={color.textMuted} /> {course.instructor}
+                    </Text>
+                    <View style={styles.courseMeta}>
+                      <Ionicons name="musical-notes-outline" size={11} color={color.textMuted} />
+                      <Text style={styles.courseMetaText}>
+                        {course.category ? `${course.category.emoji} ${course.category.title}` : "—"}
+                      </Text>
+                      <View style={styles.metaDot} />
+                      <Ionicons name="time-outline" size={11} color={color.textMuted} />
+                      <Text style={styles.courseMetaText}>{formatDuration(course.total_duration_seconds)}</Text>
                     </View>
                   </View>
-                  <Text style={styles.courseInstructor}>
-                    <Ionicons name="person-outline" size={11} color={color.textMuted} /> {course.instructor}
-                  </Text>
-                  <View style={styles.courseMeta}>
-                    <Ionicons name="musical-notes-outline" size={11} color={color.textMuted} />
-                    <Text style={styles.courseMetaText}>{course.category}</Text>
-                    <View style={styles.metaDot} />
-                    <Ionicons name="time-outline" size={11} color={color.textMuted} />
-                    <Text style={styles.courseMetaText}>{course.duration}</Text>
+                  <View style={styles.actions}>
+                    <Pressable style={[styles.actionBtn, { backgroundColor: "#E9F2FF" }]} onPress={() => openEdit(course)}>
+                      <Ionicons name="create-outline" size={16} color="#1E88E5" />
+                    </Pressable>
+                    <Pressable style={[styles.actionBtn, { backgroundColor: "#FFE7E7" }]} onPress={() => handleDelete(course)}>
+                      <Ionicons name="trash-outline" size={16} color={color.red} />
+                    </Pressable>
                   </View>
                 </View>
-                <View style={styles.actions}>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: "#E9F2FF" }]}>
-                    <Ionicons name="create-outline" size={16} color="#1E88E5" />
-                  </Pressable>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: "#FFE7E7" }]}>
-                    <Ionicons name="trash-outline" size={16} color={color.red} />
-                  </Pressable>
-                </View>
-              </View>
-            );
-          })}
-        </View>
+              );
+            })}
+          </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <ModalView visible={modalVisible} onClose={() => setModalVisible(false)} />
+      <ModalView visible={modalVisible} onClose={() => setModalVisible(false)} course={editingCourse} />
     </SafeAreaView>
   );
 }
@@ -141,4 +214,6 @@ const styles = StyleSheet.create({
   metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: color.border },
   actions: { flexDirection: "column", gap: 6 },
   actionBtn: { width: 32, height: 32, borderRadius: 10, justifyContent: "center", alignItems: "center" },
+  errorText: { textAlign: "center", marginTop: 40, color: color.red, fontSize: 14, fontWeight: "500" },
+  emptyText: { textAlign: "center", marginTop: 40, color: color.textMuted, fontSize: 14, fontWeight: "500" },
 });

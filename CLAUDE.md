@@ -60,4 +60,4 @@ Use `config/color.tsx` (named export `color`) for all brand colors in user-facin
 ### Important
 
 - Always ask for validation before implementation
-- Always use Tanstack query for interaction that necessite awit and promises
+- Always use Tanstack query for interaction that necessite awit and promises. They should always be in the approprieted context

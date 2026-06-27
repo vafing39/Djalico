@@ -383,6 +383,7 @@ export default function ModalView({
                   selectedValue={categoryId}
                   onValueChange={setCategoryId}
                   style={styles.picker}
+                  itemStyle={styles.pickerItem}
                 >
                   <Picker.Item label="— Aucune catégorie —" value="" />
                   {categories.map((c) => (
@@ -407,6 +408,7 @@ export default function ModalView({
                     selectedValue={courseId}
                     onValueChange={setCourseId}
                     style={styles.picker}
+                    itemStyle={styles.pickerItem}
                   >
                     <Picker.Item label="— Aucun —" value="" />
                     {courses.map((c) => (
@@ -536,13 +538,14 @@ const styles = StyleSheet.create({
   durationUnit: { fontSize: 13, color: color.textMuted, fontWeight: "500" },
 
   pickerWrap: {
-    backgroundColor: color.bg,
+    backgroundColor: color.deepBlue,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: color.border,
     overflow: "hidden",
   },
   picker: { color: color.textPrimary },
+  pickerItem: { color: color.white, fontSize: 14 },
 
   levelRow: { flexDirection: "row", gap: 8 },
   levelChip: {

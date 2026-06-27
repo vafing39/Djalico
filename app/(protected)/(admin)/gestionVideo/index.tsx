@@ -271,7 +271,7 @@ export default function GestionVideo() {
                       </Text>
                       <View style={[styles.tagBadge, { backgroundColor: TAG_STYLES[item.tag_type].bg }]}>
                         <Text style={[styles.tagText, { color: TAG_STYLES[item.tag_type].text }]}>
-                          {item.tag_type === "beginner" ? "Déb." : item.tag_type === "intermediate" ? "Inter." : "Expert"}
+                          {item.tag_type === "beginner" ? "Débutant" : item.tag_type === "intermediate" ? "Intermédiaire" : "Expert"}
                         </Text>
                       </View>
                     </View>

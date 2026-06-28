@@ -1,9 +1,15 @@
 import { AuthContext } from '@/contexts/authContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRouter } from 'expo-router';
-import { Camera, CreditCard as Edit3, Mail, Phone, Plus, Save, Settings, Trash2, User, X } from 'lucide-react-native';
+import { Camera, CreditCard as Edit3, Plus, Save, Settings, Trash2, User, X } from 'lucide-react-native';
 import React, { useContext, useState } from 'react';
 import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+const ROLE_LABELS: Record<string, string> = {
+  eleve: 'Élève',
+  professeur: 'Professeur',
+  admin: 'Administrateur',
+};
 
 const COLORS = {
   deepBlue: "#0E2B45",       // text & deep accents
@@ -21,33 +27,15 @@ export default function ProfileScreen() {
   const { t } = useLanguage();
   const [showAddChild, setShowAddChild] = useState(false);
   const authState = useContext(AuthContext);
-  const [editingChild, setEditingChild] = useState<string | null>(null);
-  const [editingParent, setEditingParent] = useState<string | null>(null);
   const [newChildName, setNewChildName] = useState('');
   const [newChildAge, setNewChildAge] = useState('');
-  const [editParentData, setEditParentData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-  });
   const [professeur, setProfesseur] = useState([
-    { 
-      id: 'kamal', 
-      name: 'Kamal', 
-      age: 6, 
+    {
+      id: 'kamal',
+      name: 'Kamal',
+      age: 6,
       color: COLORS.yellowDark,
       photo: 'https://images.pexels.com/photos/1416736/pexels-photo-1416736.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-    },
-  ]);
-
-  const [student, setStudent] = useState([
-    {
-      id: 'marie',
-      name: 'Marie Dubois',
-      role: 'Maman',
-      email: 'marie.dubois@email.com',
-      phone: '+33 6 12 34 56 78',
-      photo: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
     },
   ]);
 
@@ -72,32 +60,6 @@ export default function ProfileScreen() {
     setProfesseur(professeur.filter(child => child.id !== childId));
   };
 
-  const startEditingParent = (parent: any) => {
-    setEditingParent(parent.id);
-    setEditParentData({
-      name: parent.name,
-      email: parent.email,
-      phone: parent.phone,
-    });
-  };
-
-  const saveParentChanges = () => {
-    if (editingParent && editParentData.name.trim() && editParentData.email.trim()) {
-      setStudent(student.map(parent => 
-        parent.id === editingParent 
-          ? { ...parent, ...editParentData }
-          : parent
-      ));
-      setEditingParent(null);
-      setEditParentData({ name: '', email: '', phone: '' });
-    }
-  };
-
-  const cancelParentEdit = () => {
-    setEditingParent(null);
-    setEditParentData({ name: '', email: '', phone: '' });
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -112,83 +74,32 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* student Section */}
+        {/* Profile Section */}
         <View style={styles.section}>
-          {student.map((parent) => (
-            <View key={parent.id} style={styles.parentCard}>
-              <Image source={{ uri: parent.photo }} style={styles.parentPhoto} />
-              
-              {editingParent === parent.id ? (
-                <View style={styles.parentEditForm}>
-                  <View style={styles.editInputContainer}>
-                    <User size={16} color="#6B7280" />
-                    <TextInput
-                      style={styles.editInput}
-                      value={editParentData.name}
-                      onChangeText={(text) => setEditParentData({...editParentData, name: text})}
-                      placeholder="Nom complet"
-                      placeholderTextColor="#9CA3AF"
-                    />
-                  </View>
-                  <View style={styles.editInputContainer}>
-                    <Mail size={16} color="#6B7280" />
-                    <TextInput
-                      style={styles.editInput}
-                      value={editParentData.email}
-                      onChangeText={(text) => setEditParentData({...editParentData, email: text})}
-                      placeholder="Email"
-                      placeholderTextColor="#9CA3AF"
-                      keyboardType="email-address"
-                    />
-                  </View>
-                  <View style={styles.editInputContainer}>
-                    <Phone size={16} color="#6B7280" />
-                    <TextInput
-                      style={styles.editInput}
-                      value={editParentData.phone}
-                      onChangeText={(text) => setEditParentData({...editParentData, phone: text})}
-                      placeholder="Téléphone"
-                      placeholderTextColor="#9CA3AF"
-                      keyboardType="phone-pad"
-                    />
-                  </View>
-                  <View style={styles.editActions}>
-                    <TouchableOpacity 
-                      style={styles.editCancelButton}
-                      onPress={cancelParentEdit}
-                    >
-                      <X size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[
-                        styles.editSaveButton,
-                        (!editParentData.name.trim() || !editParentData.email.trim()) && styles.editSaveButtonDisabled
-                      ]}
-                      onPress={saveParentChanges}
-                      disabled={!editParentData.name.trim() || !editParentData.email.trim()}
-                    >
-                      <Save size={16} color="white" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.parentInfo}>
-                  <Text style={styles.parentName}>{parent.name}</Text>
-                  <Text style={styles.parentContact}>{parent.email}</Text>
-                  <Text style={styles.parentContact}>{parent.phone}</Text>
-                </View>
-              )}
-              
-              {editingParent !== parent.id && (
-                <TouchableOpacity 
-                  style={styles.editButton}
-                  onPress={() => startEditingParent(parent)}
-                >
-                  <Edit3 size={18} color="#6B7280" />
-                </TouchableOpacity>
+          <View style={styles.parentCard}>
+            {authState.profile?.avatar_url ? (
+              <Image source={{ uri: authState.profile.avatar_url }} style={styles.parentPhoto} />
+            ) : (
+              <View style={[styles.parentPhoto, styles.avatarPlaceholder]}>
+                <User size={28} color={COLORS.softGray} />
+              </View>
+            )}
+            <View style={styles.parentInfo}>
+              <Text style={styles.parentName}>{authState.profile?.name ?? '—'}</Text>
+              <Text style={styles.parentContact}>{authState.profile?.email ?? '—'}</Text>
+              {authState.profile?.role && (
+                <Text style={styles.parentRole}>
+                  {ROLE_LABELS[authState.profile.role] ?? authState.profile.role}
+                </Text>
               )}
             </View>
-          ))}
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => router.push('/(protected)/(tabs)/settings/editProfile')}
+            >
+              <Edit3 size={18} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* professeur Section */}
@@ -396,6 +307,11 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     marginRight: 16,
+  },
+  avatarPlaceholder: {
+    backgroundColor: COLORS.paleBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   parentInfo: {
     flex: 1,

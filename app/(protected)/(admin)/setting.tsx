@@ -402,7 +402,7 @@ export default function Setting() {
         </Section>
 
         {/* ── Préférences ── */}
-        <Section title="Préférences">
+        {/* <Section title="Préférences">
           <SettingItem
             icon="language-outline"
             iconBg="#E9F2FF"
@@ -410,9 +410,8 @@ export default function Setting() {
             label="Langue"
             sublabel={`${currentLang.flag}  ${currentLang.name}`}
             onPress={() => setLangModalVisible(true)}
-            isLast
           />
-          {/* <SettingItem
+          <SettingItem
             icon="moon-outline"
             iconBg="#1F2937"
             iconColor="#E5E7EB"
@@ -420,8 +419,8 @@ export default function Setting() {
             toggle
             value={darkMode}
             onPress={() => setDarkMode((v) => !v)}
-          /> */}
-          {/* <SettingItem
+          />
+          <SettingItem
             icon="notifications-outline"
             iconBg="#DCFCE7"
             iconColor="#22C55E"
@@ -431,8 +430,8 @@ export default function Setting() {
             value={notifications}
             onPress={() => setNotifications((v) => !v)}
             isLast
-          /> */}
-        </Section>
+          />
+        </Section> */}
 
         {/* ── Language modal ── */}
         <Modal

@@ -1,17 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
-import React, { useContext, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { useContext, useEffect, useState } from "react";
+import { Alert, Modal, ScrollView, StyleSheet, View } from "react-native";
+import ModalHeader from "@/components/admin/ModalHeader";
+import FormField from "@/components/admin/FormField";
+import PickerField from "@/components/admin/PickerField";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { UserContext } from "@/contexts/userContext";
 import type { User } from "@/types";
@@ -82,120 +73,63 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Pressable style={styles.closeBtn} onPress={onClose}>
-            <Ionicons name="close" size={20} color={color.red} />
-          </Pressable>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>
-              {isEdit ? "Modifier l'utilisateur" : "Nouvel utilisateur"}
-            </Text>
-            <Text style={styles.headerSub} numberOfLines={1}>
-              {isEdit ? user!.name : "Remplis les informations du compte"}
-            </Text>
-          </View>
-          <Pressable
-            style={[styles.saveBtn, isBusy && { opacity: 0.6 }]}
-            onPress={handleSubmit}
-            disabled={isBusy}
-          >
-            {isBusy ? (
-              <ActivityIndicator color={color.navy} size="small" />
-            ) : (
-              <>
-                <Ionicons
-                  name={isEdit ? "save-outline" : "checkmark"}
-                  size={15}
-                  color={color.navy}
-                />
-                <Text style={styles.saveBtnText}>
-                  {isEdit ? "Enregistrer" : "Créer"}
-                </Text>
-              </>
-            )}
-          </Pressable>
-        </View>
+        <ModalHeader
+          title={isEdit ? "Modifier l'utilisateur" : "Nouvel utilisateur"}
+          subtitle={isEdit ? user!.name : "Remplis les informations du compte"}
+          isBusy={isBusy}
+          submitLabel={isEdit ? "Enregistrer" : "Créer"}
+          submitIcon={isEdit ? "save-outline" : "checkmark"}
+          onClose={onClose}
+          onSubmit={handleSubmit}
+        />
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.form}>
-            <Field label="Nom" required>
-              <TextInput
-                style={styles.input}
-                placeholder="Nom complet"
-                placeholderTextColor={color.textMuted}
-                value={name}
-                onChangeText={setName}
-              />
-            </Field>
+            <FormField
+              label="Nom"
+              required
+              value={name}
+              onChangeText={setName}
+              placeholder="Nom complet"
+            />
 
-            <Field label="Email">
-              <TextInput
-                style={[styles.input, isEdit && styles.inputDisabled]}
-                placeholder="adresse@email.com"
-                placeholderTextColor={color.textMuted}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={!isEdit}
-              />
-            </Field>
+            <FormField
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="adresse@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!isEdit}
+            />
 
             {!isEdit && (
-              <Field label="Mot de passe" required>
-                <TextInput
-                  style={styles.input}
-                  placeholder="6 caractères minimum"
-                  placeholderTextColor={color.textMuted}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
-              </Field>
+              <FormField
+                label="Mot de passe"
+                required
+                value={password}
+                onChangeText={setPassword}
+                placeholder="6 caractères minimum"
+                secureTextEntry
+              />
             )}
 
-            <Field label="Rôle">
-              <View style={styles.pickerWrap}>
-                <Picker
-                  selectedValue={role}
-                  onValueChange={(v) => setRole(v as User["role"])}
-                  style={styles.picker}
-                  itemStyle={styles.pickerItem}
-                >
-                  {ROLES.map((r) => (
-                    <Picker.Item
-                      key={r.value}
-                      label={r.label}
-                      value={r.value}
-                      color={color.white}
-                    />
-                  ))}
-                </Picker>
-              </View>
-            </Field>
+            <PickerField
+              label="Rôle"
+              selectedValue={role}
+              onValueChange={(v) => setRole(v as User["role"])}
+              items={ROLES}
+            />
 
-            <Field label="Niveau">
-              <View style={styles.pickerWrap}>
-                <Picker
-                  selectedValue={level}
-                  onValueChange={(v) => setLevel(v as User["level"])}
-                  style={styles.picker}
-                  itemStyle={styles.pickerItem}
-                >
-                  {LEVELS.map((l) => (
-                    <Picker.Item
-                      key={l.value}
-                      label={l.label}
-                      value={l.value}
-                      color={color.white}
-                    />
-                  ))}
-                </Picker>
-              </View>
-            </Field>
+            <PickerField
+              label="Niveau"
+              selectedValue={level}
+              onValueChange={(v) => setLevel(v as User["level"])}
+              items={LEVELS}
+            />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -203,103 +137,8 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
   );
 }
 
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>
-        {label}
-        {required && <Text style={styles.required}> *</Text>}
-      </Text>
-      {children}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.bg },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
-    backgroundColor: color.white,
-    borderBottomWidth: 1,
-    borderBottomColor: color.border,
-  },
-  headerCenter: { flex: 1, alignItems: "center" },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: color.textPrimary,
-    letterSpacing: -0.3,
-    textAlign: "center",
-  },
-  headerSub: {
-    fontSize: 12,
-    color: color.textMuted,
-    marginTop: 2,
-    textAlign: "center",
-  },
-  closeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: color.redLight,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: color.red,
-  },
-  saveBtn: {
-    flexDirection: "row",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: color.yellow,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  saveBtnText: { fontSize: 13, fontWeight: "700", color: color.navy },
   scrollContent: { padding: 20 },
   form: { gap: 16 },
-  field: { gap: 7 },
-  label: { fontSize: 13, fontWeight: "700", color: color.textPrimary },
-  required: { color: color.red },
-  input: {
-    backgroundColor: color.card,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 14,
-    color: color.textPrimary,
-    borderWidth: 1,
-    borderColor: color.border,
-  },
-  inputDisabled: {
-    opacity: 0.5,
-  },
-  pickerWrap: {
-    backgroundColor: color.deepBlue,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: color.border,
-    overflow: "hidden",
-  },
-  picker: { color: color.white },
-  pickerItem: {
-    color: color.white,
-    backgroundColor: color.deepBlue,
-    fontSize: 14,
-  },
 });

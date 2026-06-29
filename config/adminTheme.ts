@@ -39,3 +39,16 @@ export const LEVELS: { label: string; value: TagType }[] = [
   { label: "Intermédiaire", value: "intermediate" },
   { label: "Expert",        value: "expert"       },
 ];
+
+/** Shared raw style definitions for the dark-background Picker control. */
+export const pickerStyleDefs = {
+  wrap: {
+    backgroundColor: color.deepBlue,
+    borderRadius: 12,
+    borderWidth: 1 as const,
+    borderColor: color.border,
+    overflow: "hidden" as const,
+  },
+  picker: { color: color.white },
+  item: { color: color.white, backgroundColor: color.deepBlue, fontSize: 14 as const },
+};

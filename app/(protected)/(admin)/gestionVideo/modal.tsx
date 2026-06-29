@@ -2,9 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { useQuery } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import DurationField from "@/components/admin/DurationField";
+import FormField from "@/components/admin/FormField";
+import PickerField from "@/components/admin/PickerField";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -15,6 +17,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import ModalHeader from "@/components/admin/ModalHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CourseContext } from "@/contexts/courseContext";
 import { VideoContext } from "@/contexts/videoContext";
@@ -188,40 +191,15 @@ export default function ModalView({
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container}>
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <Pressable style={styles.closeBtn} onPress={onClose}>
-            <Ionicons name="close" size={20} color={color.red} />
-          </Pressable>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>
-              {isEdit ? "Modifier la vidéo" : "Ajouter une vidéo"}
-            </Text>
-            <Text style={styles.headerSub} numberOfLines={1}>
-              {isEdit ? video!.title : "Nouvelle vidéo"}
-            </Text>
-          </View>
-          <Pressable
-            style={[styles.submitBtn, isSaving && { opacity: 0.6 }]}
-            onPress={handleSubmit}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <ActivityIndicator color={color.navy} size="small" />
-            ) : (
-              <>
-                <Ionicons
-                  name={isEdit ? "save-outline" : "cloud-upload-outline"}
-                  size={15}
-                  color={color.navy}
-                />
-                <Text style={styles.submitText}>
-                  {isEdit ? "Enregistrer" : "Publier"}
-                </Text>
-              </>
-            )}
-          </Pressable>
-        </View>
+        <ModalHeader
+          title={isEdit ? "Modifier la vidéo" : "Ajouter une vidéo"}
+          subtitle={isEdit ? video!.title : "Nouvelle vidéo"}
+          isBusy={isSaving}
+          submitLabel={isEdit ? "Enregistrer" : "Publier"}
+          submitIcon={isEdit ? "save-outline" : "cloud-upload-outline"}
+          onClose={onClose}
+          onSubmit={handleSubmit}
+        />
 
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -315,104 +293,56 @@ export default function ModalView({
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Informations</Text>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>
-                Titre <Text style={{ color: color.red }}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ex : Les gammes pentatoniques"
-                placeholderTextColor={color.textMuted}
-                value={title}
-                onChangeText={setTitle}
-              />
-            </View>
+            <FormField
+              label="Titre"
+              required
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Ex : Les gammes pentatoniques"
+              variant="card"
+            />
 
-            <View style={styles.field}>
-              <Text style={styles.label}>Sous-titre</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Optionnel"
-                placeholderTextColor={color.textMuted}
-                value={subtitle}
-                onChangeText={setSubtitle}
-              />
-            </View>
+            <FormField
+              label="Sous-titre"
+              value={subtitle}
+              onChangeText={setSubtitle}
+              placeholder="Optionnel"
+              variant="card"
+            />
 
-            <View style={styles.field}>
-              <Text style={styles.label}>Durée</Text>
-              <View style={styles.durationRow}>
-                <View style={styles.durationField}>
-                  <TextInput
-                    style={[styles.input, styles.durationInput]}
-                    placeholder="mm"
-                    placeholderTextColor={color.textMuted}
-                    value={durationMin}
-                    onChangeText={setDurationMin}
-                    keyboardType="number-pad"
-                  />
-                  <Text style={styles.durationUnit}>min</Text>
-                </View>
-                <View style={styles.durationField}>
-                  <TextInput
-                    style={[styles.input, styles.durationInput]}
-                    placeholder="ss"
-                    placeholderTextColor={color.textMuted}
-                    value={durationSec}
-                    onChangeText={setDurationSec}
-                    keyboardType="number-pad"
-                  />
-                  <Text style={styles.durationUnit}>sec</Text>
-                </View>
-              </View>
-            </View>
+            <DurationField
+              label="Durée"
+              variant="card"
+              fields={[
+                { value: durationMin, onChange: setDurationMin, unit: "min", placeholder: "mm" },
+                { value: durationSec, onChange: setDurationSec, unit: "sec", placeholder: "ss" },
+              ]}
+            />
           </View>
 
           {/* ── Classification ── */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Classification</Text>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>Catégorie</Text>
-              <View style={styles.pickerWrap}>
-                <Picker
-                  selectedValue={categoryId}
-                  onValueChange={setCategoryId}
-                  style={styles.picker}
-                  itemStyle={styles.pickerItem}
-                >
-                  <Picker.Item label="— Aucune catégorie —" value="" />
-                  {categories.map((c) => (
-                    <Picker.Item
-                      key={c.id}
-                      label={`${c.emoji} ${c.title}`}
-                      value={c.id}
-                    />
-                  ))}
-                </Picker>
-              </View>
-            </View>
+            <PickerField
+              label="Catégorie"
+              variant="card"
+              selectedValue={categoryId}
+              onValueChange={setCategoryId}
+              placeholder="— Aucune catégorie —"
+              items={categories.map((c) => ({ label: `${c.emoji} ${c.title}`, value: c.id }))}
+            />
 
             {!isEdit && (
-              <View style={styles.field}>
-                <Text style={styles.label}>Cours associé</Text>
-                <Text style={styles.hint}>
-                  La vidéo sera ajoutée comme leçon de ce cours.
-                </Text>
-                <View style={styles.pickerWrap}>
-                  <Picker
-                    selectedValue={courseId}
-                    onValueChange={setCourseId}
-                    style={styles.picker}
-                    itemStyle={styles.pickerItem}
-                  >
-                    <Picker.Item label="— Aucun —" value="" />
-                    {courses.map((c) => (
-                      <Picker.Item key={c.id} label={c.title} value={c.id} />
-                    ))}
-                  </Picker>
-                </View>
-              </View>
+              <PickerField
+                label="Cours associé"
+                variant="card"
+                selectedValue={courseId}
+                onValueChange={setCourseId}
+                placeholder="— Aucun —"
+                hint="La vidéo sera ajoutée comme leçon de ce cours."
+                items={courses.map((c) => ({ label: c.title, value: c.id }))}
+              />
             )}
 
             <View style={styles.publishRow}>
@@ -438,41 +368,6 @@ export default function ModalView({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.bg },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
-    backgroundColor: color.white,
-    borderBottomWidth: 1,
-    borderBottomColor: color.border,
-  },
-  headerCenter: { flex: 1, alignItems: "center" },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: color.textPrimary,
-    letterSpacing: -0.3,
-    textAlign: "center",
-  },
-  headerSub: {
-    fontSize: 12,
-    color: color.textMuted,
-    marginTop: 2,
-    textAlign: "center",
-  },
-  closeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: color.redLight,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: color.red,
-  },
 
   scrollContent: { padding: 16, gap: 12 },
 
@@ -509,9 +404,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  field: { gap: 6 },
   label: { fontSize: 13, fontWeight: "700", color: color.textPrimary },
-  hint: { fontSize: 11, color: color.textMuted, marginTop: -2 },
   input: {
     backgroundColor: color.bg,
     borderRadius: 12,
@@ -523,25 +416,6 @@ const styles = StyleSheet.create({
     borderColor: color.border,
   },
 
-  durationRow: { flexDirection: "row", gap: 10 },
-  durationField: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  durationInput: { flex: 1 },
-  durationUnit: { fontSize: 13, color: color.textMuted, fontWeight: "500" },
-
-  pickerWrap: {
-    backgroundColor: color.deepBlue,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: color.border,
-    overflow: "hidden",
-  },
-  picker: { color: color.textPrimary },
-  pickerItem: { color: color.white, fontSize: 14 },
 
   levelRow: { flexDirection: "row", gap: 8 },
   levelChip: {
@@ -562,15 +436,4 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-  submitBtn: {
-    flexDirection: "row",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    backgroundColor: color.yellow,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  submitText: { fontSize: 13, fontWeight: "700", color: color.navy },
 });

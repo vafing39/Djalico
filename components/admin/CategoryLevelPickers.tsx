@@ -1,0 +1,66 @@
+import { Picker } from "@react-native-picker/picker";
+import { StyleSheet, Text, View } from "react-native";
+import { color, LEVELS, pickerStyleDefs } from "@/config/adminTheme";
+import type { Category, TagType } from "@/types";
+
+type Props = {
+  categoryId: string;
+  setCategoryId: (v: string) => void;
+  categories: Category[];
+  level: TagType;
+  setLevel: (v: TagType) => void;
+};
+
+export default function CategoryLevelPickers({
+  categoryId,
+  setCategoryId,
+  categories,
+  level,
+  setLevel,
+}: Props) {
+  return (
+    <View style={styles.row}>
+      <View style={styles.col}>
+        <Text style={styles.label}>Catégorie</Text>
+        <View style={styles.pickerWrap}>
+          <Picker
+            selectedValue={categoryId}
+            onValueChange={(v) => setCategoryId(v as string)}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+          >
+            <Picker.Item label="— Aucune —" value="" color={color.white} />
+            {categories.map((c) => (
+              <Picker.Item key={c.id} label={`${c.emoji} ${c.title}`} value={c.id} color={color.white} />
+            ))}
+          </Picker>
+        </View>
+      </View>
+
+      <View style={styles.col}>
+        <Text style={styles.label}>Niveau</Text>
+        <View style={styles.pickerWrap}>
+          <Picker
+            selectedValue={level}
+            onValueChange={(v) => setLevel(v as TagType)}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+          >
+            {LEVELS.map((l) => (
+              <Picker.Item key={l.value} label={l.label} value={l.value} color={color.white} />
+            ))}
+          </Picker>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: { flexDirection: "row", gap: 12 },
+  col: { flex: 1, gap: 7 },
+  label: { fontSize: 13, fontWeight: "700", color: color.textPrimary },
+  pickerWrap: pickerStyleDefs.wrap,
+  picker: pickerStyleDefs.picker,
+  pickerItem: pickerStyleDefs.item,
+});

@@ -6,7 +6,9 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,37 +27,42 @@ import * as ImagePicker from "expo-image-picker";
 
 // ─── Audit helpers ────────────────────────────────────────────────────────────
 
-const ACTION_META: Record<string, { label: string; bg: string; text: string }> = {
-  created: { label: "Créé",     bg: "#DCFCE7", text: "#166534" },
-  updated: { label: "Modifié",  bg: "#E9F2FF", text: "#1E4FA5" },
-  deleted: { label: "Supprimé", bg: "#FFE7E7", text: "#B91C1C" },
-};
+const ACTION_META: Record<string, { label: string; bg: string; text: string }> =
+  {
+    created: { label: "Créé", bg: "#DCFCE7", text: "#166534" },
+    updated: { label: "Modifié", bg: "#E9F2FF", text: "#1E4FA5" },
+    deleted: { label: "Supprimé", bg: "#FFE7E7", text: "#B91C1C" },
+  };
 
 const ENTITY_ICON: Record<string, string> = {
-  videos:   "play-circle-outline",
-  courses:  "book-outline",
+  videos: "play-circle-outline",
+  courses: "book-outline",
   parcours: "map-outline",
-  users:    "person-outline",
+  users: "person-outline",
 };
 
 const ENTITY_LABEL: Record<string, string> = {
-  videos:   "Vidéo",
-  courses:  "Cours",
+  videos: "Vidéo",
+  courses: "Cours",
   parcours: "Parcours",
-  users:    "Utilisateur",
+  users: "Utilisateur",
 };
 
 function formatRelative(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60)   return "À l'instant";
+  if (diff < 60) return "À l'instant";
   if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
   if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)} h`;
   return `Il y a ${Math.floor(diff / 86400)} j`;
 }
 
 function AuditRow({ item }: { item: AuditEntry }) {
-  const meta  = ACTION_META[item.action]  ?? { label: item.action,      bg: color.border, text: color.textMuted };
-  const icon  = ENTITY_ICON[item.entity_type]  ?? "ellipse-outline";
+  const meta = ACTION_META[item.action] ?? {
+    label: item.action,
+    bg: color.border,
+    text: color.textMuted,
+  };
+  const icon = ENTITY_ICON[item.entity_type] ?? "ellipse-outline";
   const etype = ENTITY_LABEL[item.entity_type] ?? item.entity_type;
 
   return (
@@ -65,13 +72,18 @@ function AuditRow({ item }: { item: AuditEntry }) {
       </View>
       <View style={auditStyles.body}>
         <View style={auditStyles.topRow}>
-          <Text style={auditStyles.title} numberOfLines={1}>{item.entity_title}</Text>
+          <Text style={auditStyles.title} numberOfLines={1}>
+            {item.entity_title}
+          </Text>
           <View style={[auditStyles.badge, { backgroundColor: meta.bg }]}>
-            <Text style={[auditStyles.badgeText, { color: meta.text }]}>{meta.label}</Text>
+            <Text style={[auditStyles.badgeText, { color: meta.text }]}>
+              {meta.label}
+            </Text>
           </View>
         </View>
         <Text style={auditStyles.sub}>
-          {etype}{item.actor_name ? ` · ${item.actor_name}` : ""}
+          {etype}
+          {item.actor_name ? ` · ${item.actor_name}` : ""}
         </Text>
         <Text style={auditStyles.time}>{formatRelative(item.created_at)}</Text>
       </View>
@@ -106,10 +118,9 @@ const auditStyles = StyleSheet.create({
     borderRadius: 8,
   },
   badgeText: { fontSize: 11, fontWeight: "700" },
-  sub:  { fontSize: 12, color: color.textMuted },
+  sub: { fontSize: 12, color: color.textMuted },
   time: { fontSize: 11, color: color.softGray },
 });
-
 
 // ─── Setting row ──────────────────────────────────────────────────────────────
 
@@ -221,13 +232,29 @@ export default function Setting() {
   const [newEmail, setNewEmail] = useState("");
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [auditModalVisible, setAuditModalVisible] = useState(false);
-  const { data: auditEntries = [], isLoading: auditLoading, refetch: refetchAudit } = useAuditLog();
+  const {
+    data: auditEntries = [],
+    isLoading: auditLoading,
+    refetch: refetchAudit,
+  } = useAuditLog();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { language, setLanguage } = useLanguage();
-  const { logOut, logoutPending, profile, updateProfile, updateProfilePending, updateEmail, updateEmailPending, updatePassword, updatePasswordPending, uploadAvatar, uploadAvatarPending } = useAuth();
+  const {
+    logOut,
+    logoutPending,
+    profile,
+    updateProfile,
+    updateProfilePending,
+    updateEmail,
+    updateEmailPending,
+    updatePassword,
+    updatePasswordPending,
+    uploadAvatar,
+    uploadAvatarPending,
+  } = useAuth();
 
   useEffect(() => {
     if (profileModalVisible) setEditName(profile?.name ?? "");
@@ -252,7 +279,10 @@ export default function Setting() {
   async function pickAvatar() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission refusée", "L'accès à la galerie est nécessaire pour changer la photo.");
+      Alert.alert(
+        "Permission refusée",
+        "L'accès à la galerie est nécessaire pour changer la photo.",
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -265,7 +295,10 @@ export default function Setting() {
     try {
       await uploadAvatar(result.assets[0].uri);
     } catch (err: any) {
-      Alert.alert("Erreur", err?.message ?? "Impossible de mettre à jour la photo.");
+      Alert.alert(
+        "Erreur",
+        err?.message ?? "Impossible de mettre à jour la photo.",
+      );
     }
   }
 
@@ -277,7 +310,10 @@ export default function Setting() {
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmed)) {
-      Alert.alert("Adresse invalide", "Veuillez saisir une adresse e-mail valide.");
+      Alert.alert(
+        "Adresse invalide",
+        "Veuillez saisir une adresse e-mail valide.",
+      );
       return;
     }
     if (trimmed === profile?.email) {
@@ -298,7 +334,10 @@ export default function Setting() {
 
   async function handleChangePassword() {
     if (newPassword.length < 6) {
-      Alert.alert("Mot de passe trop court", "Le mot de passe doit contenir au moins 6 caractères.");
+      Alert.alert(
+        "Mot de passe trop court",
+        "Le mot de passe doit contenir au moins 6 caractères.",
+      );
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -310,7 +349,10 @@ export default function Setting() {
       setPasswordModalVisible(false);
       Alert.alert("Succès", "Votre mot de passe a été modifié.");
     } catch (err: any) {
-      Alert.alert("Erreur", err?.message ?? "Impossible de modifier le mot de passe.");
+      Alert.alert(
+        "Erreur",
+        err?.message ?? "Impossible de modifier le mot de passe.",
+      );
     }
   }
 
@@ -324,7 +366,10 @@ export default function Setting() {
       await updateProfile({ name: trimmed });
       setProfileModalVisible(false);
     } catch (err: any) {
-      Alert.alert("Erreur", err?.message ?? "Impossible de mettre à jour le profil.");
+      Alert.alert(
+        "Erreur",
+        err?.message ?? "Impossible de mettre à jour le profil.",
+      );
     }
   }
 
@@ -357,7 +402,10 @@ export default function Setting() {
             <Text style={styles.profileEmail}>{profile?.email ?? "—"}</Text>
           </View>
           <Pressable
-            style={[styles.editAvatarBtn, uploadAvatarPending && { opacity: 0.5 }]}
+            style={[
+              styles.editAvatarBtn,
+              uploadAvatarPending && { opacity: 0.5 },
+            ]}
             onPress={pickAvatar}
             disabled={uploadAvatarPending}
           >
@@ -472,7 +520,11 @@ export default function Setting() {
                       {lang.name}
                     </Text>
                     {selected && (
-                      <Ionicons name="checkmark" size={18} color={color.yellow} />
+                      <Ionicons
+                        name="checkmark"
+                        size={18}
+                        color={color.yellow}
+                      />
                     )}
                   </TouchableOpacity>
                 );
@@ -493,9 +545,14 @@ export default function Setting() {
             <View style={auditModalStyles.header}>
               <View>
                 <Text style={auditModalStyles.title}>Journal d'activité</Text>
-                <Text style={auditModalStyles.sub}>{auditEntries.length} entrées</Text>
+                <Text style={auditModalStyles.sub}>
+                  {auditEntries.length} entrées
+                </Text>
               </View>
-              <Pressable style={auditModalStyles.closeBtn} onPress={() => setAuditModalVisible(false)}>
+              <Pressable
+                style={auditModalStyles.closeBtn}
+                onPress={() => setAuditModalVisible(false)}
+              >
                 <Ionicons name="close" size={20} color={color.textPrimary} />
               </Pressable>
             </View>
@@ -504,8 +561,14 @@ export default function Setting() {
               <ActivityIndicator style={{ marginTop: 40 }} color={color.navy} />
             ) : auditEntries.length === 0 ? (
               <View style={auditModalStyles.empty}>
-                <Ionicons name="document-text-outline" size={48} color={color.softGray} />
-                <Text style={auditModalStyles.emptyText}>Aucune activité enregistrée</Text>
+                <Ionicons
+                  name="document-text-outline"
+                  size={48}
+                  color={color.softGray}
+                />
+                <Text style={auditModalStyles.emptyText}>
+                  Aucune activité enregistrée
+                </Text>
               </View>
             ) : (
               <FlatList
@@ -526,6 +589,10 @@ export default function Setting() {
           animationType="slide"
           onRequestClose={() => setPasswordModalVisible(false)}
         >
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
           <Pressable
             style={styles.modalOverlay}
             onPress={() => setPasswordModalVisible(false)}
@@ -537,7 +604,11 @@ export default function Setting() {
               <View style={styles.modalField}>
                 <Text style={styles.modalFieldLabel}>Nouveau mot de passe</Text>
                 <View style={styles.modalInputRow}>
-                  <Ionicons name="lock-closed-outline" size={16} color={color.textMuted} />
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={16}
+                    color={color.textMuted}
+                  />
                   <TextInput
                     style={styles.modalInput}
                     value={newPassword}
@@ -558,12 +629,22 @@ export default function Setting() {
               </View>
 
               <View style={styles.modalField}>
-                <Text style={styles.modalFieldLabel}>Confirmer le mot de passe</Text>
-                <View style={[
-                  styles.modalInputRow,
-                  confirmPassword.length > 0 && newPassword !== confirmPassword && styles.modalInputRowError,
-                ]}>
-                  <Ionicons name="lock-closed-outline" size={16} color={color.textMuted} />
+                <Text style={styles.modalFieldLabel}>
+                  Confirmer le mot de passe
+                </Text>
+                <View
+                  style={[
+                    styles.modalInputRow,
+                    confirmPassword.length > 0 &&
+                      newPassword !== confirmPassword &&
+                      styles.modalInputRowError,
+                  ]}
+                >
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={16}
+                    color={color.textMuted}
+                  />
                   <TextInput
                     style={styles.modalInput}
                     value={confirmPassword}
@@ -574,19 +655,27 @@ export default function Setting() {
                   />
                   <Pressable onPress={() => setShowConfirmPassword((v) => !v)}>
                     <Ionicons
-                      name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                      name={
+                        showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                      }
                       size={18}
                       color={color.textMuted}
                     />
                   </Pressable>
                 </View>
-                {confirmPassword.length > 0 && newPassword !== confirmPassword && (
-                  <Text style={styles.modalError}>Les mots de passe ne correspondent pas.</Text>
-                )}
+                {confirmPassword.length > 0 &&
+                  newPassword !== confirmPassword && (
+                    <Text style={styles.modalError}>
+                      Les mots de passe ne correspondent pas.
+                    </Text>
+                  )}
               </View>
 
               <TouchableOpacity
-                style={[styles.modalSaveBtn, updatePasswordPending && { opacity: 0.6 }]}
+                style={[
+                  styles.modalSaveBtn,
+                  updatePasswordPending && { opacity: 0.6 },
+                ]}
                 onPress={handleChangePassword}
                 disabled={updatePasswordPending}
               >
@@ -594,13 +683,18 @@ export default function Setting() {
                   <ActivityIndicator size="small" color={color.navy} />
                 ) : (
                   <>
-                    <Ionicons name="checkmark-circle-outline" size={16} color={color.navy} />
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={16}
+                      color={color.navy}
+                    />
                     <Text style={styles.modalSaveBtnText}>Modifier</Text>
                   </>
                 )}
               </TouchableOpacity>
             </Pressable>
           </Pressable>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* ── Email modal ── */}
@@ -610,6 +704,10 @@ export default function Setting() {
           animationType="slide"
           onRequestClose={() => setEmailModalVisible(false)}
         >
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
           <Pressable
             style={styles.modalOverlay}
             onPress={() => setEmailModalVisible(false)}
@@ -621,9 +719,17 @@ export default function Setting() {
               {/* Current email */}
               <View style={styles.modalField}>
                 <Text style={styles.modalFieldLabel}>E-mail actuel</Text>
-                <View style={[styles.modalInputRow, styles.modalInputRowDisabled]}>
-                  <Ionicons name="mail-outline" size={16} color={color.softGray} />
-                  <Text style={styles.modalInputDisabled}>{profile?.email ?? "—"}</Text>
+                <View
+                  style={[styles.modalInputRow, styles.modalInputRowDisabled]}
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={16}
+                    color={color.softGray}
+                  />
+                  <Text style={styles.modalInputDisabled}>
+                    {profile?.email ?? "—"}
+                  </Text>
                 </View>
               </View>
 
@@ -631,7 +737,11 @@ export default function Setting() {
               <View style={styles.modalField}>
                 <Text style={styles.modalFieldLabel}>Nouvel e-mail</Text>
                 <View style={styles.modalInputRow}>
-                  <Ionicons name="mail-outline" size={16} color={color.textMuted} />
+                  <Ionicons
+                    name="mail-outline"
+                    size={16}
+                    color={color.textMuted}
+                  />
                   <TextInput
                     style={styles.modalInput}
                     value={newEmail}
@@ -650,7 +760,10 @@ export default function Setting() {
 
               {/* Save button */}
               <TouchableOpacity
-                style={[styles.modalSaveBtn, updateEmailPending && { opacity: 0.6 }]}
+                style={[
+                  styles.modalSaveBtn,
+                  updateEmailPending && { opacity: 0.6 },
+                ]}
                 onPress={handleChangeEmail}
                 disabled={updateEmailPending}
               >
@@ -658,13 +771,18 @@ export default function Setting() {
                   <ActivityIndicator size="small" color={color.navy} />
                 ) : (
                   <>
-                    <Ionicons name="send-outline" size={16} color={color.navy} />
+                    <Ionicons
+                      name="send-outline"
+                      size={16}
+                      color={color.navy}
+                    />
                     <Text style={styles.modalSaveBtnText}>Envoyer le lien</Text>
                   </>
                 )}
               </TouchableOpacity>
             </Pressable>
           </Pressable>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* ── Profile modal ── */}
@@ -674,6 +792,10 @@ export default function Setting() {
           animationType="slide"
           onRequestClose={() => setProfileModalVisible(false)}
         >
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
           <Pressable
             style={styles.modalOverlay}
             onPress={() => setProfileModalVisible(false)}
@@ -683,20 +805,35 @@ export default function Setting() {
               <Text style={styles.modalTitle}>Modifier le profil</Text>
 
               {/* Avatar preview */}
-              <Pressable style={styles.modalAvatarRow} onPress={pickAvatar} disabled={uploadAvatarPending}>
+              <Pressable
+                style={styles.modalAvatarRow}
+                onPress={pickAvatar}
+                disabled={uploadAvatarPending}
+              >
                 {profile?.avatar_url ? (
-                  <Image source={{ uri: profile.avatar_url }} style={styles.modalAvatar} />
+                  <Image
+                    source={{ uri: profile.avatar_url }}
+                    style={styles.modalAvatar}
+                  />
                 ) : (
-                  <View style={[styles.modalAvatar, styles.modalAvatarPlaceholder]}>
+                  <View
+                    style={[styles.modalAvatar, styles.modalAvatarPlaceholder]}
+                  >
                     <Text style={styles.modalAvatarInitial}>
                       {editName?.[0]?.toUpperCase() ?? "?"}
                     </Text>
                   </View>
                 )}
                 <View style={styles.modalAvatarCamera}>
-                  {uploadAvatarPending
-                    ? <ActivityIndicator size="small" color={color.navy} />
-                    : <Ionicons name="camera-outline" size={14} color={color.navy} />}
+                  {uploadAvatarPending ? (
+                    <ActivityIndicator size="small" color={color.navy} />
+                  ) : (
+                    <Ionicons
+                      name="camera-outline"
+                      size={14}
+                      color={color.navy}
+                    />
+                  )}
                 </View>
               </Pressable>
 
@@ -704,7 +841,11 @@ export default function Setting() {
               <View style={styles.modalField}>
                 <Text style={styles.modalFieldLabel}>Nom complet</Text>
                 <View style={styles.modalInputRow}>
-                  <Ionicons name="person-outline" size={16} color={color.textMuted} />
+                  <Ionicons
+                    name="person-outline"
+                    size={16}
+                    color={color.textMuted}
+                  />
                   <TextInput
                     style={styles.modalInput}
                     value={editName}
@@ -720,16 +861,29 @@ export default function Setting() {
               {/* Email (read-only) */}
               <View style={styles.modalField}>
                 <Text style={styles.modalFieldLabel}>Adresse e-mail</Text>
-                <View style={[styles.modalInputRow, styles.modalInputRowDisabled]}>
-                  <Ionicons name="mail-outline" size={16} color={color.softGray} />
-                  <Text style={styles.modalInputDisabled}>{profile?.email ?? "—"}</Text>
+                <View
+                  style={[styles.modalInputRow, styles.modalInputRowDisabled]}
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={16}
+                    color={color.softGray}
+                  />
+                  <Text style={styles.modalInputDisabled}>
+                    {profile?.email ?? "—"}
+                  </Text>
                 </View>
-                <Text style={styles.modalHint}>L'e-mail ne peut pas être modifié ici.</Text>
+                <Text style={styles.modalHint}>
+                  L'e-mail ne peut pas être modifié ici.
+                </Text>
               </View>
 
               {/* Save button */}
               <TouchableOpacity
-                style={[styles.modalSaveBtn, updateProfilePending && { opacity: 0.6 }]}
+                style={[
+                  styles.modalSaveBtn,
+                  updateProfilePending && { opacity: 0.6 },
+                ]}
                 onPress={handleSaveProfile}
                 disabled={updateProfilePending}
               >
@@ -737,13 +891,18 @@ export default function Setting() {
                   <ActivityIndicator size="small" color={color.navy} />
                 ) : (
                   <>
-                    <Ionicons name="save-outline" size={16} color={color.navy} />
+                    <Ionicons
+                      name="save-outline"
+                      size={16}
+                      color={color.navy}
+                    />
                     <Text style={styles.modalSaveBtnText}>Enregistrer</Text>
                   </>
                 )}
               </TouchableOpacity>
             </Pressable>
           </Pressable>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* ── Sécurité & gestion ── */}
@@ -754,7 +913,10 @@ export default function Setting() {
             iconColor="#F59E0B"
             label="Journal d'activité"
             sublabel={`${auditEntries.length} entrées`}
-            onPress={() => { refetchAudit(); setAuditModalVisible(true); }}
+            onPress={() => {
+              refetchAudit();
+              setAuditModalVisible(true);
+            }}
             isLast
           />
         </Section>
@@ -928,7 +1090,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   langFlag: { fontSize: 22 },
-  langName: { flex: 1, fontSize: 15, fontWeight: "500", color: color.textPrimary },
+  langName: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "500",
+    color: color.textPrimary,
+  },
   langNameSelected: { fontWeight: "700", color: color.navy },
 
   modalAvatarRow: { alignItems: "center", marginBottom: 20 },
@@ -1009,8 +1176,13 @@ const auditModalStyles = StyleSheet.create({
     borderBottomColor: color.border,
     backgroundColor: color.card,
   },
-  title: { fontSize: 17, fontWeight: "800", color: color.textPrimary, letterSpacing: -0.3 },
-  sub:   { fontSize: 12, color: color.textMuted, marginTop: 2 },
+  title: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: color.textPrimary,
+    letterSpacing: -0.3,
+  },
+  sub: { fontSize: 12, color: color.textMuted, marginTop: 2 },
   closeBtn: {
     width: 34,
     height: 34,

@@ -17,7 +17,6 @@ export type User = {
 
 export type UserPayload = {
   name: string;
-  email: string;
   role: "eleve" | "professeur" | "admin";
   level: "beginner" | "intermediate" | "expert";
 };
@@ -120,16 +119,16 @@ export function UserProvider({ children }: PropsWithChildren) {
       if (error) throw error;
       return updated as User;
     },
-    onSuccess: (updated) => {
-      queryClient.setQueryData<User[]>(["users"], (old = []) =>
-        old.map((u) => (u.id === updated.id ? updated : u)),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("users").delete().eq("id", id);
+      const { error } = await supabase.functions.invoke("delete-user", {
+        body: { id },
+      });
       if (error) throw error;
       return id;
     },

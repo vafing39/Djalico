@@ -67,7 +67,7 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
     }
 
     const action = isEdit
-      ? updateUser(user!.id, { name: name.trim(), email: email.trim(), role, level })
+      ? updateUser(user!.id, { name: name.trim(), role, level })
       : createUser({ name: name.trim(), email: email.trim(), password, role, level });
 
     action.then(onClose).catch((err: Error) => Alert.alert("Erreur", err.message));
@@ -130,15 +130,16 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
               />
             </Field>
 
-            <Field label="Email" required>
+            <Field label="Email">
               <TextInput
-                style={styles.input}
+                style={[styles.input, isEdit && styles.inputDisabled]}
                 placeholder="adresse@email.com"
                 placeholderTextColor={color.textMuted}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                editable={!isEdit}
               />
             </Field>
 
@@ -283,6 +284,9 @@ const styles = StyleSheet.create({
     color: color.textPrimary,
     borderWidth: 1,
     borderColor: color.border,
+  },
+  inputDisabled: {
+    opacity: 0.5,
   },
   pickerWrap: {
     backgroundColor: color.deepBlue,

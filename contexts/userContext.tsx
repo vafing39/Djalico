@@ -1,7 +1,9 @@
 import { supabase } from "@/utils/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@supabase/supabase-js";
-import { createContext, PropsWithChildren } from "react";
+import { createContext, PropsWithChildren, useContext } from "react";
+import { AuthContext } from "@/contexts/authContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export type User = {
   id: string;
@@ -40,7 +42,9 @@ type UserContextType = {
   isUpdating: boolean;
 };
 
-export const UserContext = createContext<UserContextType>({} as UserContextType);
+export const UserContext = createContext<UserContextType>(
+  {} as UserContextType,
+);
 
 // Isolated client so signUp never overwrites the admin's session
 const anonClient = createClient(
@@ -51,6 +55,7 @@ const anonClient = createClient(
 
 export function UserProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["users"],
@@ -62,16 +67,19 @@ export function UserProvider({ children }: PropsWithChildren) {
       if (error) throw error;
       return data as User[];
     },
+    enabled: !!session?.user?.id,
   });
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateUserInput) => {
       // Use the isolated client so the admin session is not replaced
-      const { data: authData, error: authError } = await anonClient.auth.signUp({
-        email: input.email,
-        password: input.password,
-        options: { data: { name: input.name } },
-      });
+      const { data: authData, error: authError } = await anonClient.auth.signUp(
+        {
+          email: input.email,
+          password: input.password,
+          options: { data: { name: input.name } },
+        },
+      );
       if (authError) throw authError;
 
       const userId = authData.user?.id;
@@ -88,12 +96,21 @@ export function UserProvider({ children }: PropsWithChildren) {
       return updated as User;
     },
     onSuccess: (newUser) => {
-      queryClient.setQueryData<User[]>(["users"], (old = []) => [newUser, ...old]);
+      queryClient.setQueryData<User[]>(["users"], (old = []) => [
+        newUser,
+        ...old,
+      ]);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: UserPayload }) => {
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UserPayload;
+    }) => {
       const { data: updated, error } = await supabase
         .from("users")
         .update(payload)
@@ -131,7 +148,8 @@ export function UserProvider({ children }: PropsWithChildren) {
         error: error as Error | null,
         refetch,
         createUser: createMutation.mutateAsync,
-        updateUser: (id, payload) => updateMutation.mutateAsync({ id, payload }),
+        updateUser: (id, payload) =>
+          updateMutation.mutateAsync({ id, payload }),
         deleteUser: deleteMutation.mutateAsync,
         isCreating: createMutation.isPending,
         isUpdating: updateMutation.isPending,

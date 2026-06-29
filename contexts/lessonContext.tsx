@@ -1,6 +1,7 @@
 import { supabase } from "@/utils/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { createContext, PropsWithChildren } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 export type Lesson = {
   id: string;
@@ -18,9 +19,13 @@ type LessonContextType = {
   refetch: () => void;
 };
 
-export const LessonContext = createContext<LessonContextType>({} as LessonContextType);
+export const LessonContext = createContext<LessonContextType>(
+  {} as LessonContextType,
+);
 
 export function LessonProvider({ children }: PropsWithChildren) {
+  const { session } = useAuth();
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["lessons"],
     queryFn: async () => {
@@ -32,6 +37,7 @@ export function LessonProvider({ children }: PropsWithChildren) {
       if (error) throw error;
       return data as Lesson[];
     },
+    enabled: !!session?.user?.id,
   });
 
   return (

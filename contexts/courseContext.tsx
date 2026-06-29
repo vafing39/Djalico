@@ -1,6 +1,8 @@
 import { supabase } from "@/utils/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, PropsWithChildren } from "react";
+import { createContext, PropsWithChildren, useContext } from "react";
+import { AuthContext } from "@/contexts/authContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export type Course = {
   id: string;
@@ -78,6 +80,7 @@ function extractStoragePath(url: string, bucket: string): string | null {
 
 export function CourseProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["courses"],
@@ -89,6 +92,7 @@ export function CourseProvider({ children }: PropsWithChildren) {
       if (error) throw error;
       return data as Course[];
     },
+    enabled: !!session?.user?.id,
   });
 
   const deleteMutation = useMutation({

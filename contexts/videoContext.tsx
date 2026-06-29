@@ -1,6 +1,13 @@
 import { supabase } from "@/utils/supabase";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, PropsWithChildren } from "react";
+import {
+  UseMutateAsyncFunction,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { createContext, PropsWithChildren, useContext } from "react";
+import { AuthContext } from "@/contexts/authContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export type Video = {
   id: string;
@@ -48,8 +55,13 @@ type VideoContextType = {
   refetch: () => void;
   addVideo: (payload: VideoPayload) => Promise<Video>;
   updateVideo: (id: string, payload: Partial<VideoPayload>) => Promise<void>;
-  deleteVideo: (id: string) => Promise<void>;
-  saveVideo: (input: SaveVideoInput) => Promise<void>;
+  deleteVideo: UseMutateAsyncFunction<string, Error, string, unknown>;
+  saveVideo: UseMutateAsyncFunction<
+    Video | null,
+    Error,
+    SaveVideoInput,
+    unknown
+  >;
   isSaving: boolean;
 };
 
@@ -88,6 +100,7 @@ function extractStoragePath(url: string, bucket: string): string | null {
 
 export function VideoProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["videos"],
@@ -99,6 +112,7 @@ export function VideoProvider({ children }: PropsWithChildren) {
       if (error) throw error;
       return data as Video[];
     },
+    enabled: !!session?.user?.id,
   });
 
   const refetchVideos = async () => {

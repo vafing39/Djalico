@@ -1,6 +1,8 @@
 import { supabase } from "@/utils/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, PropsWithChildren } from "react";
+import { createContext, PropsWithChildren, useContext } from "react";
+import { AuthContext } from "@/contexts/authContext";
+import { useAuth } from "@/hooks/useAuth";
 
 export type Parcours = {
   id: string;
@@ -47,7 +49,9 @@ type ParcoursContextType = {
   isSaving: boolean;
 };
 
-export const ParcoursContext = createContext<ParcoursContextType>({} as ParcoursContextType);
+export const ParcoursContext = createContext<ParcoursContextType>(
+  {} as ParcoursContextType,
+);
 
 async function uploadToStorage(
   uri: string,
@@ -80,6 +84,7 @@ function extractStoragePath(url: string, bucket: string): string | null {
 
 export function ParcoursProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["parcours"],
@@ -87,12 +92,13 @@ export function ParcoursProvider({ children }: PropsWithChildren) {
       const { data, error } = await supabase
         .from("parcours")
         .select(
-          "*, category:categories(id, title, emoji), instructor:users(id, name, avatar_url)"
+          "*, category:categories(id, title, emoji), instructor:users(id, name, avatar_url)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Parcours[];
     },
+    enabled: !!session?.user?.id,
   });
 
   const deleteMutation = useMutation({
@@ -149,19 +155,22 @@ export function ParcoursProvider({ children }: PropsWithChildren) {
           .update(payload)
           .eq("id", input.editId)
           .select(
-            "*, category:categories(id, title, emoji), instructor:users(id, name, avatar_url)"
+            "*, category:categories(id, title, emoji), instructor:users(id, name, avatar_url)",
           )
           .single();
         if (error) throw error;
         result = updated as Parcours;
 
-        await supabase.from("parcours_courses").delete().eq("parcours_id", input.editId);
+        await supabase
+          .from("parcours_courses")
+          .delete()
+          .eq("parcours_id", input.editId);
       } else {
         const { data: inserted, error } = await supabase
           .from("parcours")
           .insert(payload)
           .select(
-            "*, category:categories(id, title, emoji), instructor:users(id, name, avatar_url)"
+            "*, category:categories(id, title, emoji), instructor:users(id, name, avatar_url)",
           )
           .single();
         if (error) throw error;

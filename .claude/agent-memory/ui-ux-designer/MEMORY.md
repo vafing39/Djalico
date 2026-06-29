@@ -1,0 +1,1 @@
+- [Design system conventions](design-system-conventions.md) — brand color/spacing/radii/button/card patterns for user-facing screens

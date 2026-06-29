@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { User } from "@/contexts/userContext";
+import type { User } from "@/types";
 import { color } from "@/config/adminTheme";
 
 const ROLE_LABELS: Record<User["role"], string> = {

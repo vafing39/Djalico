@@ -5,29 +5,9 @@ import { createContext, PropsWithChildren, useContext } from "react";
 import { AuthContext } from "@/contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
 
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-  avatar_url: string | null;
-  role: "eleve" | "professeur" | "admin";
-  level: "beginner" | "intermediate" | "expert";
-  created_at: string;
-};
+import type { User, UserPayload, CreateUserInput } from "@/types";
 
-export type UserPayload = {
-  name: string;
-  role: "eleve" | "professeur" | "admin";
-  level: "beginner" | "intermediate" | "expert";
-};
-
-export type CreateUserInput = {
-  name: string;
-  email: string;
-  password: string;
-  role: "eleve" | "professeur" | "admin";
-  level: "beginner" | "intermediate" | "expert";
-};
+export type { User, UserPayload, CreateUserInput };
 
 type UserContextType = {
   users: User[];

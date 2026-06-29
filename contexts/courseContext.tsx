@@ -3,37 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, PropsWithChildren, useContext } from "react";
 import { AuthContext } from "@/contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
+import type { Course, CoursePayload, SaveCourseInput } from "@/types";
 
-export type Course = {
-  id: string;
-  title: string;
-  instructor: string;
-  tag_type: "beginner" | "intermediate" | "expert";
-  image_url: string | null;
-  total_duration_seconds: number;
-  created_at: string;
-  category: { id: string; title: string; emoji: string } | null;
-};
-
-export type CoursePayload = {
-  title: string;
-  instructor: string;
-  category_id?: string | null;
-  tag_type: "beginner" | "intermediate" | "expert";
-  image_url?: string | null;
-  total_duration_seconds: number;
-};
-
-export type SaveCourseInput = {
-  editId?: string | null;
-  imageUri: string | null;
-  imageUrl: string;
-  title: string;
-  instructor: string;
-  categoryId: string;
-  tagType: "beginner" | "intermediate" | "expert";
-  totalDurationSeconds: number;
-};
+export type { Course, CoursePayload, SaveCourseInput };
 
 type CourseContextType = {
   courses: Course[];

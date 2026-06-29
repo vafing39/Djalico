@@ -28,8 +28,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 
-type LessonProgress = Record<string, { pct: number; time: number }>;
-type SelectedLesson = { id: string; url: string; title: string };
+import type { LessonProgress, SelectedLesson } from "@/types";
 
 const TAG_STYLES = {
   expert:       { bg: "rgba(255,214,107,0.28)", text: "#8A6200",  dot: color.yellowDark },

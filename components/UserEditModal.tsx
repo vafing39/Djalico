@@ -13,7 +13,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { User, UserContext } from "@/contexts/userContext";
+import { UserContext } from "@/contexts/userContext";
+import type { User } from "@/types";
 import { color, LEVELS } from "@/config/adminTheme";
 
 const ROLES: { label: string; value: User["role"] }[] = [

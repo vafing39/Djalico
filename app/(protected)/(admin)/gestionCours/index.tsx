@@ -9,7 +9,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Course, CourseContext } from "@/contexts/courseContext";
+import { CourseContext } from "@/contexts/courseContext";
+import type { Course } from "@/types";
 import AdminHeader from "@/components/AdminHeader";
 import AdminListCard from "@/components/AdminListCard";
 import ModalView from "./modal";

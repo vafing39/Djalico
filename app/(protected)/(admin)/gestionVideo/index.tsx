@@ -9,7 +9,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Video, VideoContext } from "@/contexts/videoContext";
+import { VideoContext } from "@/contexts/videoContext";
+import type { Video } from "@/types";
 import AdminHeader from "@/components/AdminHeader";
 import VideoModal from "@/components/VideoModal";
 import AdminListCard from "@/components/AdminListCard";

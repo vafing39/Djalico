@@ -1,14 +1,8 @@
 import { supabase } from "@/utils/supabase";
 import { useQuery } from "@tanstack/react-query";
+import type { AuditEntry } from "@/types";
 
-export type AuditEntry = {
-  id: string;
-  action: string;
-  entity_type: string;
-  entity_title: string;
-  created_at: string;
-  actor_name: string | null;
-};
+export type { AuditEntry };
 
 export function useAuditLog() {
   return useQuery({

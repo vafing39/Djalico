@@ -9,7 +9,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Parcours, ParcoursContext } from "@/contexts/parcoursContext";
+import { ParcoursContext } from "@/contexts/parcoursContext";
+import type { Parcours } from "@/types";
 import AdminHeader from "@/components/AdminHeader";
 import AdminListCard from "@/components/AdminListCard";
 import ModalView from "./modal";

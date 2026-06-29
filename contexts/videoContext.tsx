@@ -8,45 +8,9 @@ import {
 import { createContext, PropsWithChildren, useContext } from "react";
 import { AuthContext } from "@/contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
+import type { Video, VideoPayload, SaveVideoInput } from "@/types";
 
-export type Video = {
-  id: string;
-  title: string;
-  subtitle: string | null;
-  url: string;
-  image_url: string | null;
-  tag_type: "beginner" | "intermediate" | "expert";
-  duration_seconds: number;
-  published: boolean;
-  created_at: string;
-  category: { id: string; title: string; emoji: string } | null;
-};
-
-export type VideoPayload = {
-  title: string;
-  subtitle?: string | null;
-  category_id?: string | null;
-  tag_type: "beginner" | "intermediate" | "expert";
-  url: string;
-  image_url?: string | null;
-  duration_seconds: number;
-  published: boolean;
-};
-
-export type SaveVideoInput = {
-  editId?: string | null;
-  videoUri: string | null;
-  videoUrl: string;
-  imageUri: string | null;
-  imageUrl: string;
-  title: string;
-  subtitle: string;
-  categoryId: string;
-  tagType: "beginner" | "intermediate" | "expert";
-  durationSeconds: number;
-  published: boolean;
-  courseId: string;
-};
+export type { Video, VideoPayload, SaveVideoInput };
 
 type VideoContextType = {
   videos: Video[];

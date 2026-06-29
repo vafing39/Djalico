@@ -19,7 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const LESSON_KEY = (id: string) => `djalico_lesson_${id}`;
 
-type LessonProgress = Record<string, { pct: number; time: number }>;
+import type { LessonProgress } from "@/types";
 
 const TAG_STYLES = {
   expert:       { bg: "rgba(255,214,107,0.28)", text: "#8A6200", dot: color.yellowDark },

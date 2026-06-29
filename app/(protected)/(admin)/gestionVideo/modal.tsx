@@ -17,14 +17,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CourseContext } from "@/contexts/courseContext";
-import { Video, VideoContext } from "@/contexts/videoContext";
+import { VideoContext } from "@/contexts/videoContext";
 import { supabase } from "@/utils/supabase";
 import { color, LEVELS } from "@/config/adminTheme";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Category = { id: string; title: string; emoji: string };
-type TagType = "beginner" | "intermediate" | "expert";
+import type { Video, Category, TagType } from "@/types";
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 

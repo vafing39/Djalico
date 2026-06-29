@@ -16,12 +16,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Course, CourseContext } from "@/contexts/courseContext";
+import { CourseContext } from "@/contexts/courseContext";
 import { supabase } from "@/utils/supabase";
 import { color, LEVELS } from "@/config/adminTheme";
-
-type Category = { id: string; title: string; emoji: string };
-type TagType = "beginner" | "intermediate" | "expert";
+import type { Course, Category, TagType } from "@/types";
 
 export default function ModalView({
   visible,

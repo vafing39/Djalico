@@ -3,17 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Session } from "@supabase/supabase-js";
 import { router } from "expo-router";
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
+import type { UserProfile, UpdateProfileInput } from "@/types";
 
-export type UserProfile = {
-  name: string;
-  email: string;
-  avatar_url: string | null;
-  role: "eleve" | "professeur" | "admin";
-};
-
-export type UpdateProfileInput = {
-  name: string;
-};
+export type { UserProfile, UpdateProfileInput };
 
 type AuthType = {
   session: Session | null;

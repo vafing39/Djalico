@@ -28,8 +28,7 @@ import Svg, { Circle } from "react-native-svg";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type LessonProgress = Record<string, { pct: number; time: number }>;
-type SelectedLesson = { id: string; url: string; title: string };
+import type { LessonProgress, SelectedLesson } from "@/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

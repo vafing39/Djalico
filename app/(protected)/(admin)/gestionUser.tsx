@@ -8,7 +8,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { User, UserContext } from "@/contexts/userContext";
+import { UserContext } from "@/contexts/userContext";
+import type { User } from "@/types";
 import AdminHeader from "@/components/AdminHeader";
 import UserCard from "@/components/UserCard";
 import UserEditModal from "@/components/UserEditModal";

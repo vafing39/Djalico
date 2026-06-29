@@ -3,41 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, PropsWithChildren, useContext } from "react";
 import { AuthContext } from "@/contexts/authContext";
 import { useAuth } from "@/hooks/useAuth";
+import type { Parcours, ParcoursPayload, SaveParcoursInput } from "@/types";
 
-export type Parcours = {
-  id: string;
-  title: string;
-  description: string | null;
-  cover_image_url: string | null;
-  tag_type: "beginner" | "intermediate" | "expert";
-  total_duration_seconds: number;
-  created_at: string;
-  category: { id: string; title: string; emoji: string } | null;
-  instructor: { id: string; name: string; avatar_url: string | null } | null;
-};
-
-export type ParcoursPayload = {
-  title: string;
-  description?: string | null;
-  category_id?: string | null;
-  instructor_id?: string | null;
-  tag_type: "beginner" | "intermediate" | "expert";
-  cover_image_url?: string | null;
-  total_duration_seconds: number;
-};
-
-export type SaveParcoursInput = {
-  editId?: string | null;
-  coverImageUri: string | null;
-  coverImageUrl: string;
-  title: string;
-  description: string;
-  categoryId: string;
-  instructorId: string;
-  tagType: "beginner" | "intermediate" | "expert";
-  totalDurationSeconds: number;
-  courseIds: string[];
-};
+export type { Parcours, ParcoursPayload, SaveParcoursInput };
 
 type ParcoursContextType = {
   parcours: Parcours[];

@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { color, TAG_STYLES } from "@/config/adminTheme";
+import type { TagType } from "@/types";
 
-type TagType = "beginner" | "intermediate" | "expert";
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
 const TAG_LABELS: Record<TagType, string> = {

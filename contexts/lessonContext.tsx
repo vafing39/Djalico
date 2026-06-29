@@ -2,15 +2,9 @@ import { supabase } from "@/utils/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { createContext, PropsWithChildren } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import type { Lesson } from "@/types";
 
-export type Lesson = {
-  id: string;
-  course_id: string;
-  index: number;
-  title: string;
-  url: string;
-  duration_seconds: number;
-};
+export type { Lesson };
 
 type LessonContextType = {
   lessons: Lesson[];

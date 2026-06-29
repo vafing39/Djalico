@@ -23,7 +23,7 @@ const LESSON_KEY = (id: string) => `djalico_lesson_${id}`;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type LessonProgress = Record<string, { pct: number; time: number }>;
+import type { LessonProgress } from "@/types";
 
 function getCourseLessons(courseId: string): CourseLesson[] {
   return COURSE_LESSONS.filter((l) => l.courseId === courseId);

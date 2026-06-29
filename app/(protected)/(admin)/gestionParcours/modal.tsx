@@ -17,13 +17,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabase";
-import { Parcours, ParcoursContext } from "@/contexts/parcoursContext";
+import { ParcoursContext } from "@/contexts/parcoursContext";
 import { CourseContext } from "@/contexts/courseContext";
 import { color, LEVELS } from "@/config/adminTheme";
+import type { Parcours, Category, TagType } from "@/types";
 
-type Category = { id: string; title: string; emoji: string };
 type Instructor = { id: string; name: string };
-type TagType = "beginner" | "intermediate" | "expert";
 
 export default function ModalView({
   visible,

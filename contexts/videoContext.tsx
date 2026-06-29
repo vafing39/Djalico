@@ -193,14 +193,14 @@ export function VideoProvider({ children }: PropsWithChildren) {
         if (error) throw error;
         if (input.courseId) {
           const { data: lastLesson } = await supabase
-            .from("course_lessons")
+            .from("course_videos")
             .select("index")
             .eq("course_id", input.courseId)
             .order("index", { ascending: false })
             .limit(1);
           const nextIndex =
             lastLesson?.[0] != null ? lastLesson[0].index + 1 : 0;
-          await supabase.from("course_lessons").insert({
+          await supabase.from("course_videos").insert({
             course_id: input.courseId,
             title: inserted.title,
             url: inserted.url,

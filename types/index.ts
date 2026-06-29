@@ -161,7 +161,16 @@ export type Lesson = {
   course_id: string;
   index: number;
   title: string;
-  url: string;
+  video_id: string;
+  duration_seconds: number;
+  video: { url: string; image_url: string | null } | null;
+};
+
+export type LessonDraft = {
+  id?: string;
+  title: string;
+  video_id: string;
+  index: number;
   duration_seconds: number;
 };
 

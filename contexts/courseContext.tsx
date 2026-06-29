@@ -12,8 +12,8 @@ type CourseContextType = {
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
-  saveCourse: (input: SaveCourseInput) => Promise<void>;
-  deleteCourse: (id: string) => Promise<void>;
+  saveCourse: (input: SaveCourseInput) => Promise<Course>;
+  deleteCourse: (id: string) => Promise<string>;
   isSaving: boolean;
 };
 

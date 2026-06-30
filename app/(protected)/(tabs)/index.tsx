@@ -2,10 +2,15 @@ import { FeaturedCard } from "@/components/FeaturedCard";
 import { VideoCard } from "@/components/VideoCard";
 import VideoModal from "@/components/VideoModal";
 import { color } from "@/config/color";
+import { useAuth } from "@/hooks/useAuth";
+import { useCategories } from "@/hooks/useCategories";
+import { useParcours } from "@/hooks/useParcours";
+import { useVideos } from "@/hooks/useVideos";
+import type { Category, Parcours, Video } from "@/types";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Image,
@@ -19,13 +24,19 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import {
-  CATEGORIES,
-  CURRENT_USER,
-  FEATURED_PARCOURS,
-  HOME_VIDEOS,
-  MY_COURSES,
-} from "@/data/mockData";
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const TOUT: Category = { id: "0", title: "Tout", emoji: "🎵" };
+
+const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
+  Guitare: ["#0E2B45", "#1A5F9A"],
+  Piano: ["#2E4A1E", "#5A8A3C"],
+  Saxophone: ["#1a3d5c", "#2A7FA5"],
+  Trompette: ["#7B4F2E", "#C4813D"],
+  Basse: ["#0D3348", "#1E6B8A"],
+  Balafon: ["#5C2E00", "#A0522D"],
+};
+const DEFAULT_GRADIENT: [string, string] = ["#0E2B45", "#1A5F9A"];
 
 const LEVEL_LABEL: Record<string, string> = {
   expert: "Expert",
@@ -33,75 +44,208 @@ const LEVEL_LABEL: Record<string, string> = {
   beginner: "Débutant",
 };
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
-export default function HomeScreen() {
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const [instrument, setInstrument] = useState<any>("0");
-  const [searchQuery, setSearchQuery] = useState("");
-  const categorie = CATEGORIES[instrument];
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-  const [selectedVideo, setSelectedVideo] = useState<{
-    url: string;
-    title: string;
-  } | null>(null);
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0 && m > 0) return `${h}h ${m}min`;
+  if (h > 0) return `${h}h`;
+  return `${m} min`;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "à l'instant";
+  if (mins < 60) return `il y a ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `il y a ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "hier";
+  return `il y a ${days}j`;
+}
+
+// ─── Adapters ─────────────────────────────────────────────────────────────────
+
+function toFeaturedItem(p: Parcours) {
+  const catTitle = p.category?.title ?? "";
+  const [gradientStart, gradientEnd] =
+    CATEGORY_GRADIENTS[catTitle] ?? DEFAULT_GRADIENT;
+  return {
+    id: p.id,
+    title: p.title,
+    subtitle: formatDuration(p.total_duration_seconds),
+    badge: LEVEL_LABEL[p.tag_type] ?? p.tag_type,
+    badgeLight: true,
+    gradientStart,
+    gradientEnd,
+    categorie: catTitle,
+    categoryId: p.category?.id ?? "",
+  };
+}
+
+function toVideoItem(v: Video) {
+  const catTitle = v.category?.title ?? "";
+  const mins = Math.floor(v.duration_seconds / 60);
+  return {
+    id: v.id,
+    title: v.title,
+    subtitle: v.subtitle
+      ? `${v.subtitle} · ${mins} min`
+      : `${catTitle} · ${mins} min`,
+    image: v.image_url ?? "",
+    tag: LEVEL_LABEL[v.tag_type] ?? v.tag_type,
+    tagType: v.tag_type,
+    progress: 0,
+    bookmarked: false,
+    categorie: catTitle,
+    categoryId: v.category?.id ?? "",
+    url: v.url,
+  };
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
+
+type SelectedVideo = {
+  id: string;
+  url: string;
+  title: string;
+  imageUrl: string | null;
+  categoryTitle: string;
+  initialTime?: number;
+};
+
+export default function HomeScreen() {
+  const { profile } = useAuth();
+  const { videoProgress, saveProgress } = useVideos();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [selectedCategoryId, setSelectedCategoryId] = useState("0");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedVideo, setSelectedVideo] = useState<SelectedVideo | null>(
+    null,
+  );
   const [modalVisible, setModalVisible] = useState(false);
 
-  const openVideo = (url: string, title: string) => {
-    setSelectedVideo({ url, title });
-    setModalVisible(true);
-  };
+  // ── Data from contexts ──
+  const { categories: rawCategories } = useCategories();
+  const { parcours } = useParcours();
+  const { videos } = useVideos();
 
+  const rawParcours = useMemo(
+    () => parcours.slice(0, 20),
+    [parcours],
+  );
+  const rawVideos = useMemo(
+    () => videos.filter((v) => v.published).slice(0, 15),
+    [videos],
+  );
+
+  // ── Derived data ──
+  const allCategories = useMemo(
+    () => [TOUT, ...rawCategories],
+    [rawCategories],
+  );
+  const featuredItems = useMemo(
+    () => rawParcours.map(toFeaturedItem),
+    [rawParcours],
+  );
+  const videoItems = useMemo(() => rawVideos.map(toVideoItem), [rawVideos]);
+
+  const q = searchQuery.toLowerCase().trim();
+
+  const filteredData = useMemo(() => {
+    const byCat =
+      selectedCategoryId === "0"
+        ? featuredItems
+        : featuredItems.filter(
+            (item) => item.categoryId === selectedCategoryId,
+          );
+    if (!q) return byCat;
+    return byCat.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.categorie?.toLowerCase().includes(q),
+    );
+  }, [selectedCategoryId, featuredItems, q]);
+
+  const filteredVideos = useMemo(() => {
+    const byCat =
+      selectedCategoryId === "0"
+        ? videoItems
+        : videoItems.filter((item) => item.categoryId === selectedCategoryId);
+    if (!q) return byCat;
+    return byCat.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.subtitle?.toLowerCase().includes(q) ||
+        item.categorie?.toLowerCase().includes(q),
+    );
+  }, [selectedCategoryId, videoItems, q]);
+
+  // In-progress videos (started but not finished), sorted by most recently watched
+  const inProgressVideos = useMemo(
+    () =>
+      videoItems
+        .filter((v) => {
+          const p = videoProgress[v.id];
+          return p && p.pct > 0.02 && p.pct < 0.9;
+        })
+        .sort((a, b) => {
+          const aAt = videoProgress[a.id]?.updatedAt ?? "";
+          const bAt = videoProgress[b.id]?.updatedAt ?? "";
+          return bAt.localeCompare(aAt);
+        }),
+    [videoProgress, videoItems],
+  );
+
+  const hasNoResults =
+    q.length > 0 && filteredData.length === 0 && filteredVideos.length === 0;
+
+  // ── Animated header ──
   const headerHeight = scrollY.interpolate({
     inputRange: [0, 120],
     outputRange: [210, 70],
     extrapolate: "clamp",
   });
-
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, 80],
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
 
-  const q = searchQuery.toLowerCase().trim();
+  const openVideo = (
+    video: {
+      id: string;
+      url: string;
+      title: string;
+      image?: string;
+      categorie?: string;
+    },
+    initialTime?: number,
+  ) => {
+    setSelectedVideo({
+      id: video.id,
+      url: video.url,
+      title: video.title,
+      imageUrl: video.image ?? null,
+      categoryTitle: video.categorie ?? "",
+      initialTime,
+    });
+    setModalVisible(true);
+  };
 
-  const filteredData = useMemo(() => {
-    const byInstrument =
-      categorie?.title === "Tout"
-        ? FEATURED_PARCOURS
-        : FEATURED_PARCOURS.filter(
-            (item) => item.categorie === categorie?.title,
-          );
-    if (!q) return byInstrument;
-    return byInstrument.filter(
-      (item) =>
-        item.title.toLowerCase().includes(q) ||
-        item.categorie?.toLowerCase().includes(q) ||
-        item.instructor?.toLowerCase().includes(q),
-    );
-  }, [categorie?.title, q]);
-
-  const filteredVideos = useMemo(() => {
-    const byInstrument =
-      categorie?.title === "Tout"
-        ? HOME_VIDEOS
-        : HOME_VIDEOS.filter((item) => item.categorie === categorie?.title);
-    if (!q) return byInstrument;
-    return byInstrument.filter(
-      (item) =>
-        item.title.toLowerCase().includes(q) ||
-        item.subtitle?.toLowerCase().includes(q) ||
-        item.categorie?.toLowerCase().includes(q),
-    );
-  }, [categorie?.title, q]);
-
-  const inProgressCourses = useMemo(
-    () => MY_COURSES.filter((c) => c.status === "en_cours"),
-    [],
+  const handleProgress = useCallback(
+    (currentTime: number, pct: number) => {
+      if (!selectedVideo) return;
+      saveProgress(selectedVideo.id, pct, currentTime);
+    },
+    [selectedVideo, saveProgress],
   );
 
-  const hasNoResults =
-    q.length > 0 && filteredData.length === 0 && filteredVideos.length === 0;
+  const userName = profile?.name ?? "";
+  const userLevel = profile?.level;
+  const avatarUri = profile?.avatar_url ?? null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -113,22 +257,29 @@ export default function HomeScreen() {
         <Animated.View style={[styles.header, { height: headerHeight }]}>
           <View style={styles.headerTop}>
             <View style={styles.profileRow}>
-              <Image
-                source={{ uri: CURRENT_USER.avatar }}
-                style={styles.avatar}
-              />
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarInitial}>
+                    {userName.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
               <View style={{ marginLeft: 10 }}>
                 <Text style={styles.greetingSmall}>Bonjour 👋</Text>
-                <Text style={styles.greetingName}>{CURRENT_USER.name}</Text>
+                <Text style={styles.greetingName}>{userName}</Text>
               </View>
             </View>
 
-            <View style={styles.expertBadge}>
-              <AntDesign name="star" size={12} color={color.deepBlue} />
-              <Text style={styles.expertText}>
-                {LEVEL_LABEL[CURRENT_USER.level]}
-              </Text>
-            </View>
+            {userLevel && (
+              <View style={styles.expertBadge}>
+                <AntDesign name="star" size={12} color={color.deepBlue} />
+                <Text style={styles.expertText}>
+                  {LEVEL_LABEL[userLevel] ?? userLevel}
+                </Text>
+              </View>
+            )}
           </View>
 
           <Animated.Text style={[styles.headline, { opacity: titleOpacity }]}>
@@ -178,13 +329,13 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.pillsRow}
           >
-            {CATEGORIES.map((c) => {
-              const active = instrument === c.id;
+            {allCategories.map((c) => {
+              const active = selectedCategoryId === c.id;
               return (
                 <Pressable
                   key={c.id}
                   style={[styles.pill, active && styles.pillActive]}
-                  onPress={() => setInstrument(c.id)}
+                  onPress={() => setSelectedCategoryId(c.id)}
                 >
                   <Text style={styles.pillEmoji}>{c.emoji}</Text>
                   <Text
@@ -198,55 +349,61 @@ export default function HomeScreen() {
           </ScrollView>
 
           {/* Reprendre */}
-          {inProgressCourses.length > 0 && (
+          {inProgressVideos.length > 0 && (
             <>
               <View style={[styles.sectionHeader, { marginTop: 28 }]}>
                 <Text style={styles.sectionTitle}>Reprendre</Text>
-                <Pressable onPress={() => router.navigate("/mesCours")}>
-                  <Text style={styles.sectionLink}>Mes cours</Text>
-                </Pressable>
               </View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.resumeRow}
               >
-                {inProgressCourses.map((course) => {
-                  const progress =
-                    course.completedLessons / course.totalLessons;
+                {inProgressVideos.map((item) => {
+                  const prog = videoProgress[item.id]!;
                   return (
                     <Pressable
-                      key={course.id}
+                      key={item.id}
                       style={({ pressed }) => [
                         styles.resumeCard,
                         { opacity: pressed ? 0.88 : 1 },
                       ]}
-                      onPress={() =>
-                        router.navigate(`/categorie/parcoursScreen?courseId=${course.id}` as any)
-                      }
+                      onPress={() => openVideo(item, prog.time)}
                     >
-                      <Image
-                        source={{ uri: course.image }}
-                        style={styles.resumeThumb}
-                      />
+                      {item.image ? (
+                        <Image
+                          source={{ uri: item.image }}
+                          style={styles.resumeThumb}
+                        />
+                      ) : (
+                        <View
+                          style={[styles.resumeThumb, styles.resumeThumbFallback]}
+                        >
+                          <Feather
+                            name="play-circle"
+                            size={28}
+                            color={color.softGray}
+                          />
+                        </View>
+                      )}
                       <View style={styles.resumeInfo}>
                         <Text style={styles.resumeCategory}>
-                          {course.category}
+                          {item.categorie}
                         </Text>
                         <Text style={styles.resumeTitle} numberOfLines={1}>
-                          {course.title}
+                          {item.title}
                         </Text>
                         <View style={styles.progressTrack}>
                           <View
                             style={[
                               styles.progressFill,
-                              { width: `${progress * 100}%` },
+                              { width: `${prog.pct * 100}%` as any },
                             ]}
                           />
                         </View>
                         <Text style={styles.resumeMeta}>
-                          {course.completedLessons}/{course.totalLessons} leçons
-                          {course.lastWatched ? ` · ${course.lastWatched}` : ""}
+                          {Math.round(prog.pct * 100)}% ·{" "}
+                          {timeAgo(prog.updatedAt)}
                         </Text>
                       </View>
                     </Pressable>
@@ -256,14 +413,12 @@ export default function HomeScreen() {
             </>
           )}
 
-          {/* Featured */}
+          {/* Featured parcours */}
           <View style={[styles.sectionHeader, { marginTop: 24 }]}>
             <Text style={styles.sectionTitle}>À la une</Text>
             <TouchableOpacity
               onPress={() =>
-                router.navigate({
-                  pathname: "/categorie/allParcoursScreen",
-                })
+                router.navigate({ pathname: "/categorie/allParcoursScreen" })
               }
             >
               <Text style={styles.sectionLink}>Tous les parcours</Text>
@@ -280,7 +435,10 @@ export default function HomeScreen() {
                 key={item.id}
                 style={({ pressed }) => ({ opacity: pressed ? 0.88 : 1 })}
                 onPress={() =>
-                  router.navigate({ pathname: "/categorie/parcoursScreen", params: { parcoursId: item.id } })
+                  router.navigate({
+                    pathname: "/categorie/parcoursScreen",
+                    params: { parcoursId: item.id },
+                  })
                 }
               >
                 <FeaturedCard item={item} />
@@ -297,12 +455,14 @@ export default function HomeScreen() {
           </View>
 
           {filteredVideos.map((item) => (
-            <TouchableOpacity
+            <VideoCard
               key={item.id}
-              onPress={() => openVideo(item.url, item.title)}
-            >
-              <VideoCard item={item} />
-            </TouchableOpacity>
+              item={{
+                ...item,
+                progress: videoProgress[item.id]?.pct ?? 0,
+              }}
+              onPress={() => openVideo(item, videoProgress[item.id]?.time)}
+            />
           ))}
 
           {hasNoResults && (
@@ -319,6 +479,8 @@ export default function HomeScreen() {
             visible={modalVisible}
             videoUrl={selectedVideo?.url ?? null}
             title={selectedVideo?.title}
+            initialTime={selectedVideo?.initialTime}
+            onProgress={handleProgress}
             onClose={() => {
               setModalVisible(false);
               setSelectedVideo(null);
@@ -333,18 +495,15 @@ export default function HomeScreen() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: color.bgGradientTop,
   },
-  pageGradient: {
-    flex: 1,
-  },
-  featuredRow: {
-    paddingHorizontal: 24,
-    gap: 14,
-  },
+  pageGradient: { flex: 1 },
+  featuredRow: { paddingHorizontal: 24, gap: 14 },
+
   // Header
   header: {
     paddingHorizontal: 24,
@@ -358,10 +517,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  profileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  profileRow: { flexDirection: "row", alignItems: "center" },
   avatar: {
     width: 44,
     height: 44,
@@ -370,10 +526,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.8)",
   },
-  greetingSmall: {
-    fontSize: 12,
-    color: color.softGray,
+  avatarPlaceholder: {
+    backgroundColor: color.deepBlue,
+    justifyContent: "center",
+    alignItems: "center",
   },
+  avatarInitial: { fontSize: 18, fontWeight: "700", color: "#fff" },
+  greetingSmall: { fontSize: 12, color: color.softGray },
   greetingName: {
     fontSize: 15,
     fontWeight: "600",
@@ -404,10 +563,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginBottom: 16,
   },
-  headlineAccent: {
-    fontStyle: "italic",
-    color: "#1A5F9A",
-  },
+  headlineAccent: { fontStyle: "italic", color: "#1A5F9A" },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -424,17 +580,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(14,43,69,0.06)",
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: color.deepBlue,
-  },
+  searchInput: { flex: 1, fontSize: 14, color: color.deepBlue },
 
   // Scroll
-  scrollContent: {
-    paddingTop: 8,
-    paddingBottom: 20,
-  },
+  scrollContent: { paddingTop: 8, paddingBottom: 20 },
 
   // Section headers
   sectionHeader: {
@@ -450,17 +599,10 @@ const styles = StyleSheet.create({
     color: color.deepBlue,
     letterSpacing: -0.4,
   },
-  sectionLink: {
-    fontSize: 13,
-    color: color.softGray,
-    fontWeight: "500",
-  },
+  sectionLink: { fontSize: 13, color: color.softGray, fontWeight: "500" },
 
   // Pills
-  pillsRow: {
-    paddingHorizontal: 24,
-    gap: 8,
-  },
+  pillsRow: { paddingHorizontal: 24, gap: 8 },
   pill: {
     flexDirection: "row",
     alignItems: "center",
@@ -473,46 +615,15 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   pillActive: {
-    backgroundColor: color.deepBlue,
+    backgroundColor: color.yellowDark,
     borderColor: color.deepBlue,
   },
-  pillEmoji: {
-    fontSize: 14,
-  },
-  pillText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: color.deepBlue,
-  },
-  pillTextActive: {
-    color: "#fff",
-  },
+  pillEmoji: { fontSize: 14 },
+  pillText: { fontSize: 13, fontWeight: "500", color: color.deepBlue },
+  pillTextActive: { color: color.deepBlue },
 
-  // Empty state
-  emptyState: {
-    alignItems: "center",
-    paddingTop: 48,
-    paddingHorizontal: 40,
-    gap: 10,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: color.deepBlue,
-    marginTop: 8,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: color.softGray,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-
-  // Resume / reprendre
-  resumeRow: {
-    paddingHorizontal: 24,
-    gap: 14,
-  },
+  // Reprendre
+  resumeRow: { paddingHorizontal: 24, gap: 14 },
   resumeCard: {
     width: 240,
     backgroundColor: "#fff",
@@ -526,15 +637,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-  resumeThumb: {
-    width: "100%",
-    height: 110,
-    resizeMode: "cover",
+  resumeThumb: { width: "100%", height: 110, resizeMode: "cover" },
+  resumeThumbFallback: {
+    backgroundColor: color.paleBlue,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  resumeInfo: {
-    padding: 12,
-    gap: 4,
-  },
+  resumeInfo: { padding: 12, gap: 4 },
   resumeCategory: {
     fontSize: 11,
     fontWeight: "600",
@@ -560,45 +669,25 @@ const styles = StyleSheet.create({
     backgroundColor: color.yellowDark,
     borderRadius: 2,
   },
-  resumeMeta: {
-    fontSize: 11,
-    color: color.softGray,
-    marginTop: 4,
-  },
+  resumeMeta: { fontSize: 11, color: color.softGray, marginTop: 4 },
 
-  // Bottom nav
-  bottomNav: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    backgroundColor: "rgba(255,255,255,0.97)",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(14,43,69,0.07)",
-    flexDirection: "row",
-    justifyContent: "space-around",
+  // Empty state
+  emptyState: {
     alignItems: "center",
-    paddingBottom: 16,
-    paddingHorizontal: 10,
+    paddingTop: 48,
+    paddingHorizontal: 40,
+    gap: 10,
   },
-  navItem: {
-    alignItems: "center",
-    gap: 3,
-  },
-  navLabel: {
-    fontSize: 10,
-    color: color.softGray,
-    fontWeight: "500",
-  },
-  navLabelActive: {
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: "700",
     color: color.deepBlue,
-    fontWeight: "600",
+    marginTop: 8,
   },
-  navDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: color.yellowDark,
+  emptySubtitle: {
+    fontSize: 13,
+    color: color.softGray,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

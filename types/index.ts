@@ -11,6 +11,7 @@ export type UserProfile = {
   email: string;
   avatar_url: string | null;
   role: "eleve" | "professeur" | "admin";
+  level?: TagType;
 };
 
 export type UpdateProfileInput = {

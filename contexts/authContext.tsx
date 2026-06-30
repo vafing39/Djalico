@@ -34,7 +34,7 @@ const profileQueryOptions = (userId: string) => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("users")
-      .select("name, email, avatar_url, role")
+      .select("name, email, avatar_url, role, level")
       .eq("id", userId)
       .single();
     if (error) throw error;
@@ -72,7 +72,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const isLoading = sessionLoading || (!!session && profileLoading);
 
   //Connection de l'utilisateur
-  const { mutate: login, isPending: loginPending, error: loginMutationError } = useMutation({
+  const {
+    mutate: login,
+    isPending: loginPending,
+    error: loginMutationError,
+  } = useMutation({
     mutationFn: async ({
       email,
       password,
@@ -100,59 +104,71 @@ export function AuthProvider({ children }: PropsWithChildren) {
     },
   });
 
-  const { mutateAsync: updateProfile, isPending: updateProfilePending } = useMutation({
-    mutationFn: async (input: UpdateProfileInput) => {
-      if (!session?.user?.id) throw new Error("Non connecté.");
-      const { error } = await supabase
-        .from("users")
-        .update({ name: input.name })
-        .eq("id", session.user.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      if (session?.user?.id) {
-        queryClient.invalidateQueries({ queryKey: ["profile", session.user.id] });
-      }
-    },
-  });
+  const { mutateAsync: updateProfile, isPending: updateProfilePending } =
+    useMutation({
+      mutationFn: async (input: UpdateProfileInput) => {
+        if (!session?.user?.id) throw new Error("Non connecté.");
+        const { error } = await supabase
+          .from("users")
+          .update({ name: input.name })
+          .eq("id", session.user.id);
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        if (session?.user?.id) {
+          queryClient.invalidateQueries({
+            queryKey: ["profile", session.user.id],
+          });
+        }
+      },
+    });
 
-  const { mutateAsync: updateEmail, isPending: updateEmailPending } = useMutation({
-    mutationFn: async (newEmail: string) => {
-      const { error } = await supabase.auth.updateUser({ email: newEmail });
-      if (error) throw error;
-    },
-  });
+  const { mutateAsync: updateEmail, isPending: updateEmailPending } =
+    useMutation({
+      mutationFn: async (newEmail: string) => {
+        const { error } = await supabase.auth.updateUser({ email: newEmail });
+        if (error) throw error;
+      },
+    });
 
-  const { mutateAsync: uploadAvatar, isPending: uploadAvatarPending } = useMutation({
-    mutationFn: async (localUri: string) => {
-      if (!session?.user?.id) throw new Error("Non connecté.");
-      const response = await fetch(localUri);
-      const blob = await response.blob();
-      const path = `avatars/${session.user.id}.jpg`;
-      const { error: uploadError } = await supabase.storage
-        .from("image")
-        .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("image").getPublicUrl(path);
-      const { error: updateError } = await supabase
-        .from("users")
-        .update({ avatar_url: publicUrl })
-        .eq("id", session.user.id);
-      if (updateError) throw updateError;
-    },
-    onSuccess: () => {
-      if (session?.user?.id) {
-        queryClient.invalidateQueries({ queryKey: ["profile", session.user.id] });
-      }
-    },
-  });
+  const { mutateAsync: uploadAvatar, isPending: uploadAvatarPending } =
+    useMutation({
+      mutationFn: async (localUri: string) => {
+        if (!session?.user?.id) throw new Error("Non connecté.");
+        const response = await fetch(localUri);
+        const blob = await response.blob();
+        const path = `avatars/${session.user.id}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("image")
+          .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+        if (uploadError) throw uploadError;
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("image").getPublicUrl(path);
+        const { error: updateError } = await supabase
+          .from("users")
+          .update({ avatar_url: publicUrl })
+          .eq("id", session.user.id);
+        if (updateError) throw updateError;
+      },
+      onSuccess: () => {
+        if (session?.user?.id) {
+          queryClient.invalidateQueries({
+            queryKey: ["profile", session.user.id],
+          });
+        }
+      },
+    });
 
-  const { mutateAsync: updatePassword, isPending: updatePasswordPending } = useMutation({
-    mutationFn: async (newPassword: string) => {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-    },
-  });
+  const { mutateAsync: updatePassword, isPending: updatePasswordPending } =
+    useMutation({
+      mutationFn: async (newPassword: string) => {
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword,
+        });
+        if (error) throw error;
+      },
+    });
 
   // deconnexion de l'utilisateur
   const { mutate: logOut, isPending: logoutPending } = useMutation({

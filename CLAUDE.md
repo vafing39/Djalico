@@ -57,7 +57,7 @@ Use `config/color.tsx` (named export `color`) for all brand colors in user-facin
 - `(protected)/_layout.tsx` bypasses real auth (`loggedUser = true`) and always redirects to admin
 - Home screen data (categories, featured courses, videos) is hardcoded mock data, not fetched from the API
 
-### Important
+### Prerequisite
 
 - Always ask for validation before implementation
 - Always use Tanstack query for interaction that necessite awit and promises. They should always be in the approprieted context

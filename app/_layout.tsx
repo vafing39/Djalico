@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/contexts/authContext";
+import { CategoryProvider } from "@/contexts/categoryContext";
 import { VideoProvider } from "@/contexts/videoContext";
 import { ParcoursProvider } from "@/contexts/parcoursContext";
 import { CourseProvider } from "@/contexts/courseContext";
@@ -16,6 +17,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <AuthProvider>
+          <CategoryProvider>
           <VideoProvider>
             <ParcoursProvider>
               <CourseProvider>
@@ -40,6 +42,7 @@ export default function RootLayout() {
               </CourseProvider>
             </ParcoursProvider>
           </VideoProvider>
+          </CategoryProvider>
         </AuthProvider>
       </LanguageProvider>
       <StatusBar style="auto" />

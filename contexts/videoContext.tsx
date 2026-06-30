@@ -12,6 +12,9 @@ import type { Video, VideoPayload, SaveVideoInput } from "@/types";
 
 export type { Video, VideoPayload, SaveVideoInput };
 
+export type VideoProgressEntry = { pct: number; time: number; updatedAt: string };
+export type VideoProgressStore = Record<string, VideoProgressEntry>;
+
 type VideoContextType = {
   videos: Video[];
   isLoading: boolean;
@@ -27,6 +30,9 @@ type VideoContextType = {
     unknown
   >;
   isSaving: boolean;
+  videoProgress: VideoProgressStore;
+  progressLoading: boolean;
+  saveProgress: (videoId: string, pct: number, time: number) => void;
 };
 
 export const VideoContext = createContext<VideoContextType>(
@@ -65,6 +71,7 @@ function extractStoragePath(url: string, bucket: string): string | null {
 export function VideoProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const { session } = useAuth();
+  const userId = session?.user?.id;
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["videos"],
@@ -82,6 +89,64 @@ export function VideoProvider({ children }: PropsWithChildren) {
   const refetchVideos = async () => {
     await queryClient.refetchQueries({ queryKey: ["videos"] });
   };
+
+  // ── Video progress ──────────────────────────────────────────────────────────
+
+  const { data: videoProgress = {}, isLoading: progressLoading } =
+    useQuery<VideoProgressStore>({
+      queryKey: ["video-progress", userId],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from("user_video_progress")
+          .select("video_id, progress, playback_time, last_watched_at")
+          .eq("user_id", userId!);
+        if (error) throw error;
+        const store: VideoProgressStore = {};
+        for (const row of data ?? []) {
+          store[row.video_id] = {
+            pct: row.progress,
+            time: row.playback_time ?? 0,
+            updatedAt: row.last_watched_at ?? new Date().toISOString(),
+          };
+        }
+        return store;
+      },
+      enabled: !!userId,
+    });
+
+  const progressMutation = useMutation({
+    mutationFn: async ({
+      videoId,
+      pct,
+      time,
+    }: {
+      videoId: string;
+      pct: number;
+      time: number;
+    }) => {
+      if (!userId) return;
+      const { error } = await supabase.from("user_video_progress").upsert(
+        {
+          user_id: userId,
+          video_id: videoId,
+          progress: pct,
+          playback_time: time,
+          last_watched_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,video_id" },
+      );
+      if (error) throw error;
+    },
+    onMutate: ({ videoId, pct, time }) => {
+      queryClient.setQueryData<VideoProgressStore>(
+        ["video-progress", userId],
+        (prev) => ({
+          ...prev,
+          [videoId]: { pct, time, updatedAt: new Date().toISOString() },
+        }),
+      );
+    },
+  });
 
   const addMutation = useMutation({
     mutationFn: async (payload: VideoPayload) => {
@@ -238,6 +303,10 @@ export function VideoProvider({ children }: PropsWithChildren) {
         deleteVideo: deleteMutation.mutateAsync,
         saveVideo: saveMutation.mutateAsync,
         isSaving: saveMutation.isPending,
+        videoProgress,
+        progressLoading,
+        saveProgress: (videoId, pct, time) =>
+          progressMutation.mutate({ videoId, pct, time }),
       }}
     >
       {children}

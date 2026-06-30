@@ -5,6 +5,7 @@ import { color } from "@/config/color";
 import { useCategories } from "@/hooks/useCategories";
 import { useParcours } from "@/hooks/useParcours";
 import { useVideos } from "@/hooks/useVideos";
+import { useSaved } from "@/hooks/useSaved";
 import type { Category, Parcours, Video } from "@/types";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -103,6 +104,7 @@ export default function ExploreScreen() {
   const { categories } = useCategories();
   const { parcours } = useParcours();
   const { videos, videoProgress, saveProgress } = useVideos();
+  const { isVideoSaved, toggleVideoSave } = useSaved();
 
   const [activeTab, setActiveTab] = useState<Tab>("Tout");
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,7 +121,10 @@ export default function ExploreScreen() {
   );
   const previewThemes = useMemo(() => themes.slice(0, 4), [themes]);
   const parcoursItems = useMemo(() => parcours.map(toParcoursItem), [parcours]);
-  const videoItems = useMemo(() => publishedVideos.map(toVideoItem), [publishedVideos]);
+  const videoItems = useMemo(
+    () => publishedVideos.map((v) => ({ ...toVideoItem(v), bookmarked: isVideoSaved(v.id) })),
+    [publishedVideos, isVideoSaved],
+  );
 
   const q = searchQuery.toLowerCase().trim();
 
@@ -323,13 +328,9 @@ export default function ExploreScreen() {
                 filteredVideos.map((v) => (
                   <VideoCard
                     key={v.id}
-                    item={{
-                      ...v,
-                      progress: videoProgress[v.id]?.pct ?? 0,
-                    }}
-                    onPress={() =>
-                      setSelectedVideo({ id: v.id, url: v.url, title: v.title })
-                    }
+                    item={{ ...v, progress: videoProgress[v.id]?.pct ?? 0 }}
+                    onPress={() => setSelectedVideo({ id: v.id, url: v.url, title: v.title })}
+                    onBookmarkPress={() => toggleVideoSave(v.id)}
                   />
                 ))}
             </>

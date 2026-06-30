@@ -15,18 +15,8 @@ export function FeaturedCard({ item }: { item: any }) {
       <View style={styles.featuredCircle2} />
       <Waveform />
 
-      <View
-        style={[
-          styles.featuredBadge,
-          item.badgeLight && styles.featuredBadgeLight,
-        ]}
-      >
-        <Text
-          style={[
-            styles.featuredBadgeText,
-            item.badgeLight && styles.featuredBadgeTextLight,
-          ]}
-        >
+      <View style={[styles.featuredBadge, item.badgeLight && styles.featuredBadgeLight]}>
+        <Text style={[styles.featuredBadgeText, item.badgeLight && styles.featuredBadgeTextLight]}>
           {item.badge}
         </Text>
       </View>
@@ -65,7 +55,6 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: "rgba(255,255,255,0.06)",
   },
-
   featuredBadge: {
     position: "absolute",
     top: 14,
@@ -75,9 +64,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 10,
   },
-  featuredBadgeLight: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
+  featuredBadgeLight: { backgroundColor: "rgba(255,255,255,0.2)" },
   featuredBadgeText: {
     fontSize: 11,
     fontWeight: "700",
@@ -85,9 +72,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textTransform: "uppercase",
   },
-  featuredBadgeTextLight: {
-    color: "#fff",
-  },
+  featuredBadgeTextLight: { color: "#fff" },
   featuredContent: {
     position: "absolute",
     bottom: 0,
@@ -102,8 +87,5 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     marginBottom: 4,
   },
-  featuredSubtitle: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.55)",
-  },
+  featuredSubtitle: { fontSize: 12, color: "rgba(255,255,255,0.55)" },
 });

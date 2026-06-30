@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   heroWrap: { height: 300, position: "relative" },
   heroImage: { width: "100%", height: "100%", resizeMode: "cover" },
   heroGradient: { position: "absolute", top: 0, bottom: 0, left: 0, right: 0 },
-  backBtn: { position: "absolute", top: 55, left: 20, width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(14,43,69,0.45)", justifyContent: "center", alignItems: "center" },
+  backBtn:        { position: "absolute", top: 55, left: 20, width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(14,43,69,0.45)", justifyContent: "center", alignItems: "center" },
   heroTag: { position: "absolute", top: 16, right: 20, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   tagDot: { width: 5, height: 5, borderRadius: 3 },
   heroTagText: { fontSize: 11, fontWeight: "700" },

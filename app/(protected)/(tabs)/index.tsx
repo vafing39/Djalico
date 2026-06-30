@@ -6,11 +6,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCategories } from "@/hooks/useCategories";
 import { useParcours } from "@/hooks/useParcours";
 import { useVideos } from "@/hooks/useVideos";
-import type { Category, Parcours, Video } from "@/types";
+import { useSaved } from "@/hooks/useSaved";
+import type { Category, Parcours } from "@/types";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Animated,
   Image,
@@ -85,26 +86,6 @@ function toFeaturedItem(p: Parcours) {
   };
 }
 
-function toVideoItem(v: Video) {
-  const catTitle = v.category?.title ?? "";
-  const mins = Math.floor(v.duration_seconds / 60);
-  return {
-    id: v.id,
-    title: v.title,
-    subtitle: v.subtitle
-      ? `${v.subtitle} · ${mins} min`
-      : `${catTitle} · ${mins} min`,
-    image: v.image_url ?? "",
-    tag: LEVEL_LABEL[v.tag_type] ?? v.tag_type,
-    tagType: v.tag_type,
-    progress: 0,
-    bookmarked: false,
-    categorie: catTitle,
-    categoryId: v.category?.id ?? "",
-    url: v.url,
-  };
-}
-
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 type SelectedVideo = {
@@ -119,7 +100,8 @@ type SelectedVideo = {
 export default function HomeScreen() {
   const { profile } = useAuth();
   const { videoProgress, saveProgress } = useVideos();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const { isVideoSaved, toggleVideoSave } = useSaved();
+  const [scrollY] = useState(() => new Animated.Value(0));
   const [selectedCategoryId, setSelectedCategoryId] = useState("0");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<SelectedVideo | null>(
@@ -141,6 +123,27 @@ export default function HomeScreen() {
     [videos],
   );
 
+  const videoItems = useMemo(
+    () => rawVideos.map((v) => {
+      const catTitle = v.category?.title ?? "";
+      const mins = Math.floor(v.duration_seconds / 60);
+      return {
+        id: v.id,
+        title: v.title,
+        subtitle: v.subtitle ? `${v.subtitle} · ${mins} min` : `${catTitle} · ${mins} min`,
+        image: v.image_url ?? "",
+        tag: LEVEL_LABEL[v.tag_type] ?? v.tag_type,
+        tagType: v.tag_type,
+        progress: 0,
+        bookmarked: isVideoSaved(v.id),
+        categorie: catTitle,
+        categoryId: v.category?.id ?? "",
+        url: v.url,
+      };
+    }),
+    [rawVideos, isVideoSaved],
+  );
+
   // ── Derived data ──
   const allCategories = useMemo(
     () => [TOUT, ...rawCategories],
@@ -150,8 +153,6 @@ export default function HomeScreen() {
     () => rawParcours.map(toFeaturedItem),
     [rawParcours],
   );
-  const videoItems = useMemo(() => rawVideos.map(toVideoItem), [rawVideos]);
-
   const q = searchQuery.toLowerCase().trim();
 
   const filteredData = useMemo(() => {
@@ -457,11 +458,9 @@ export default function HomeScreen() {
           {filteredVideos.map((item) => (
             <VideoCard
               key={item.id}
-              item={{
-                ...item,
-                progress: videoProgress[item.id]?.pct ?? 0,
-              }}
+              item={{ ...item, progress: videoProgress[item.id]?.pct ?? 0 }}
               onPress={() => openVideo(item, videoProgress[item.id]?.time)}
+              onBookmarkPress={() => toggleVideoSave(item.id)}
             />
           ))}
 
@@ -470,7 +469,7 @@ export default function HomeScreen() {
               <Feather name="search" size={36} color={color.softGray} />
               <Text style={styles.emptyTitle}>Aucun résultat</Text>
               <Text style={styles.emptySubtitle}>
-                Essayez un autre terme ou changez d'instrument
+                Essayez un autre terme ou changez d&apos;instrument
               </Text>
             </View>
           )}

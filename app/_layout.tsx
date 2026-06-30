@@ -9,6 +9,7 @@ import { ParcoursProvider } from "@/contexts/parcoursContext";
 import { CourseProvider } from "@/contexts/courseContext";
 import { UserProvider } from "@/contexts/userContext";
 import { LessonProvider } from "@/contexts/lessonContext";
+import { SavedProvider } from "@/contexts/savedContext";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ export default function RootLayout() {
               <CourseProvider>
                 <UserProvider>
                   <LessonProvider>
+                  <SavedProvider>
                     <Stack>
                       <Stack.Screen
                         name="index"
@@ -37,6 +39,7 @@ export default function RootLayout() {
                         options={{ headerShown: false, animation: "none" }}
                       />
                     </Stack>
+                  </SavedProvider>
                   </LessonProvider>
                 </UserProvider>
               </CourseProvider>

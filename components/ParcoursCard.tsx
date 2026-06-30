@@ -1,180 +1,68 @@
+import { color } from "@/config/color";
 import { router } from "expo-router";
-import React, { useRef, useEffect } from "react";
-import {
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState } from "react";
+import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-const color = {
-  deepBlue: "#0E2B45",
-  navy: "#103149",
-  paleBlue: "#F3F8FB",
-  bgGradientTop: "#ECF6FF",
-  bgGradientBottom: "#FFFFFF",
-  yellow: "#FFD66B",
-  yellowDark: "#F6C04F",
-  softGray: "#9AA6B2",
+export type ParcoursCardItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  level: string;
+  duration: string;
+  image: string | null;
 };
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
-const TOP_VIDEOS = [
-  {
-    id: "v1",
-    title: "Chemin vers la guitare",
-    subtitle: "7 vidéos · Débutant",
-    level: "Expert",
-    duration: "3h 20min",
-    image:
-      "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "v2",
-    title: "Maîtriser les accords",
-    subtitle: "5 vidéos · Intermédiaire",
-    level: "Pro",
-    duration: "1h 45min",
-    image:
-      "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "v3",
-    title: "Rythme & fingerpicking",
-    subtitle: "9 vidéos · Avancé",
-    level: "Expert",
-    duration: "4h 10min",
-    image:
-      "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "v4",
-    title: "Théorie musicale",
-    subtitle: "12 vidéos · Tous niveaux",
-    level: "Pro",
-    duration: "5h 30min",
-    image:
-      "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&w=800&q=60",
-  },
-  {
-    id: "v5",
-    title: "Improvisation Jazz",
-    subtitle: "6 vidéos · Expert",
-    level: "Expert",
-    duration: "2h 55min",
-    image:
-      "https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?auto=format&fit=crop&w=800&q=60",
-  },
-];
-
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 52) / 2; // 2 columns with 16px gap + 20px sides
 
 export default function ParcoursCard({
   item,
   index,
 }: {
-  item: (typeof TOP_VIDEOS)[0];
+  item: ParcoursCardItem;
   index: number;
 }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(24)).current;
+  const [scale]      = useState(() => new Animated.Value(1));
+  const [fadeAnim]   = useState(() => new Animated.Value(0));
+  const [translateY] = useState(() => new Animated.Value(24));
 
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 420,
-        delay: index * 90,
-        useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: 0,
-        duration: 420,
-        delay: index * 90,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim,   { toValue: 1, duration: 420, delay: index * 90, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 420, delay: index * 90, useNativeDriver: true }),
     ]).start();
-  }, []);
-
-  const onPressIn = () => {
-    router.navigate({ pathname: "/categorie/parcoursScreen" });
-  };
-
-  const onPressOut = () =>
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+  }, [fadeAnim, index, translateY]);
 
   const isExpert = item.level === "Expert";
 
   return (
-    <Animated.View
-      style={[
-        styles.cardWrap,
-        {
-          opacity: fadeAnim,
-          transform: [{ translateY }, { scale }],
-        },
-      ]}
-    >
+    <Animated.View style={[styles.cardWrap, { opacity: fadeAnim, transform: [{ translateY }, { scale }] }]}>
       <Pressable
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
+        onPress={() => router.navigate({ pathname: "/categorie/parcoursScreen", params: { parcoursId: item.id } })}
+        onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start()}
+        onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start()}
         style={styles.card}
       >
-        {/* Thumbnail */}
         <View style={styles.thumbWrap}>
-          <Image source={{ uri: item.image }} style={styles.thumbImage} />
-
-          {/* Gradient overlay bottom */}
+          {item.image ? (
+            <Image source={{ uri: item.image }} style={styles.thumbImage} />
+          ) : (
+            <View style={[styles.thumbImage, { backgroundColor: color.deepBlue }]} />
+          )}
           <View style={styles.thumbGradient} />
 
-          {/* Level badge */}
-          <View
-            style={[
-              styles.badge,
-              isExpert ? styles.badgeExpert : styles.badgePro,
-            ]}
-          >
-            <View
-              style={[
-                styles.badgeDot,
-                isExpert ? styles.dotExpert : styles.dotPro,
-              ]}
-            />
+          <View style={[styles.badge, isExpert ? styles.badgeExpert : styles.badgePro]}>
+            <View style={[styles.badgeDot, isExpert ? styles.dotExpert : styles.dotPro]} />
             <Text style={styles.badgeText}>{item.level}</Text>
           </View>
 
-          {/* Heart */}
-          <View style={styles.heartButton}>
-            <Text style={styles.heartIcon}>♥</Text>
-          </View>
-
-          {/* Duration chip on thumb */}
           <View style={styles.durationChip}>
             <Text style={styles.durationText}>⏱ {item.duration}</Text>
           </View>
         </View>
 
-        {/* Footer */}
         <View style={styles.cardFooter}>
-          <Text numberOfLines={2} style={styles.cardTitle}>
-            {item.title}
-          </Text>
-          <Text numberOfLines={1} style={styles.cardSubtitle}>
-            {item.subtitle}
-          </Text>
-
-          {/* Progress bar (decorative) */}
+          <Text numberOfLines={2} style={styles.cardTitle}>{item.title}</Text>
+          <Text numberOfLines={1} style={styles.cardSubtitle}>{item.subtitle}</Text>
           <View style={styles.progressTrack}>
-            <View
-              style={[styles.progressFill, { width: `${30 + index * 14}%` }]}
-            />
+            <View style={styles.progressFill} />
           </View>
         </View>
       </Pressable>
@@ -183,125 +71,28 @@ export default function ParcoursCard({
 }
 
 const styles = StyleSheet.create({
-  thumbWrap: {
-    height: 140,
-    position: "relative",
-    backgroundColor: "#dde9f0",
-  },
-  thumbImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
-  thumbGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 56,
-    backgroundColor: "rgba(14,43,69,0.35)",
-  },
-  badge: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 20,
-    gap: 5,
-  },
-  badgeExpert: {
-    backgroundColor: color.yellow,
-  },
-  badgePro: {
-    backgroundColor: "rgba(255,255,255,0.9)",
-  },
-  badgeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  dotExpert: {
-    backgroundColor: color.deepBlue,
-  },
-  dotPro: {
-    backgroundColor: color.softGray,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: color.deepBlue,
-    letterSpacing: 0.3,
-  },
-  heartButton: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "rgba(255,255,255,0.85)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  heartIcon: {
-    fontSize: 13,
-    color: "#E05C6F",
-  },
-  durationChip: {
-    position: "absolute",
-    bottom: 8,
-    right: 10,
-  },
-  durationText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#fff",
-    letterSpacing: 0.2,
-  },
-  cardFooter: {
-    paddingHorizontal: 12,
-    paddingTop: 11,
-    paddingBottom: 12,
-    gap: 3,
-  },
-  cardTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: color.deepBlue,
-    lineHeight: 18,
-    letterSpacing: -0.2,
-  },
-  cardSubtitle: {
-    fontSize: 11,
-    color: color.softGray,
-    fontWeight: "500",
-  },
-  progressTrack: {
-    height: 3,
-    backgroundColor: "#EAF1F7",
-    borderRadius: 4,
-    marginTop: 8,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: color.yellow,
-    borderRadius: 4,
-  },
-  cardWrap: {
-    flex: 1,
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    overflow: "hidden",
-    shadowColor: color.navy,
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 16,
-    elevation: 4,
-  },
+  cardWrap: { flex: 1 },
+  card: { backgroundColor: "#FFFFFF", borderRadius: 18, overflow: "hidden", shadowColor: color.navy, shadowOpacity: 0.1, shadowOffset: { width: 0, height: 8 }, shadowRadius: 16, elevation: 4 },
+
+  thumbWrap:     { height: 140, position: "relative", backgroundColor: "#dde9f0" },
+  thumbImage:    { width: "100%", height: "100%", resizeMode: "cover" },
+  thumbGradient: { position: "absolute", bottom: 0, left: 0, right: 0, height: 56, backgroundColor: "rgba(14,43,69,0.35)" },
+
+  badge:       { position: "absolute", top: 10, left: 10, flexDirection: "row", alignItems: "center", paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, gap: 5 },
+  badgeExpert: { backgroundColor: color.yellow },
+  badgePro:    { backgroundColor: "rgba(255,255,255,0.9)" },
+  badgeDot:    { width: 6, height: 6, borderRadius: 3 },
+  dotExpert:   { backgroundColor: color.deepBlue },
+  dotPro:      { backgroundColor: color.softGray },
+  badgeText:   { fontSize: 11, fontWeight: "700", color: color.deepBlue, letterSpacing: 0.3 },
+
+  durationChip: { position: "absolute", bottom: 8, right: 10 },
+  durationText: { fontSize: 10, fontWeight: "600", color: "#fff", letterSpacing: 0.2 },
+
+  cardFooter:   { paddingHorizontal: 12, paddingTop: 11, paddingBottom: 12, gap: 3 },
+  cardTitle:    { fontSize: 13, fontWeight: "800", color: color.deepBlue, lineHeight: 18, letterSpacing: -0.2 },
+  cardSubtitle: { fontSize: 11, color: color.softGray, fontWeight: "500" },
+
+  progressTrack: { height: 3, backgroundColor: "#EAF1F7", borderRadius: 4, marginTop: 8, overflow: "hidden" },
+  progressFill:  { height: "100%", width: "0%", backgroundColor: color.yellow, borderRadius: 4 },
 });

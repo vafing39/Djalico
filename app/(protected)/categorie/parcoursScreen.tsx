@@ -1,19 +1,9 @@
 import { color } from "@/config/color";
-import {
-  PARCOURS_DETAILS,
-  Lesson,
-  LessonStatus,
-  MY_COURSES,
-  COURSE_LESSONS,
-  CourseLesson,
-  Course,
-} from "@/data/mockData";
 import VideoModal from "@/components/VideoModal";
 import { Feather } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Animated,
   Image,
@@ -25,12 +15,36 @@ import {
   View,
 } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import { useParcours } from "@/hooks/useParcours";
+import { useCourses } from "@/hooks/useCourses";
+import { useLessons } from "@/hooks/useLessons";
+import { useVideos } from "@/hooks/useVideos";
+import type { Course, Lesson, TagType } from "@/types";
+import type { VideoProgressStore } from "@/contexts/videoContext";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Local types ──────────────────────────────────────────────────────────────
 
-import type { LessonProgress, SelectedLesson } from "@/types";
+type LessonStatus = "done" | "current" | "available";
+
+type RenderLesson = {
+  id: string;
+  videoId: string;
+  index: number;
+  title: string;
+  duration: string;
+  status: LessonStatus;
+  url: string;
+};
+
+type SelectedVideo = { id: string; videoId: string; url: string; title: string };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const LEVEL_LABEL: Record<TagType, string> = {
+  beginner: "Débutant",
+  intermediate: "Intermédiaire",
+  expert: "Expert",
+};
 
 const TAG_STYLES = {
   expert:       { bg: "rgba(255,214,107,0.28)", text: "#8A6200",  dot: color.yellowDark },
@@ -38,15 +52,28 @@ const TAG_STYLES = {
   beginner:     { bg: "rgba(181,212,244,0.4)",  text: "#185FA5",  dot: "#3A8FD4"        },
 };
 
-function mapCourseLesson(
-  cl: CourseLesson,
-  progress: LessonProgress,
-  isLocked: boolean,
-): Lesson {
-  const pct = progress[cl.id]?.pct ?? 0;
-  const status: LessonStatus =
-    pct >= 0.9 ? "done" : pct > 0 ? "current" : isLocked ? "locked" : "available";
-  return { id: cl.id, index: cl.index, title: cl.title, duration: cl.duration, status, url: cl.url };
+function formatDuration(seconds: number): string {
+  if (!seconds) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return `${m}min${s > 0 ? ` ${s}s` : ""}`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return `${h}h${rem > 0 ? ` ${rem}min` : ""}`;
+}
+
+function toRenderLesson(lesson: Lesson, progress: VideoProgressStore): RenderLesson {
+  const pct = progress[lesson.video_id]?.pct ?? 0;
+  const status: LessonStatus = pct >= 0.9 ? "done" : pct > 0 ? "current" : "available";
+  return {
+    id: lesson.id,
+    videoId: lesson.video_id,
+    index: lesson.index,
+    title: lesson.title,
+    duration: formatDuration(lesson.duration_seconds),
+    status,
+    url: lesson.video?.url ?? "",
+  };
 }
 
 // ─── Circular progress (SVG arc) ─────────────────────────────────────────────
@@ -83,48 +110,44 @@ function LessonRow({
   animDelay,
   onPress,
 }: {
-  lesson: Lesson;
+  lesson: RenderLesson;
   animDelay: number;
   onPress?: () => void;
 }) {
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
-  const translateX = useRef(new Animated.Value(16)).current;
-  const scale     = useRef(new Animated.Value(1)).current;
+  const [fadeAnim]   = useState(() => new Animated.Value(0));
+  const [translateX] = useState(() => new Animated.Value(16));
+  const [scale]      = useState(() => new Animated.Value(1));
 
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim,   { toValue: 1, duration: 340, delay: animDelay, useNativeDriver: true }),
       Animated.timing(translateX, { toValue: 0, duration: 340, delay: animDelay, useNativeDriver: true }),
     ]).start();
   }, [fadeAnim, animDelay, translateX]);
 
-  const isCurrent  = lesson.status === "current";
-  const isDone     = lesson.status === "done";
-  const isLocked   = lesson.status === "locked";
+  const isCurrent   = lesson.status === "current";
+  const isDone      = lesson.status === "done";
   const isAvailable = lesson.status === "available";
 
   return (
     <Pressable
-      onPress={!isLocked && onPress ? onPress : undefined}
-      onPressIn={() => !isLocked && Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start()}
+      onPress={onPress}
+      onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start()}
       onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start()}
     >
       <Animated.View
         style={[
           styles.lessonRow,
-          isCurrent  && styles.lessonRowCurrent,
-          isDone     && styles.lessonRowDone,
-          isLocked   && styles.lessonRowLocked,
+          isCurrent && styles.lessonRowCurrent,
+          isDone    && styles.lessonRowDone,
           { opacity: fadeAnim, transform: [{ translateX }, { scale }] },
         ]}
       >
-        <View style={[styles.lessonIcon, isDone && styles.lessonIconDone, isCurrent && styles.lessonIconCurrent, isLocked && styles.lessonIconLocked]}>
+        <View style={[styles.lessonIcon, isDone && styles.lessonIconDone, isCurrent && styles.lessonIconCurrent]}>
           {isDone ? (
             <Text style={styles.lessonIconCheck}>✓</Text>
           ) : isCurrent ? (
             <View style={styles.playTriangleSmall} />
-          ) : isLocked ? (
-            <Feather name="lock" size={11} color="rgba(14,43,69,0.3)" />
           ) : (
             <Text style={styles.lessonIndexText}>{lesson.index}</Text>
           )}
@@ -134,43 +157,40 @@ function LessonRow({
 
         <View style={styles.lessonContent}>
           <View style={styles.lessonTop}>
-            <Text numberOfLines={1} style={[styles.lessonTitle, isLocked && styles.lessonTitleLocked]}>{lesson.title}</Text>
+            <Text numberOfLines={1} style={styles.lessonTitle}>{lesson.title}</Text>
             {isCurrent && <View style={styles.currentPill}><Text style={styles.currentPillText}>En cours</Text></View>}
           </View>
-          <Text style={[styles.lessonDuration, isLocked && styles.lessonDurationLocked]}>
+          <Text style={styles.lessonDuration}>
             <Feather name="clock" size={10} /> {lesson.duration}
           </Text>
         </View>
 
-        {!isLocked && (
-          <View style={[styles.lessonAction, isDone && styles.lessonActionDone, isCurrent && styles.lessonActionCurrent, isAvailable && styles.lessonActionAvailable]}>
-            <Feather name={isDone ? "refresh-cw" : "play"} size={12} color={isDone ? color.softGray : "#fff"} />
-          </View>
-        )}
+        <View style={[styles.lessonAction, isDone && styles.lessonActionDone, isCurrent && styles.lessonActionCurrent, isAvailable && styles.lessonActionAvailable]}>
+          <Feather name={isDone ? "refresh-cw" : "play"} size={12} color={isDone ? color.softGray : "#fff"} />
+        </View>
       </Animated.View>
     </Pressable>
   );
 }
 
-// ─── Course block — used in parcours mode, resolves lessons from COURSE_LESSONS ──
+// ─── Course block ─────────────────────────────────────────────────────────────
 
 function CourseBlock({
   course,
   lessons,
-  lessonProgress,
+  progress,
   globalOffset,
   onPressLesson,
 }: {
   course: Course;
-  lessons: CourseLesson[];
-  lessonProgress: LessonProgress;
+  lessons: Lesson[];
+  progress: VideoProgressStore;
   globalOffset: number;
-  onPressLesson: (lesson: CourseLesson) => void;
+  onPressLesson: (lesson: Lesson) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const isLocked  = course.status === "non_commence";
-  const doneCount = lessons.filter((l) => (lessonProgress[l.id]?.pct ?? 0) >= 0.9).length;
-  const allDone   = doneCount === lessons.length;
+  const doneCount = lessons.filter((l) => (progress[l.video_id]?.pct ?? 0) >= 0.9).length;
+  const allDone   = doneCount === lessons.length && lessons.length > 0;
 
   return (
     <View style={styles.moduleBlock}>
@@ -186,12 +206,12 @@ function CourseBlock({
       </Pressable>
 
       {!collapsed &&
-        lessons.map((cl, i) => (
+        lessons.map((l, i) => (
           <LessonRow
-            key={cl.id}
-            lesson={mapCourseLesson(cl, lessonProgress, isLocked)}
+            key={l.id}
+            lesson={toRenderLesson(l, progress)}
             animDelay={(globalOffset + i) * 55}
-            onPress={() => onPressLesson(cl)}
+            onPress={() => onPressLesson(l)}
           />
         ))}
     </View>
@@ -203,86 +223,96 @@ function CourseBlock({
 export default function ParcoursScreen() {
   const { courseId, parcoursId } = useLocalSearchParams<{ courseId?: string; parcoursId?: string }>();
 
-  const [lessonProgress, setLessonProgress] = useState<LessonProgress>({});
-  const [selectedLesson, setSelectedLesson] = useState<SelectedLesson | null>(null);
+  const { parcours, parcoursCourses } = useParcours();
+  const { courses }                   = useCourses();
+  const { lessons }                   = useLessons();
+  const { videoProgress, saveProgress } = useVideos();
 
-  // ── Course mode (single course, flat lesson list) ───────────────────────────
-  const course        = courseId ? MY_COURSES.find((c) => c.id === courseId) : null;
-  const courseLessons = courseId ? COURSE_LESSONS.filter((l) => l.courseId === courseId) : [];
-  const isCourseMode  = !!courseId && !!course;
+  const [selectedVideo, setSelectedVideo] = useState<SelectedVideo | null>(null);
 
-  // ── Parcours mode (multiple courses, resolved from courseIds) ───────────────
-  const p = PARCOURS_DETAILS[parcoursId ?? ""] ?? PARCOURS_DETAILS["p1"];
+  // ── Course mode ────────────────────────────────────────────────────────────
+  const course = useMemo(
+    () => (courseId ? courses.find((c) => c.id === courseId) ?? null : null),
+    [courseId, courses],
+  );
+  const courseLessons = useMemo(
+    () =>
+      courseId
+        ? lessons.filter((l) => l.course_id === courseId).sort((a, b) => a.index - b.index)
+        : [],
+    [courseId, lessons],
+  );
+  const isCourseMode = !!courseId && !!course;
 
-  const parcoursCourseData = p.courses
-    .map((s) => ({
-      sectionId: s.id,
-      course: MY_COURSES.find((c) => c.id === s.courseId)!,
-      lessons: COURSE_LESSONS.filter((l) => l.courseId === s.courseId),
-    }))
-    .filter((x) => x.course != null);
-
-  // ── Load lesson progress from AsyncStorage ──────────────────────────────────
-  useEffect(() => {
-    const ids = isCourseMode
-      ? courseLessons.map((l) => l.id)
-      : parcoursCourseData.flatMap((x) => x.lessons.map((l) => l.id));
-    if (ids.length === 0) return;
-    async function load() {
-      const entries = await AsyncStorage.multiGet(ids.map((id) => `djalico_lesson_${id}`));
-      const map: LessonProgress = {};
-      entries.forEach(([key, value]) => {
-        if (value) {
-          const id = key.replace("djalico_lesson_", "");
-          try { map[id] = JSON.parse(value); } catch {}
-        }
-      });
-      setLessonProgress(map);
-    }
-    load();
-  }, [courseId, parcoursId]);
-
-  const handleProgress = useCallback(
-    async (currentTime: number, pct: number) => {
-      if (!selectedLesson) return;
-      const data = { pct, time: currentTime };
-      await AsyncStorage.setItem(`djalico_lesson_${selectedLesson.id}`, JSON.stringify(data));
-      setLessonProgress((prev) => ({ ...prev, [selectedLesson.id]: data }));
-    },
-    [selectedLesson],
+  // ── Parcours mode ──────────────────────────────────────────────────────────
+  const p = useMemo(
+    () => (parcoursId ? parcours.find((x) => x.id === parcoursId) ?? null : null),
+    [parcoursId, parcours],
   );
 
-  // ── Course mode derived values ──────────────────────────────────────────────
-  const totalLessons     = courseLessons.length;
-  const completedLessons = courseLessons.filter((l) => (lessonProgress[l.id]?.pct ?? 0) >= 0.9).length;
-  const courseProgress   = totalLessons > 0 ? completedLessons / totalLessons : 0;
-  const isCourseLocked   = course?.status === "non_commence";
-  const firstUnfinished  = courseLessons.find((l) => (lessonProgress[l.id]?.pct ?? 0) < 0.9);
+  const parcoursCourseData = useMemo(() => {
+    if (!parcoursId) return [];
+    return parcoursCourses
+      .filter((pc) => pc.parcours_id === parcoursId)
+      .sort((a, b) => a.order_index - b.order_index)
+      .map((pc) => ({
+        courseId: pc.course_id,
+        course: courses.find((c) => c.id === pc.course_id) ?? null,
+        lessons: lessons
+          .filter((l) => l.course_id === pc.course_id)
+          .sort((a, b) => a.index - b.index),
+      }))
+      .filter((x): x is { courseId: string; course: Course; lessons: Lesson[] } => x.course !== null);
+  }, [parcoursId, parcoursCourses, courses, lessons]);
 
-  // ── Parcours mode derived values (computed from real course data) ────────────
+  // ── Progress handler ───────────────────────────────────────────────────────
+  const handleProgress = useCallback(
+    (currentTime: number, pct: number) => {
+      if (!selectedVideo) return;
+      saveProgress(selectedVideo.videoId, pct, currentTime);
+    },
+    [selectedVideo, saveProgress],
+  );
+
+  function openLesson(lesson: Lesson) {
+    setSelectedVideo({
+      id: lesson.id,
+      videoId: lesson.video_id,
+      url: lesson.video?.url ?? "",
+      title: lesson.title,
+    });
+  }
+
+  // ── Course mode derived ────────────────────────────────────────────────────
+  const totalLessons     = courseLessons.length;
+  const completedLessons = courseLessons.filter((l) => (videoProgress[l.video_id]?.pct ?? 0) >= 0.9).length;
+  const courseProgress   = totalLessons > 0 ? completedLessons / totalLessons : 0;
+  const firstUnfinished  = courseLessons.find((l) => (videoProgress[l.video_id]?.pct ?? 0) < 0.9);
+
+  // ── Parcours mode derived ──────────────────────────────────────────────────
   const parcoursTotal     = parcoursCourseData.reduce((sum, x) => sum + x.lessons.length, 0);
   const parcoursCompleted = parcoursCourseData.reduce(
-    (sum, x) => sum + x.lessons.filter((l) => (lessonProgress[l.id]?.pct ?? 0) >= 0.9).length, 0,
+    (sum, x) => sum + x.lessons.filter((l) => (videoProgress[l.video_id]?.pct ?? 0) >= 0.9).length,
+    0,
   );
-  const parcoursProgress  = parcoursTotal > 0 ? parcoursCompleted / parcoursTotal : 0;
+  const parcoursProgress    = parcoursTotal > 0 ? parcoursCompleted / parcoursTotal : 0;
   const parcoursFirstLesson = parcoursCourseData
-    .flatMap(({ course: c, lessons }) =>
-      lessons
-        .filter((l) => c.status !== "non_commence" && (lessonProgress[l.id]?.pct ?? 0) < 0.9)
-        .map((l) => l),
-    )[0];
+    .flatMap((x) => x.lessons)
+    .find((l) => (videoProgress[l.video_id]?.pct ?? 0) < 0.9);
 
-  // ── Shared hero values ──────────────────────────────────────────────────────
-  const tagStyle      = TAG_STYLES[isCourseMode ? course!.tagType : p.tagType];
-  const heroImage     = isCourseMode ? course!.image      : p.coverImage;
-  const heroTitle     = isCourseMode ? course!.title      : p.title;
-  const heroCategory  = isCourseMode ? course!.category   : p.category;
-  const heroInstructor = isCourseMode ? course!.instructor : p.instructor;
-  const heroTag       = isCourseMode ? course!.tag        : p.tag;
-  const heroLessons   = isCourseMode ? totalLessons       : parcoursTotal;
-  const heroDuration  = isCourseMode ? course!.duration   : p.totalDuration;
-  const heroProgress  = isCourseMode ? courseProgress     : parcoursProgress;
-  const heroCompleted = isCourseMode ? completedLessons   : parcoursCompleted;
+  // ── Shared hero values ─────────────────────────────────────────────────────
+  const tagType        = isCourseMode ? course!.tag_type       : (p?.tag_type ?? "beginner");
+  const tagStyle       = TAG_STYLES[tagType];
+  const heroImage      = isCourseMode ? course!.image_url      : p?.cover_image_url;
+  const heroTitle      = isCourseMode ? course!.title          : (p?.title ?? "");
+  const heroCategory   = isCourseMode ? (course!.category?.title ?? "") : (p?.category?.title ?? "");
+  const heroInstructor = isCourseMode ? course!.instructor     : (p?.instructor?.name ?? "");
+  const heroTag        = LEVEL_LABEL[tagType];
+  const heroLessons    = isCourseMode ? totalLessons           : parcoursTotal;
+  const heroDuration   = formatDuration(isCourseMode ? course!.total_duration_seconds : (p?.total_duration_seconds ?? 0));
+  const heroProgress   = isCourseMode ? courseProgress         : parcoursProgress;
+  const heroCompleted  = isCourseMode ? completedLessons       : parcoursCompleted;
+  const instructorAvatar = !isCourseMode ? p?.instructor?.avatar_url : null;
 
   let offset = 0;
 
@@ -293,7 +323,11 @@ export default function ParcoursScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* ── Hero ── */}
         <View style={styles.heroWrap}>
-          <Image source={{ uri: heroImage }} style={styles.heroImage} />
+          {heroImage ? (
+            <Image source={{ uri: heroImage }} style={styles.heroImage} />
+          ) : (
+            <View style={[styles.heroImage, { backgroundColor: color.deepBlue }]} />
+          )}
           <LinearGradient colors={["rgba(14,43,69,0.15)", "rgba(14,43,69,0.78)"]} style={styles.heroGradient} />
 
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
@@ -309,8 +343,8 @@ export default function ParcoursScreen() {
             <Text style={styles.heroCategory}>{heroCategory}</Text>
             <Text style={styles.heroTitle}>{heroTitle}</Text>
             <View style={styles.heroInstructorRow}>
-              {!isCourseMode && p.instructorAvatar ? (
-                <Image source={{ uri: p.instructorAvatar }} style={styles.avatar} />
+              {instructorAvatar ? (
+                <Image source={{ uri: instructorAvatar }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarFallback}>
                   <Feather name="user" size={11} color="rgba(255,255,255,0.7)" />
@@ -345,8 +379,8 @@ export default function ParcoursScreen() {
           <Pressable
             style={styles.resumeBtn}
             onPress={() => {
-              if (isCourseMode && firstUnfinished) setSelectedLesson(firstUnfinished);
-              else if (!isCourseMode && parcoursFirstLesson) setSelectedLesson(parcoursFirstLesson);
+              if (isCourseMode && firstUnfinished) openLesson(firstUnfinished);
+              else if (!isCourseMode && parcoursFirstLesson) openLesson(parcoursFirstLesson);
             }}
           >
             <Text style={styles.resumeBtnText}>Reprendre</Text>
@@ -355,11 +389,11 @@ export default function ParcoursScreen() {
         </View>
 
         {/* ── Description (parcours mode only) ── */}
-        {!isCourseMode && (
+        {!isCourseMode && p?.description ? (
           <View style={styles.descSection}>
             <Text style={styles.descText}>{p.description}</Text>
           </View>
-        )}
+        ) : null}
 
         {/* ── Lessons / courses ── */}
         <View style={styles.modulesSection}>
@@ -368,25 +402,25 @@ export default function ParcoursScreen() {
           </Text>
 
           {isCourseMode
-            ? courseLessons.map((cl, i) => (
+            ? courseLessons.map((l, i) => (
                 <LessonRow
-                  key={cl.id}
-                  lesson={mapCourseLesson(cl, lessonProgress, isCourseLocked)}
+                  key={l.id}
+                  lesson={toRenderLesson(l, videoProgress)}
                   animDelay={i * 55}
-                  onPress={() => setSelectedLesson(cl)}
+                  onPress={() => openLesson(l)}
                 />
               ))
-            : parcoursCourseData.map(({ sectionId, course: c, lessons }) => {
+            : parcoursCourseData.map(({ courseId: cId, course: c, lessons: cls }) => {
                 const thisOffset = offset;
-                offset += lessons.length;
+                offset += cls.length;
                 return (
                   <CourseBlock
-                    key={sectionId}
+                    key={cId}
                     course={c}
-                    lessons={lessons}
-                    lessonProgress={lessonProgress}
+                    lessons={cls}
+                    progress={videoProgress}
                     globalOffset={thisOffset}
-                    onPressLesson={(cl) => setSelectedLesson(cl)}
+                    onPressLesson={openLesson}
                   />
                 );
               })}
@@ -396,12 +430,12 @@ export default function ParcoursScreen() {
       </ScrollView>
 
       <VideoModal
-        visible={selectedLesson !== null}
-        videoUrl={selectedLesson?.url ?? null}
-        title={selectedLesson?.title}
-        initialTime={selectedLesson ? (lessonProgress[selectedLesson.id]?.time ?? 0) : 0}
+        visible={selectedVideo !== null}
+        videoUrl={selectedVideo?.url ?? null}
+        title={selectedVideo?.title}
+        initialTime={selectedVideo ? (videoProgress[selectedVideo.videoId]?.time ?? 0) : 0}
         onProgress={handleProgress}
-        onClose={() => setSelectedLesson(null)}
+        onClose={() => setSelectedVideo(null)}
       />
     </View>
   );
@@ -460,12 +494,10 @@ const styles = StyleSheet.create({
   lessonRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12, borderBottomWidth: 1, borderBottomColor: "rgba(14,43,69,0.04)" },
   lessonRowCurrent: { backgroundColor: "rgba(255,214,107,0.07)" },
   lessonRowDone: { backgroundColor: "#FAFFFE" },
-  lessonRowLocked: { opacity: 0.5 },
 
   lessonIcon: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: color.yellowDark, justifyContent: "center", alignItems: "center", flexShrink: 0, backgroundColor: color.yellowDark },
   lessonIconDone: { backgroundColor: "#1D9E75", borderColor: "#1D9E75" },
   lessonIconCurrent: { backgroundColor: color.yellow, borderColor: color.yellowDark },
-  lessonIconLocked: { backgroundColor: "rgba(14,43,69,0.04)", borderColor: "rgba(14,43,69,0.08)" },
   lessonIconCheck: { fontSize: 13, color: "#fff", fontWeight: "800" },
   lessonIndexText: { fontSize: 12, fontWeight: "700", color: color.deepBlue },
   playTriangleSmall: { width: 0, height: 0, borderTopWidth: 5, borderBottomWidth: 5, borderLeftWidth: 8, borderStyle: "solid", borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: color.deepBlue, marginLeft: 2 },
@@ -478,11 +510,9 @@ const styles = StyleSheet.create({
   lessonContent: { flex: 1, gap: 3 },
   lessonTop: { flexDirection: "row", alignItems: "center", gap: 8 },
   lessonTitle: { fontSize: 13.5, fontWeight: "600", color: color.deepBlue, flex: 1 },
-  lessonTitleLocked: { color: color.softGray },
   currentPill: { backgroundColor: color.yellow, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   currentPillText: { fontSize: 10, fontWeight: "700", color: color.deepBlue },
   lessonDuration: { fontSize: 11, color: color.softGray },
-  lessonDurationLocked: { color: "rgba(154,166,178,0.6)" },
 
   lessonAction: { width: 28, height: 28, borderRadius: 9, backgroundColor: color.deepBlue, justifyContent: "center", alignItems: "center", flexShrink: 0 },
   lessonActionDone: { backgroundColor: color.paleBlue },

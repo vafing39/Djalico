@@ -1,53 +1,78 @@
-import { View, Text, FlatList, StyleSheet, Pressable } from "react-native";
-import React from "react";
-import ParcoursCard from "@/components/ParcoursCard";
+import { color } from "@/config/color";
+import ParcoursCard, { type ParcoursCardItem } from "@/components/ParcoursCard";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
+import React, { useMemo } from "react";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Screen from "@/components/Screen";
-import { ALL_PARCOURS } from "@/data/mockData";
+import { useParcours } from "@/hooks/useParcours";
+import type { Parcours, TagType } from "@/types";
 
-const TOP_VIDEOS = ALL_PARCOURS;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function Header() {
+const LEVEL_LABEL: Record<TagType, string> = {
+  beginner:     "Débutant",
+  intermediate: "Intermédiaire",
+  expert:       "Expert",
+};
+
+function formatDuration(seconds: number): string {
+  if (!seconds) return "—";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h === 0) return `${m}min`;
+  return `${h}h${m > 0 ? ` ${m}min` : ""}`;
+}
+
+function toCardItem(p: Parcours): ParcoursCardItem {
+  return {
+    id:       p.id,
+    title:    p.title,
+    subtitle: p.category?.title ?? "",
+    level:    LEVEL_LABEL[p.tag_type],
+    duration: formatDuration(p.total_duration_seconds),
+    image:    p.cover_image_url,
+  };
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+function Header({ count }: { count: number }) {
   return (
     <View>
       <Pressable style={styles.backBtn} onPress={() => router.back()}>
         <Feather name="arrow-left" size={18} color="#fff" />
       </Pressable>
       <View style={styles.header}>
-        {/* Back button */}
         <View>
           <Text style={styles.headerEyebrow}>Bibliothèque</Text>
-          <Text style={styles.headerTitle}>Tout les parcours</Text>
+          <Text style={styles.headerTitle}>Tous les parcours</Text>
         </View>
         <View style={styles.headerCount}>
-          <Text style={styles.headerCountText}>{TOP_VIDEOS.length}</Text>
+          <Text style={styles.headerCountText}>{count}</Text>
         </View>
       </View>
     </View>
   );
 }
 
-const color = {
-  deepBlue: "#0E2B45",
-  navy: "#103149",
-  paleBlue: "#F3F8FB",
-  bgGradientTop: "#ECF6FF",
-  bgGradientBottom: "#FFFFFF",
-  yellow: "#FFD66B",
-  yellowDark: "#F6C04F",
-  softGray: "#9AA6B2",
-};
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
-const AllParcoursScreens = () => {
+export default function AllParcoursScreen() {
+  const { parcours } = useParcours();
+
+  const items = useMemo(() => parcours.map(toCardItem), [parcours]);
+
   return (
     <Screen>
       <FlatList
-        data={TOP_VIDEOS}
+        data={items}
         keyExtractor={(item) => item.id}
+        numColumns={2}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={<Header />}
+        columnWrapperStyle={styles.columnWrapper}
+        ListHeaderComponent={<Header count={items.length} />}
         renderItem={({ item, index }) => (
           <ParcoursCard item={item} index={index} />
         )}
@@ -56,19 +81,16 @@ const AllParcoursScreens = () => {
       />
     </Screen>
   );
-};
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: color.bgGradientTop,
-  },
   listContent: {
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
   columnWrapper: {
-    paddingHorizontal: 20,
     gap: 12,
   },
   header: {
@@ -114,11 +136,9 @@ const styles = StyleSheet.create({
     height: 38,
     width: 38,
     borderRadius: 12,
-    backgroundColor: "rgba(3, 3, 3, 0.53)",
+    backgroundColor: "rgba(3,3,3,0.53)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
   },
 });
-
-export default AllParcoursScreens;

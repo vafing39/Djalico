@@ -1,13 +1,35 @@
 import { ThemeCard } from "@/components/ThemeCard";
 import { color } from "@/config/color";
-import { THEMES } from "@/data/mockData";
+import { useCategories } from "@/hooks/useCategories";
+import { useVideos } from "@/hooks/useVideos";
+import type { Category } from "@/types";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-function Header() {
+const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
+  Guitare: ["#0E2B45", "#1A5F9A"],
+  Piano: ["#2E4A1E", "#5A8A3C"],
+  Saxophone: ["#1a3d5c", "#2A7FA5"],
+  Trompette: ["#7B4F2E", "#C4813D"],
+  Basse: ["#0D3348", "#1E6B8A"],
+  Balafon: ["#5C2E00", "#A0522D"],
+};
+const DEFAULT_GRADIENT: [string, string] = ["#0E2B45", "#1A5F9A"];
+
+function toCategoryTheme(cat: Category, videoCount: number) {
+  return {
+    id: cat.id,
+    title: cat.title,
+    emoji: cat.emoji,
+    count: `${videoCount} vidéo${videoCount !== 1 ? "s" : ""}`,
+    colors: CATEGORY_GRADIENTS[cat.title] ?? DEFAULT_GRADIENT,
+  };
+}
+
+function Header({ count }: { count: number }) {
   return (
     <View style={styles.headerWrap}>
       <Pressable style={styles.backBtn} onPress={() => router.back()}>
@@ -19,7 +41,7 @@ function Header() {
           <Text style={styles.headerTitle}>Thèmes musicaux</Text>
         </View>
         <View style={styles.headerCount}>
-          <Text style={styles.headerCountText}>{THEMES.length}</Text>
+          <Text style={styles.headerCountText}>{count}</Text>
         </View>
       </View>
     </View>
@@ -27,16 +49,32 @@ function Header() {
 }
 
 export default function AllThemesScreen() {
+  const { categories } = useCategories();
+  const { videos } = useVideos();
+
+  const publishedVideos = useMemo(() => videos.filter((v) => v.published), [videos]);
+
+  const themes = useMemo(
+    () =>
+      categories.map((cat) =>
+        toCategoryTheme(
+          cat,
+          publishedVideos.filter((v) => v.category?.id === cat.id).length,
+        ),
+      ),
+    [categories, publishedVideos],
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <FlatList
-        data={THEMES}
+        data={themes}
         keyExtractor={(item) => item.id}
         numColumns={2}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={styles.row}
-        ListHeaderComponent={<Header />}
+        ListHeaderComponent={<Header count={themes.length} />}
         renderItem={({ item }) => (
           <ThemeCard
             item={item}

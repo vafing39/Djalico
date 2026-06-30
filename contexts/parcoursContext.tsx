@@ -1,14 +1,20 @@
 import { supabase } from "@/utils/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, PropsWithChildren, useContext } from "react";
-import { AuthContext } from "@/contexts/authContext";
+import { createContext, PropsWithChildren } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Parcours, ParcoursPayload, SaveParcoursInput } from "@/types";
 
 export type { Parcours, ParcoursPayload, SaveParcoursInput };
 
+export type ParcoursCourseLink = {
+  parcours_id: string;
+  course_id: string;
+  order_index: number;
+};
+
 type ParcoursContextType = {
   parcours: Parcours[];
+  parcoursCourses: ParcoursCourseLink[];
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
@@ -65,6 +71,19 @@ export function ParcoursProvider({ children }: PropsWithChildren) {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Parcours[];
+    },
+    enabled: !!session?.user?.id,
+  });
+
+  const { data: parcoursCourses = [] } = useQuery<ParcoursCourseLink[]>({
+    queryKey: ["parcours_courses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parcours_courses")
+        .select("parcours_id, course_id, order_index")
+        .order("order_index");
+      if (error) throw error;
+      return data as ParcoursCourseLink[];
     },
     enabled: !!session?.user?.id,
   });
@@ -172,6 +191,7 @@ export function ParcoursProvider({ children }: PropsWithChildren) {
     <ParcoursContext.Provider
       value={{
         parcours: data ?? [],
+        parcoursCourses,
         isLoading,
         error: error as Error | null,
         refetch,

@@ -1,20 +1,10 @@
 import { color } from "@/config/color";
-import {
-  PARCOURS_DETAILS,
-  MY_COURSES,
-  COURSE_LESSONS,
-  CourseLesson,
-  Course,
-  Lesson,
-  LessonStatus,
-} from "@/data/mockData";
-import { useLanguage } from "@/contexts/LanguageContext";
 import VideoModal from "@/components/VideoModal";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Animated,
   Image,
@@ -27,8 +17,36 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
+import { useParcours } from "@/hooks/useParcours";
+import { useCourses } from "@/hooks/useCourses";
+import { useLessons } from "@/hooks/useLessons";
+import { useVideos } from "@/hooks/useVideos";
+import type { Course, Lesson, TagType } from "@/types";
+import type { VideoProgressStore } from "@/contexts/videoContext";
 
-import type { LessonProgress, SelectedLesson } from "@/types";
+// ─── Local types ──────────────────────────────────────────────────────────────
+
+type LessonStatus = "done" | "current" | "available";
+
+type RenderLesson = {
+  id: string;
+  videoId: string;
+  index: number;
+  title: string;
+  duration: string;
+  status: LessonStatus;
+  url: string;
+};
+
+type SelectedVideo = { videoId: string; url: string; title: string };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const LEVEL_LABEL: Record<TagType, string> = {
+  beginner:     "Débutant",
+  intermediate: "Intermédiaire",
+  expert:       "Expert",
+};
 
 const TAG_STYLES = {
   expert:       { bg: "rgba(255,214,107,0.28)", text: "#8A6200",  dot: color.yellowDark },
@@ -36,14 +54,31 @@ const TAG_STYLES = {
   beginner:     { bg: "rgba(181,212,244,0.4)",  text: "#185FA5",  dot: "#3A8FD4"        },
 };
 
-function mapCourseLesson(cl: CourseLesson, progress: LessonProgress, isLocked: boolean): Lesson {
-  const pct = progress[cl.id]?.pct ?? 0;
-  const status: LessonStatus =
-    pct >= 0.9 ? "done" : pct > 0 ? "current" : isLocked ? "locked" : "available";
-  return { id: cl.id, index: cl.index, title: cl.title, duration: cl.duration, status, url: cl.url };
+function formatDuration(seconds: number): string {
+  if (!seconds) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return `${m}min${s > 0 ? ` ${s}s` : ""}`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return `${h}h${rem > 0 ? ` ${rem}min` : ""}`;
 }
 
-// ─── Circular progress (SVG arc) ─────────────────────────────────────────────
+function toRenderLesson(lesson: Lesson, progress: VideoProgressStore): RenderLesson {
+  const pct = progress[lesson.video_id]?.pct ?? 0;
+  const status: LessonStatus = pct >= 0.9 ? "done" : pct > 0 ? "current" : "available";
+  return {
+    id:       lesson.id,
+    videoId:  lesson.video_id,
+    index:    lesson.index,
+    title:    lesson.title,
+    duration: formatDuration(lesson.duration_seconds),
+    status,
+    url:      lesson.video?.url ?? "",
+  };
+}
+
+// ─── Circular progress ────────────────────────────────────────────────────────
 
 function CircularProgress({ progress, size = 56 }: { progress: number; size?: number }) {
   const strokeWidth = 4;
@@ -77,30 +112,29 @@ function LessonRow({
   animDelay,
   onPress,
 }: {
-  lesson: Lesson;
+  lesson: RenderLesson;
   animDelay: number;
   onPress: () => void;
 }) {
   const { t } = useLanguage();
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
-  const translateX = useRef(new Animated.Value(16)).current;
-  const scale     = useRef(new Animated.Value(1)).current;
+  const [fadeAnim]   = useState(() => new Animated.Value(0));
+  const [translateX] = useState(() => new Animated.Value(16));
+  const [scale]      = useState(() => new Animated.Value(1));
 
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim,   { toValue: 1, duration: 340, delay: animDelay, useNativeDriver: true }),
       Animated.timing(translateX, { toValue: 0, duration: 340, delay: animDelay, useNativeDriver: true }),
     ]).start();
-  }, []);
+  }, [fadeAnim, animDelay, translateX]);
 
-  const isCurrent  = lesson.status === "current";
-  const isDone     = lesson.status === "done";
-  const isLocked   = lesson.status === "locked";
+  const isCurrent = lesson.status === "current";
+  const isDone    = lesson.status === "done";
 
   return (
     <Pressable
-      onPress={!isLocked ? onPress : undefined}
-      onPressIn={() => !isLocked && Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start()}
+      onPress={onPress}
+      onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start()}
       onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start()}
     >
       <Animated.View
@@ -108,17 +142,14 @@ function LessonRow({
           styles.lessonRow,
           isCurrent && styles.lessonRowCurrent,
           isDone    && styles.lessonRowDone,
-          isLocked  && styles.lessonRowLocked,
           { opacity: fadeAnim, transform: [{ translateX }, { scale }] },
         ]}
       >
-        <View style={[styles.lessonIcon, isDone && styles.lessonIconDone, isCurrent && styles.lessonIconCurrent, isLocked && styles.lessonIconLocked]}>
+        <View style={[styles.lessonIcon, isDone && styles.lessonIconDone, isCurrent && styles.lessonIconCurrent]}>
           {isDone ? (
             <Text style={styles.lessonIconCheck}>✓</Text>
           ) : isCurrent ? (
             <View style={styles.playTriangleSmall} />
-          ) : isLocked ? (
-            <Feather name="lock" size={11} color="rgba(14,43,69,0.3)" />
           ) : (
             <Text style={styles.lessonIndexText}>{lesson.index}</Text>
           )}
@@ -126,19 +157,17 @@ function LessonRow({
 
         <View style={styles.lessonContent}>
           <View style={styles.lessonTop}>
-            <Text numberOfLines={1} style={[styles.lessonTitle, isLocked && styles.lessonTitleLocked]}>{lesson.title}</Text>
+            <Text numberOfLines={1} style={styles.lessonTitle}>{lesson.title}</Text>
             {isCurrent && <View style={styles.currentPill}><Text style={styles.currentPillText}>{t("saves.inProgress")}</Text></View>}
           </View>
-          <Text style={[styles.lessonDuration, isLocked && styles.lessonDurationLocked]}>
+          <Text style={styles.lessonDuration}>
             <Feather name="clock" size={10} /> {lesson.duration}
           </Text>
         </View>
 
-        {!isLocked && (
-          <View style={[styles.lessonAction, isDone && styles.lessonActionDone, isCurrent && styles.lessonActionCurrent]}>
-            <Feather name={isDone ? "refresh-cw" : "play"} size={12} color={isDone ? color.softGray : "#fff"} />
-          </View>
-        )}
+        <View style={[styles.lessonAction, isDone && styles.lessonActionDone, isCurrent && styles.lessonActionCurrent]}>
+          <Feather name={isDone ? "refresh-cw" : "play"} size={12} color={isDone ? color.softGray : "#fff"} />
+        </View>
       </Animated.View>
     </Pressable>
   );
@@ -149,21 +178,20 @@ function LessonRow({
 function CourseBlock({
   course,
   lessons,
-  lessonProgress,
+  progress,
   globalOffset,
   onPressLesson,
 }: {
   course: Course;
-  lessons: CourseLesson[];
-  lessonProgress: LessonProgress;
+  lessons: Lesson[];
+  progress: VideoProgressStore;
   globalOffset: number;
-  onPressLesson: (cl: CourseLesson) => void;
+  onPressLesson: (lesson: Lesson) => void;
 }) {
   const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
-  const isLocked  = course.status === "non_commence";
-  const doneCount = lessons.filter((l) => (lessonProgress[l.id]?.pct ?? 0) >= 0.9).length;
-  const allDone   = doneCount === lessons.length;
+  const doneCount = lessons.filter((l) => (progress[l.video_id]?.pct ?? 0) >= 0.9).length;
+  const allDone   = doneCount === lessons.length && lessons.length > 0;
 
   return (
     <View style={styles.moduleBlock}>
@@ -179,12 +207,12 @@ function CourseBlock({
       </Pressable>
 
       {!collapsed &&
-        lessons.map((cl, i) => (
+        lessons.map((l, i) => (
           <LessonRow
-            key={cl.id}
-            lesson={mapCourseLesson(cl, lessonProgress, isLocked)}
+            key={l.id}
+            lesson={toRenderLesson(l, progress)}
             animDelay={(globalOffset + i) * 55}
-            onPress={() => onPressLesson(cl)}
+            onPress={() => onPressLesson(l)}
           />
         ))}
     </View>
@@ -197,73 +225,63 @@ export default function ParcoursDetailScreen() {
   const { t } = useLanguage();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const p        = PARCOURS_DETAILS[id ?? ""] ?? PARCOURS_DETAILS["p1"];
-  const tagStyle = TAG_STYLES[p.tagType];
+  const { parcours, parcoursCourses } = useParcours();
+  const { courses }                   = useCourses();
+  const { lessons }                   = useLessons();
+  const { videoProgress, saveProgress } = useVideos();
 
-  const [lessonProgress, setLessonProgress] = useState<LessonProgress>({});
-  const [selectedLesson, setSelectedLesson] = useState<SelectedLesson | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<SelectedVideo | null>(null);
 
-  // Resolve courses + lessons from foreign keys
-  const courseData = p.courses
-    .map((s) => ({
-      sectionId: s.id,
-      course: MY_COURSES.find((c) => c.id === s.courseId)!,
-      lessons: COURSE_LESSONS.filter((l) => l.courseId === s.courseId),
-    }))
-    .filter((x) => x.course != null);
-
-  const allCourseLessons = courseData.flatMap((x) => x.lessons);
-
-  // Load lesson progress from AsyncStorage
-  useEffect(() => {
-    const ids = allCourseLessons.map((l) => l.id);
-    if (ids.length === 0) return;
-    async function load() {
-      const entries = await AsyncStorage.multiGet(ids.map((i) => `djalico_lesson_${i}`));
-      const map: LessonProgress = {};
-      entries.forEach(([key, value]) => {
-        if (value) {
-          const lessonId = key.replace("djalico_lesson_", "");
-          try { map[lessonId] = JSON.parse(value); } catch {}
-        }
-      });
-      setLessonProgress(map);
-    }
-    load();
-  }, [id]);
-
-  const handleProgress = useCallback(
-    async (currentTime: number, pct: number) => {
-      if (!selectedLesson) return;
-      const data = { pct, time: currentTime };
-      await AsyncStorage.setItem(`djalico_lesson_${selectedLesson.id}`, JSON.stringify(data));
-      setLessonProgress((prev) => ({ ...prev, [selectedLesson.id]: data }));
-    },
-    [selectedLesson],
+  const p = useMemo(
+    () => (id ? parcours.find((x) => x.id === id) ?? null : null),
+    [id, parcours],
   );
 
-  // Compute totals from live data
-  const totalLessons     = allCourseLessons.length;
-  const completedLessons = allCourseLessons.filter((l) => (lessonProgress[l.id]?.pct ?? 0) >= 0.9).length;
+  const courseData = useMemo(() => {
+    if (!id) return [];
+    return parcoursCourses
+      .filter((pc) => pc.parcours_id === id)
+      .sort((a, b) => a.order_index - b.order_index)
+      .map((pc) => ({
+        course:   courses.find((c) => c.id === pc.course_id) ?? null,
+        lessons:  lessons.filter((l) => l.course_id === pc.course_id).sort((a, b) => a.index - b.index),
+      }))
+      .filter((x): x is { course: Course; lessons: Lesson[] } => x.course !== null);
+  }, [id, parcoursCourses, courses, lessons]);
+
+  const handleProgress = useCallback(
+    (currentTime: number, pct: number) => {
+      if (!selectedVideo) return;
+      saveProgress(selectedVideo.videoId, pct, currentTime);
+    },
+    [selectedVideo, saveProgress],
+  );
+
+  function openLesson(lesson: Lesson) {
+    setSelectedVideo({ videoId: lesson.video_id, url: lesson.video?.url ?? "", title: lesson.title });
+  }
+
+  const allLessons       = courseData.flatMap((x) => x.lessons);
+  const totalLessons     = allLessons.length;
+  const completedLessons = allLessons.filter((l) => (videoProgress[l.video_id]?.pct ?? 0) >= 0.9).length;
   const progress         = totalLessons > 0 ? completedLessons / totalLessons : 0;
+  const firstResume      = allLessons.find((l) => (videoProgress[l.video_id]?.pct ?? 0) < 0.9);
 
-  const firstResume = courseData
-    .flatMap(({ course, lessons }) =>
-      lessons.filter(
-        (l) => course.status !== "non_commence" && (lessonProgress[l.id]?.pct ?? 0) < 0.9,
-      ),
-    )[0];
-
-  let offset = 0;
+  const tagType  = p?.tag_type ?? "beginner";
+  const tagStyle = TAG_STYLES[tagType];
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* ── Hero ── */}
+        {/* Hero */}
         <View style={styles.heroWrap}>
-          <Image source={{ uri: p.coverImage }} style={styles.heroImage} />
+          {p?.cover_image_url ? (
+            <Image source={{ uri: p.cover_image_url }} style={styles.heroImage} />
+          ) : (
+            <View style={[styles.heroImage, { backgroundColor: color.deepBlue }]} />
+          )}
           <LinearGradient colors={["rgba(14,43,69,0.15)", "rgba(14,43,69,0.78)"]} style={styles.heroGradient} />
 
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
@@ -272,15 +290,21 @@ export default function ParcoursDetailScreen() {
 
           <View style={[styles.heroTag, { backgroundColor: tagStyle.bg }]}>
             <View style={[styles.tagDot, { backgroundColor: tagStyle.dot }]} />
-            <Text style={[styles.heroTagText, { color: tagStyle.text }]}>{p.tag}</Text>
+            <Text style={[styles.heroTagText, { color: tagStyle.text }]}>{LEVEL_LABEL[tagType]}</Text>
           </View>
 
           <View style={styles.heroBottom}>
-            <Text style={styles.heroCategory}>{p.category}</Text>
-            <Text style={styles.heroTitle}>{p.title}</Text>
+            <Text style={styles.heroCategory}>{p?.category?.title ?? ""}</Text>
+            <Text style={styles.heroTitle}>{p?.title ?? ""}</Text>
             <View style={styles.heroInstructorRow}>
-              <Image source={{ uri: p.instructorAvatar }} style={styles.avatar} />
-              <Text style={styles.heroInstructor}>{p.instructor}</Text>
+              {p?.instructor?.avatar_url ? (
+                <Image source={{ uri: p.instructor.avatar_url }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarFallback}>
+                  <Feather name="user" size={11} color="rgba(255,255,255,0.7)" />
+                </View>
+              )}
+              <Text style={styles.heroInstructor}>{p?.instructor?.name ?? ""}</Text>
             </View>
             <View style={styles.heroStats}>
               <View style={styles.heroStat}>
@@ -290,13 +314,13 @@ export default function ParcoursDetailScreen() {
               <View style={styles.heroStatDot} />
               <View style={styles.heroStat}>
                 <Feather name="clock" size={12} color="rgba(255,255,255,0.7)" />
-                <Text style={styles.heroStatText}>{p.totalDuration}</Text>
+                <Text style={styles.heroStatText}>{formatDuration(p?.total_duration_seconds ?? 0)}</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* ── Progress card ── */}
+        {/* Progress card */}
         <View style={styles.progressCard}>
           <CircularProgress progress={progress} size={60} />
           <View style={styles.progressCardInfo}>
@@ -310,32 +334,35 @@ export default function ParcoursDetailScreen() {
           </View>
           <Pressable
             style={styles.resumeBtn}
-            onPress={() => firstResume && setSelectedLesson(firstResume)}
+            onPress={() => firstResume && openLesson(firstResume)}
           >
             <Text style={styles.resumeBtnText}>{t("saves.resume")}</Text>
             <View style={styles.resumePlay}><View style={styles.playTriangleTiny} /></View>
           </Pressable>
         </View>
 
-        {/* ── Description ── */}
-        <View style={styles.descSection}>
-          <Text style={styles.descText}>{p.description}</Text>
-        </View>
+        {/* Description */}
+        {p?.description ? (
+          <View style={styles.descSection}>
+            <Text style={styles.descText}>{p.description}</Text>
+          </View>
+        ) : null}
 
-        {/* ── Courses & lessons ── */}
+        {/* Courses & lessons */}
         <View style={styles.modulesSection}>
           <Text style={styles.sectionTitle}>{t("saves.content")}</Text>
-          {courseData.map(({ sectionId, course, lessons }) => {
-            const thisOffset = offset;
-            offset += lessons.length;
+          {courseData.map(({ course, lessons: cls }, sectionIndex) => {
+            const globalOffset = courseData
+              .slice(0, sectionIndex)
+              .reduce((acc, x) => acc + x.lessons.length, 0);
             return (
               <CourseBlock
-                key={sectionId}
+                key={course.id}
                 course={course}
-                lessons={lessons}
-                lessonProgress={lessonProgress}
-                globalOffset={thisOffset}
-                onPressLesson={(cl) => setSelectedLesson(cl)}
+                lessons={cls}
+                progress={videoProgress}
+                globalOffset={globalOffset}
+                onPressLesson={openLesson}
               />
             );
           })}
@@ -345,12 +372,12 @@ export default function ParcoursDetailScreen() {
       </ScrollView>
 
       <VideoModal
-        visible={selectedLesson !== null}
-        videoUrl={selectedLesson?.url ?? null}
-        title={selectedLesson?.title}
-        initialTime={selectedLesson ? (lessonProgress[selectedLesson.id]?.time ?? 0) : 0}
+        visible={selectedVideo !== null}
+        videoUrl={selectedVideo?.url ?? null}
+        title={selectedVideo?.title}
+        initialTime={selectedVideo ? (videoProgress[selectedVideo.videoId]?.time ?? 0) : 0}
         onProgress={handleProgress}
-        onClose={() => setSelectedLesson(null)}
+        onClose={() => setSelectedVideo(null)}
       />
     </SafeAreaView>
   );
@@ -359,75 +386,72 @@ export default function ParcoursDetailScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: color.bgGradientTop },
+  container:     { flex: 1, backgroundColor: color.bgGradientTop },
   scrollContent: { paddingBottom: 20 },
 
-  heroWrap: { height: 300, position: "relative" },
-  heroImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  heroWrap:     { height: 300, position: "relative" },
+  heroImage:    { width: "100%", height: "100%", resizeMode: "cover" },
   heroGradient: { position: "absolute", inset: 0 },
-  backBtn: { position: "absolute", top: 16, left: 20, width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(14,43,69,0.45)", justifyContent: "center", alignItems: "center" },
-  heroTag: { position: "absolute", top: 16, right: 20, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  tagDot: { width: 5, height: 5, borderRadius: 3 },
-  heroTagText: { fontSize: 11, fontWeight: "700" },
-  heroBottom: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20 },
+  backBtn:      { position: "absolute", top: 16, left: 20, width: 38, height: 38, borderRadius: 12, backgroundColor: "rgba(14,43,69,0.45)", justifyContent: "center", alignItems: "center" },
+  heroTag:      { position: "absolute", top: 16, right: 20, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  tagDot:       { width: 5, height: 5, borderRadius: 3 },
+  heroTagText:  { fontSize: 11, fontWeight: "700" },
+  heroBottom:   { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20 },
   heroCategory: { fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: "600", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 },
-  heroTitle: { fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: -0.4, marginBottom: 10 },
+  heroTitle:    { fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: -0.4, marginBottom: 10 },
   heroInstructorRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
-  avatar: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.5)" },
-  heroInstructor: { fontSize: 13, color: "rgba(255,255,255,0.8)", fontWeight: "500" },
-  heroStats: { flexDirection: "row", alignItems: "center", gap: 10 },
-  heroStat: { flexDirection: "row", alignItems: "center", gap: 5 },
-  heroStatText: { fontSize: 12, color: "rgba(255,255,255,0.7)", fontWeight: "500" },
-  heroStatDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.4)" },
+  avatar:        { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.5)" },
+  avatarFallback:{ width: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.2)", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.5)", justifyContent: "center", alignItems: "center" },
+  heroInstructor:{ fontSize: 13, color: "rgba(255,255,255,0.8)", fontWeight: "500" },
+  heroStats:     { flexDirection: "row", alignItems: "center", gap: 10 },
+  heroStat:      { flexDirection: "row", alignItems: "center", gap: 5 },
+  heroStatText:  { fontSize: 12, color: "rgba(255,255,255,0.7)", fontWeight: "500" },
+  heroStatDot:   { width: 3, height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.4)" },
 
-  progressCard: { flexDirection: "row", alignItems: "center", marginHorizontal: 20, marginTop: -24, backgroundColor: "#fff", borderRadius: 20, padding: 16, gap: 14, shadowColor: color.navy, shadowOpacity: 0.12, shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, elevation: 6 },
+  progressCard:     { flexDirection: "row", alignItems: "center", marginHorizontal: 20, marginTop: -24, backgroundColor: "#fff", borderRadius: 20, padding: 16, gap: 14, shadowColor: color.navy, shadowOpacity: 0.12, shadowOffset: { width: 0, height: 8 }, shadowRadius: 18, elevation: 6 },
   progressCardInfo: { flex: 1 },
-  progressCardTitle: { fontSize: 14, fontWeight: "700", color: color.deepBlue, marginBottom: 2 },
-  progressCardSub: { fontSize: 11, color: color.softGray, marginBottom: 8 },
+  progressCardTitle:{ fontSize: 14, fontWeight: "700", color: color.deepBlue, marginBottom: 2 },
+  progressCardSub:  { fontSize: 11, color: color.softGray, marginBottom: 8 },
   progressBarTrack: { height: 4, backgroundColor: "rgba(14,43,69,0.08)", borderRadius: 4, overflow: "hidden" },
-  progressBarFill: { height: "100%", backgroundColor: color.yellowDark, borderRadius: 4 },
-  resumeBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: color.deepBlue, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
-  resumeBtnText: { fontSize: 12, fontWeight: "700", color: "#fff" },
-  resumePlay: { width: 18, height: 18, borderRadius: 9, backgroundColor: color.yellow, justifyContent: "center", alignItems: "center" },
+  progressBarFill:  { height: "100%", backgroundColor: color.yellowDark, borderRadius: 4 },
+  resumeBtn:        { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: color.deepBlue, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  resumeBtnText:    { fontSize: 12, fontWeight: "700", color: "#fff" },
+  resumePlay:       { width: 18, height: 18, borderRadius: 9, backgroundColor: color.yellow, justifyContent: "center", alignItems: "center" },
   playTriangleTiny: { width: 0, height: 0, borderTopWidth: 4, borderBottomWidth: 4, borderLeftWidth: 6, borderStyle: "solid", borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: color.deepBlue, marginLeft: 1 },
 
   descSection: { paddingHorizontal: 24, paddingTop: 22, paddingBottom: 4 },
-  descText: { fontSize: 13.5, lineHeight: 21, color: color.softGray, fontWeight: "400" },
+  descText:    { fontSize: 13.5, lineHeight: 21, color: color.softGray, fontWeight: "400" },
 
   modulesSection: { paddingHorizontal: 20, paddingTop: 24 },
-  sectionTitle: { fontSize: 17, fontWeight: "800", color: color.deepBlue, letterSpacing: -0.3, marginBottom: 16 },
+  sectionTitle:   { fontSize: 17, fontWeight: "800", color: color.deepBlue, letterSpacing: -0.3, marginBottom: 16 },
 
-  moduleBlock: { backgroundColor: "#fff", borderRadius: 18, marginBottom: 12, overflow: "hidden", shadowColor: color.navy, shadowOpacity: 0.06, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10, elevation: 2 },
-  moduleHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(14,43,69,0.05)" },
+  moduleBlock:      { backgroundColor: "#fff", borderRadius: 18, marginBottom: 12, overflow: "hidden", shadowColor: color.navy, shadowOpacity: 0.06, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10, elevation: 2 },
+  moduleHeader:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: "rgba(14,43,69,0.05)" },
   moduleHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  moduleDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "rgba(14,43,69,0.15)" },
-  moduleDotDone: { backgroundColor: "#1D9E75" },
-  moduleTitle: { fontSize: 14, fontWeight: "700", color: color.deepBlue },
-  moduleMeta: { fontSize: 11, color: color.softGray, marginTop: 1 },
+  moduleDot:        { width: 10, height: 10, borderRadius: 5, backgroundColor: "rgba(14,43,69,0.15)" },
+  moduleDotDone:    { backgroundColor: "#1D9E75" },
+  moduleTitle:      { fontSize: 14, fontWeight: "700", color: color.deepBlue },
+  moduleMeta:       { fontSize: 11, color: color.softGray, marginTop: 1 },
 
-  lessonRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12, borderBottomWidth: 1, borderBottomColor: "rgba(14,43,69,0.04)" },
+  lessonRow:        { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12, borderBottomWidth: 1, borderBottomColor: "rgba(14,43,69,0.04)" },
   lessonRowCurrent: { backgroundColor: "rgba(255,214,107,0.07)" },
-  lessonRowDone: { backgroundColor: "#FAFFFE" },
-  lessonRowLocked: { opacity: 0.5 },
+  lessonRowDone:    { backgroundColor: "#FAFFFE" },
 
-  lessonIcon: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: "rgba(14,43,69,0.12)", justifyContent: "center", alignItems: "center", flexShrink: 0 },
-  lessonIconDone: { backgroundColor: "#1D9E75", borderColor: "#1D9E75" },
+  lessonIcon:        { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: "rgba(14,43,69,0.12)", justifyContent: "center", alignItems: "center", flexShrink: 0 },
+  lessonIconDone:    { backgroundColor: "#1D9E75", borderColor: "#1D9E75" },
   lessonIconCurrent: { backgroundColor: color.yellow, borderColor: color.yellowDark },
-  lessonIconLocked: { backgroundColor: "rgba(14,43,69,0.04)", borderColor: "rgba(14,43,69,0.08)" },
-  lessonIconCheck: { fontSize: 13, color: "#fff", fontWeight: "800" },
-  lessonIndexText: { fontSize: 12, fontWeight: "700", color: color.deepBlue },
+  lessonIconCheck:   { fontSize: 13, color: "#fff", fontWeight: "800" },
+  lessonIndexText:   { fontSize: 12, fontWeight: "700", color: color.deepBlue },
   playTriangleSmall: { width: 0, height: 0, borderTopWidth: 5, borderBottomWidth: 5, borderLeftWidth: 8, borderStyle: "solid", borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: color.deepBlue, marginLeft: 2 },
 
-  lessonContent: { flex: 1, gap: 3 },
-  lessonTop: { flexDirection: "row", alignItems: "center", gap: 8 },
-  lessonTitle: { fontSize: 13.5, fontWeight: "600", color: color.deepBlue, flex: 1 },
-  lessonTitleLocked: { color: color.softGray },
-  currentPill: { backgroundColor: color.yellow, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  lessonContent:   { flex: 1, gap: 3 },
+  lessonTop:       { flexDirection: "row", alignItems: "center", gap: 8 },
+  lessonTitle:     { fontSize: 13.5, fontWeight: "600", color: color.deepBlue, flex: 1 },
+  currentPill:     { backgroundColor: color.yellow, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   currentPillText: { fontSize: 10, fontWeight: "700", color: color.deepBlue },
-  lessonDuration: { fontSize: 11, color: color.softGray },
-  lessonDurationLocked: { color: "rgba(154,166,178,0.6)" },
+  lessonDuration:  { fontSize: 11, color: color.softGray },
 
-  lessonAction: { width: 28, height: 28, borderRadius: 9, backgroundColor: color.deepBlue, justifyContent: "center", alignItems: "center", flexShrink: 0 },
-  lessonActionDone: { backgroundColor: color.paleBlue },
+  lessonAction:        { width: 28, height: 28, borderRadius: 9, backgroundColor: color.deepBlue, justifyContent: "center", alignItems: "center", flexShrink: 0 },
+  lessonActionDone:    { backgroundColor: color.paleBlue },
   lessonActionCurrent: { backgroundColor: color.yellowDark },
 });

@@ -2,11 +2,14 @@ import { ThemeCard } from "@/components/ThemeCard";
 import { VideoCard } from "@/components/VideoCard";
 import VideoModal from "@/components/VideoModal";
 import { color } from "@/config/color";
-import { THEMES, EXPLORER_PARCOURS, EXPLORER_VIDEOS } from "@/data/mockData";
+import { useCategories } from "@/hooks/useCategories";
+import { useParcours } from "@/hooks/useParcours";
+import { useVideos } from "@/hooks/useVideos";
+import type { Category, Parcours, Video } from "@/types";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -18,50 +21,144 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-// ─── Data ─────────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const TABS = ["Tout", "Vidéos", "Parcours"] as const;
 type Tab = (typeof TABS)[number];
 
+const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
+  Guitare: ["#0E2B45", "#1A5F9A"],
+  Piano: ["#2E4A1E", "#5A8A3C"],
+  Saxophone: ["#1a3d5c", "#2A7FA5"],
+  Trompette: ["#7B4F2E", "#C4813D"],
+  Basse: ["#0D3348", "#1E6B8A"],
+  Balafon: ["#5C2E00", "#A0522D"],
+};
+const DEFAULT_GRADIENT: [string, string] = ["#0E2B45", "#1A5F9A"];
+
+const LEVEL_LABEL: Record<string, string> = {
+  expert: "Expert",
+  intermediate: "Intermédiaire",
+  beginner: "Débutant",
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0 && m > 0) return `${h}h ${m}min`;
+  if (h > 0) return `${h}h`;
+  return `${m} min`;
+}
+
+// ─── Adapters ─────────────────────────────────────────────────────────────────
+
+function toCategoryTheme(cat: Category, videoCount: number) {
+  return {
+    id: cat.id,
+    title: cat.title,
+    emoji: cat.emoji,
+    count: `${videoCount} vidéo${videoCount !== 1 ? "s" : ""}`,
+    colors: CATEGORY_GRADIENTS[cat.title] ?? DEFAULT_GRADIENT,
+  };
+}
+
+function toParcoursItem(p: Parcours) {
+  return {
+    id: p.id,
+    title: p.title,
+    subtitle: formatDuration(p.total_duration_seconds),
+    image: p.cover_image_url ?? "",
+    tag: LEVEL_LABEL[p.tag_type] ?? p.tag_type,
+    tagType: p.tag_type,
+    progress: 0,
+    bookmarked: false,
+    categorie: p.category?.title ?? "",
+    url: "",
+  };
+}
+
+function toVideoItem(v: Video) {
+  const catTitle = v.category?.title ?? "";
+  const mins = Math.floor(v.duration_seconds / 60);
+  return {
+    id: v.id,
+    title: v.title,
+    subtitle: v.subtitle ? `${v.subtitle} · ${mins} min` : `${catTitle} · ${mins} min`,
+    image: v.image_url ?? "",
+    tag: LEVEL_LABEL[v.tag_type] ?? v.tag_type,
+    tagType: v.tag_type,
+    progress: 0,
+    bookmarked: false,
+    categorie: catTitle,
+    categoryId: v.category?.id ?? "",
+    url: v.url,
+  };
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ExploreScreen() {
+  const { categories } = useCategories();
+  const { parcours } = useParcours();
+  const { videos, videoProgress, saveProgress } = useVideos();
+
   const [activeTab, setActiveTab] = useState<Tab>("Tout");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ id: string; url: string; title: string } | null>(null);
   const [filterVisible, setFilterVisible] = useState(false);
   const [filterLevel, setFilterLevel] = useState<"beginner" | "intermediate" | "expert" | null>(null);
+
+  const publishedVideos = useMemo(() => videos.filter((v) => v.published), [videos]);
+  const themes = useMemo(
+    () => categories.map((cat) =>
+      toCategoryTheme(cat, publishedVideos.filter((v) => v.category?.id === cat.id).length)
+    ),
+    [categories, publishedVideos],
+  );
+  const previewThemes = useMemo(() => themes.slice(0, 4), [themes]);
+  const parcoursItems = useMemo(() => parcours.map(toParcoursItem), [parcours]);
+  const videoItems = useMemo(() => publishedVideos.map(toVideoItem), [publishedVideos]);
 
   const q = searchQuery.toLowerCase().trim();
 
   const filteredThemes = useMemo(() => {
-    if (!q) return THEMES;
-    return THEMES.filter((t) => t.title.toLowerCase().includes(q));
-  }, [q]);
+    const source = q ? themes : previewThemes;
+    if (!q) return source;
+    return themes.filter((t) => t.title.toLowerCase().includes(q));
+  }, [themes, previewThemes, q]);
 
   const filteredParcours = useMemo(() => {
-    let results = EXPLORER_PARCOURS;
+    let results = parcoursItems;
     if (q) results = results.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
-        p.subtitle?.toLowerCase().includes(q) ||
-        p.tag?.toLowerCase().includes(q)
+        p.categorie?.toLowerCase().includes(q)
     );
     if (filterLevel) results = results.filter((p) => p.tagType === filterLevel);
     return results;
-  }, [q, filterLevel]);
+  }, [parcoursItems, q, filterLevel]);
 
   const filteredVideos = useMemo(() => {
-    let results = EXPLORER_VIDEOS;
+    let results = videoItems;
     if (q) results = results.filter(
       (v) =>
         v.title.toLowerCase().includes(q) ||
         v.subtitle?.toLowerCase().includes(q) ||
-        v.tag?.toLowerCase().includes(q)
+        v.categorie?.toLowerCase().includes(q)
     );
     if (filterLevel) results = results.filter((v) => v.tagType === filterLevel);
     return results;
-  }, [q, filterLevel]);
+  }, [videoItems, q, filterLevel]);
+
+  const handleProgress = useCallback(
+    (currentTime: number, pct: number) => {
+      if (!selectedVideo) return;
+      saveProgress(selectedVideo.id, pct, currentTime);
+    },
+    [selectedVideo, saveProgress],
+  );
 
   const hasNoResults =
     q.length > 0 &&
@@ -226,9 +323,12 @@ export default function ExploreScreen() {
                 filteredVideos.map((v) => (
                   <VideoCard
                     key={v.id}
-                    item={v}
+                    item={{
+                      ...v,
+                      progress: videoProgress[v.id]?.pct ?? 0,
+                    }}
                     onPress={() =>
-                      setSelectedVideo({ url: v.url, title: v.title })
+                      setSelectedVideo({ id: v.id, url: v.url, title: v.title })
                     }
                   />
                 ))}
@@ -239,6 +339,8 @@ export default function ExploreScreen() {
             visible={selectedVideo !== null}
             videoUrl={selectedVideo?.url ?? null}
             title={selectedVideo?.title}
+            initialTime={selectedVideo ? videoProgress[selectedVideo.id]?.time : undefined}
+            onProgress={handleProgress}
             onClose={() => setSelectedVideo(null)}
           />
 

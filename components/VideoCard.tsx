@@ -43,17 +43,19 @@ export function VideoCard({
         )}
       </View>
 
-      <Pressable
-        hitSlop={8}
-        style={styles.bookmarkBtn}
-        onPress={(e) => { e.stopPropagation?.(); onBookmarkPress?.(); }}
-      >
-        <Bookmark
-          size={18}
-          color={item.bookmarked ? color.yellowDark : color.softGray}
-          fill={item.bookmarked ? color.yellowDark : "transparent"}
-        />
-      </Pressable>
+      {onBookmarkPress && (
+        <Pressable
+          hitSlop={8}
+          style={styles.bookmarkBtn}
+          onPress={(e) => { e.stopPropagation?.(); onBookmarkPress(); }}
+        >
+          <Bookmark
+            size={18}
+            color={item.bookmarked ? color.yellowDark : color.softGray}
+            fill={item.bookmarked ? color.yellowDark : "transparent"}
+          />
+        </Pressable>
+      )}
     </Pressable>
   );
 }

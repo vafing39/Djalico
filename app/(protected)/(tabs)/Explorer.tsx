@@ -224,6 +224,7 @@ export default function ExploreScreen() {
         {/* ── Tabs ── */}
         <ScrollView
           horizontal
+          style={styles.tabsScroll}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={[styles.tabsRow]}
         >
@@ -509,10 +510,12 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 14, color: color.deepBlue },
 
   // Tabs
+  tabsScroll: { flexGrow: 0 },
   tabsRow: {
     paddingHorizontal: 24,
     gap: 0,
     marginBottom: 0,
+    alignItems: "flex-start",
     borderBottomWidth: 1.5,
     borderBottomColor: "rgba(14,43,69,0.07)",
   },

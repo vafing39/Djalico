@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { StyleSheet, View } from "react-native";
 import { supabase } from "@/utils/supabase";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Category, TagType } from "@/types";
 import CategoryLevelPickers from "./CategoryLevelPickers";
 import CoverImagePicker from "./CoverImagePicker";
@@ -33,6 +34,7 @@ export default function CourseForm({
   durationMin, setDurationMin,
   coverImage, setCoverImage,
 }: Props) {
+  const { t } = useLanguage();
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: async () => {
@@ -45,19 +47,19 @@ export default function CourseForm({
   return (
     <View style={styles.form}>
       <FormField
-        label="Titre"
+        label={t("admin.form.title")}
         required
         value={title}
         onChangeText={setTitle}
-        placeholder="Ex : Fingerstyle acoustique"
+        placeholder={t("admin.modals.course.titlePlaceholder")}
       />
 
       <FormField
-        label="Instructeur"
+        label={t("admin.modals.course.instructor")}
         required
         value={instructor}
         onChangeText={setInstructor}
-        placeholder="Ex : Marc Dupont"
+        placeholder={t("admin.modals.course.instructorPlaceholder")}
       />
 
       <CategoryLevelPickers

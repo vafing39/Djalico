@@ -19,6 +19,7 @@ import { useParcours } from "@/hooks/useParcours";
 import { useCourses } from "@/hooks/useCourses";
 import { useLessons } from "@/hooks/useLessons";
 import { useVideos } from "@/hooks/useVideos";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Course, Lesson, TagType } from "@/types";
 import type { VideoProgressStore } from "@/contexts/videoContext";
 
@@ -39,12 +40,6 @@ type RenderLesson = {
 type SelectedVideo = { id: string; videoId: string; url: string; title: string };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const LEVEL_LABEL: Record<TagType, string> = {
-  beginner: "Débutant",
-  intermediate: "Intermédiaire",
-  expert: "Expert",
-};
 
 const TAG_STYLES = {
   expert:       { bg: "rgba(255,214,107,0.28)", text: "#8A6200",  dot: color.yellowDark },
@@ -114,6 +109,7 @@ function LessonRow({
   animDelay: number;
   onPress?: () => void;
 }) {
+  const { t } = useLanguage();
   const [fadeAnim]   = useState(() => new Animated.Value(0));
   const [translateX] = useState(() => new Animated.Value(16));
   const [scale]      = useState(() => new Animated.Value(1));
@@ -158,7 +154,7 @@ function LessonRow({
         <View style={styles.lessonContent}>
           <View style={styles.lessonTop}>
             <Text numberOfLines={1} style={styles.lessonTitle}>{lesson.title}</Text>
-            {isCurrent && <View style={styles.currentPill}><Text style={styles.currentPillText}>En cours</Text></View>}
+            {isCurrent && <View style={styles.currentPill}><Text style={styles.currentPillText}>{t("parcours.inProgress")}</Text></View>}
           </View>
           <Text style={styles.lessonDuration}>
             <Feather name="clock" size={10} /> {lesson.duration}
@@ -188,6 +184,7 @@ function CourseBlock({
   globalOffset: number;
   onPressLesson: (lesson: Lesson) => void;
 }) {
+  const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const doneCount = lessons.filter((l) => (progress[l.video_id]?.pct ?? 0) >= 0.9).length;
   const allDone   = doneCount === lessons.length && lessons.length > 0;
@@ -199,7 +196,7 @@ function CourseBlock({
           <View style={[styles.moduleDot, allDone && styles.moduleDotDone]} />
           <View>
             <Text style={styles.moduleTitle}>{course.title}</Text>
-            <Text style={styles.moduleMeta}>{doneCount}/{lessons.length} leçons complétées</Text>
+            <Text style={styles.moduleMeta}>{doneCount}/{lessons.length} {t("parcours.lessonsCompleted")}</Text>
           </View>
         </View>
         <Feather name={collapsed ? "chevron-down" : "chevron-up"} size={16} color={color.softGray} />
@@ -221,6 +218,7 @@ function CourseBlock({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ParcoursScreen() {
+  const { t } = useLanguage();
   const { courseId, parcoursId } = useLocalSearchParams<{ courseId?: string; parcoursId?: string }>();
 
   const { parcours, parcoursCourses } = useParcours();
@@ -307,7 +305,7 @@ export default function ParcoursScreen() {
   const heroTitle      = isCourseMode ? course!.title          : (p?.title ?? "");
   const heroCategory   = isCourseMode ? (course!.category?.title ?? "") : (p?.category?.title ?? "");
   const heroInstructor = isCourseMode ? course!.instructor     : (p?.instructor?.name ?? "");
-  const heroTag        = LEVEL_LABEL[tagType];
+  const heroTag        = t(`common.level.${tagType}`);
   const heroLessons    = isCourseMode ? totalLessons           : parcoursTotal;
   const heroDuration   = formatDuration(isCourseMode ? course!.total_duration_seconds : (p?.total_duration_seconds ?? 0));
   const heroProgress   = isCourseMode ? courseProgress         : parcoursProgress;
@@ -355,7 +353,7 @@ export default function ParcoursScreen() {
             <View style={styles.heroStats}>
               <View style={styles.heroStat}>
                 <Feather name="play-circle" size={12} color="rgba(255,255,255,0.7)" />
-                <Text style={styles.heroStatText}>{heroLessons} leçons</Text>
+                <Text style={styles.heroStatText}>{heroLessons} {t("parcours.lessons")}</Text>
               </View>
               <View style={styles.heroStatDot} />
               <View style={styles.heroStat}>
@@ -370,8 +368,10 @@ export default function ParcoursScreen() {
         <View style={styles.progressCard}>
           <CircularProgress progress={heroProgress} size={60} />
           <View style={styles.progressCardInfo}>
-            <Text style={styles.progressCardTitle}>Ta progression</Text>
-            <Text style={styles.progressCardSub}>{heroCompleted} leçons sur {heroLessons} terminées</Text>
+            <Text style={styles.progressCardTitle}>{t("parcours.progress")}</Text>
+            <Text style={styles.progressCardSub}>
+              {t("parcours.progressSub", { done: heroCompleted, total: heroLessons })}
+            </Text>
             <View style={styles.progressBarTrack}>
               <View style={[styles.progressBarFill, { width: `${heroProgress * 100}%` as any }]} />
             </View>
@@ -383,7 +383,7 @@ export default function ParcoursScreen() {
               else if (!isCourseMode && parcoursFirstLesson) openLesson(parcoursFirstLesson);
             }}
           >
-            <Text style={styles.resumeBtnText}>Reprendre</Text>
+            <Text style={styles.resumeBtnText}>{t("parcours.resume")}</Text>
             <View style={styles.resumePlay}><View style={styles.playTriangleTiny} /></View>
           </Pressable>
         </View>
@@ -398,7 +398,7 @@ export default function ParcoursScreen() {
         {/* ── Lessons / courses ── */}
         <View style={styles.modulesSection}>
           <Text style={styles.sectionTitle}>
-            {isCourseMode ? "Contenu du cours" : "Contenu du parcours"}
+            {isCourseMode ? t("parcours.contentCourse") : t("parcours.contentParcours")}
           </Text>
 
           {isCourseMode

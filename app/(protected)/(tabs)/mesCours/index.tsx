@@ -17,13 +17,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useCourses } from "@/hooks/useCourses";
 import { useLessons } from "@/hooks/useLessons";
 import { useVideos } from "@/hooks/useVideos";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Course } from "@/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const FILTER_TABS = ["Tous", "En cours", "Terminés"];
-
-const LEVEL_LABEL = { beginner: "Débutant", intermediate: "Intermédiaire", expert: "Expert" };
+const FILTER_TAB_KEYS = ["mesCours.filterAll", "mesCours.filterInProgress", "mesCours.filterDone"];
 
 const TAG_STYLES = {
   expert:       { bg: "rgba(255,214,107,0.28)", text: "#8A6200", dot: color.yellowDark },
@@ -54,6 +53,7 @@ function ActiveCourseCard({
   progress: number;
   onPress: () => void;
 }) {
+  const { t } = useLanguage();
   const currentLesson = Math.min(completedLessons + 1, totalLessons);
   const [scaleAnim] = useState(() => new Animated.Value(1));
 
@@ -73,7 +73,7 @@ function ActiveCourseCard({
         <LinearGradient colors={["transparent", "rgba(14,43,69,0.85)"]} style={styles.heroOverlay} />
 
         <View style={styles.heroCategoryPill}>
-          <Text style={styles.heroCategoryText}>{course.category?.title ?? "Cours"}</Text>
+          <Text style={styles.heroCategoryText}>{course.category?.title ?? t("mesCours.statCourses")}</Text>
         </View>
 
         <View style={styles.heroPlayRing}>
@@ -89,7 +89,7 @@ function ActiveCourseCard({
             <View style={styles.heroProgressTrack}>
               <View style={[styles.heroProgressFill, { width: `${progress * 100}%` as any }]} />
             </View>
-            <Text style={styles.heroProgressLabel}>{currentLesson}/{totalLessons} leçons</Text>
+            <Text style={styles.heroProgressLabel}>{currentLesson}/{totalLessons} {t("mesCours.lessons")}</Text>
           </View>
         </View>
       </Animated.View>
@@ -110,21 +110,22 @@ function CourseStatsBar({
   done: number;
   totalSeconds: number;
 }) {
+  const { t } = useLanguage();
   const totalHours = Math.floor(totalSeconds / 3600);
   const stats = [
-    { label: "Cours",    value: String(total)       },
-    { label: "En cours", value: String(inProgress)  },
-    { label: "Terminés", value: String(done)         },
-    { label: "Heures",   value: `${totalHours}h`    },
+    { labelKey: "mesCours.statCourses",     value: String(total)       },
+    { labelKey: "mesCours.statInProgress",  value: String(inProgress)  },
+    { labelKey: "mesCours.statDone",        value: String(done)        },
+    { labelKey: "mesCours.statHours",       value: `${totalHours}h`    },
   ] as const;
 
   return (
     <View style={styles.statsBar}>
       {stats.map((s, i) => (
-        <React.Fragment key={s.label}>
+        <React.Fragment key={s.labelKey}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{s.value}</Text>
-            <Text style={styles.statLabel}>{s.label}</Text>
+            <Text style={styles.statLabel}>{t(s.labelKey)}</Text>
           </View>
           {i < stats.length - 1 && <View style={styles.statDivider} />}
         </React.Fragment>
@@ -150,6 +151,7 @@ function CourseListItem({
   isNotStarted: boolean;
   onPress: () => void;
 }) {
+  const { t } = useLanguage();
   const [fadeAnim]   = useState(() => new Animated.Value(0));
   const [translateX] = useState(() => new Animated.Value(-18));
   const [scaleAnim]  = useState(() => new Animated.Value(1));
@@ -193,7 +195,7 @@ function CourseListItem({
           <View style={styles.courseMetaRow}>
             <View style={[styles.tagPill, { backgroundColor: tagStyle.bg }]}>
               <View style={[styles.tagDot, { backgroundColor: tagStyle.dot }]} />
-              <Text style={[styles.tagText, { color: tagStyle.text }]}>{LEVEL_LABEL[course.tag_type]}</Text>
+              <Text style={[styles.tagText, { color: tagStyle.text }]}>{t(`common.level.${course.tag_type}`)}</Text>
             </View>
             <Text style={styles.courseCategory}>{course.category?.title ?? ""}</Text>
           </View>
@@ -209,7 +211,7 @@ function CourseListItem({
               <Text style={styles.courseProgressPct}>{Math.round(progress * 100)}%</Text>
             </View>
           ) : (
-            <Text style={styles.notStartedLabel}>Pas encore commencé</Text>
+            <Text style={styles.notStartedLabel}>{t("mesCours.notStarted")}</Text>
           )}
         </View>
 
@@ -228,6 +230,7 @@ function CourseListItem({
 
 export default function MesCoursScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState(0);
 
   const { courses } = useCourses();
@@ -295,9 +298,9 @@ export default function MesCoursScreen() {
 
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerEyebrow}>Mon apprentissage</Text>
+            <Text style={styles.headerEyebrow}>{t("mesCours.eyebrow")}</Text>
             <Text style={styles.headerTitle}>
-              Mes cours <Text style={styles.headerTitleAccent}>& parcours</Text>
+              {t("mesCours.title")} <Text style={styles.headerTitleAccent}>{t("mesCours.titleAccent")}</Text>
             </Text>
           </View>
           <Pressable style={styles.filterBtn}>
@@ -319,7 +322,7 @@ export default function MesCoursScreen() {
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleRow}>
                   <View style={styles.sectionActiveDot} />
-                  <Text style={styles.sectionTitle}>Continuer</Text>
+                  <Text style={styles.sectionTitle}>{t("mesCours.sectionContinue")}</Text>
                 </View>
               </View>
               <ActiveCourseCard
@@ -333,13 +336,13 @@ export default function MesCoursScreen() {
           )}
 
           <View style={styles.filterTabsWrap}>
-            {FILTER_TABS.map((tab, i) => (
+            {FILTER_TAB_KEYS.map((tabKey, i) => (
               <Pressable
-                key={tab}
+                key={tabKey}
                 style={[styles.filterTab, activeFilter === i && styles.filterTabActive]}
                 onPress={() => setActiveFilter(i)}
               >
-                <Text style={[styles.filterTabText, activeFilter === i && styles.filterTabTextActive]}>{tab}</Text>
+                <Text style={[styles.filterTabText, activeFilter === i && styles.filterTabTextActive]}>{t(tabKey)}</Text>
                 {activeFilter === i && <View style={styles.filterTabUnderline} />}
               </Pressable>
             ))}

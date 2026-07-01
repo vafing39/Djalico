@@ -2,12 +2,14 @@ import { color } from "@/config/color";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import type { TagType } from "@/types";
 
 export type ParcoursCardItem = {
   id: string;
   title: string;
   subtitle: string;
   level: string;
+  tagType: TagType;
   duration: string;
   image: string | null;
 };
@@ -30,7 +32,7 @@ export default function ParcoursCard({
     ]).start();
   }, [fadeAnim, index, translateY]);
 
-  const isExpert = item.level === "Expert";
+  const isExpert = item.tagType === "expert";
 
   return (
     <Animated.View style={[styles.cardWrap, { opacity: fadeAnim, transform: [{ translateY }, { scale }] }]}>

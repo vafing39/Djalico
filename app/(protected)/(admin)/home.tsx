@@ -11,6 +11,7 @@ import { useVideos } from "@/hooks/useVideos";
 import { useParcours } from "@/hooks/useParcours";
 import { useCourses } from "@/hooks/useCourses";
 import { useLessons } from "@/hooks/useLessons";
+import { useLanguage } from "@/hooks/useLanguage";
 import { color } from "@/config/adminTheme";
 
 
@@ -50,28 +51,28 @@ type ActivityEvent = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getGreeting() {
+function getGreeting(t: (key: string) => string) {
   const h = new Date().getHours();
-  if (h < 12) return "Bonjour";
-  if (h < 18) return "Bon après-midi";
-  return "Bonsoir";
+  if (h < 12) return t("admin.home.greeting.morning");
+  if (h < 18) return t("admin.home.greeting.afternoon");
+  return t("admin.home.greeting.evening");
 }
 
-function getFormattedDate() {
-  return new Date().toLocaleDateString("fr-FR", {
+function getFormattedDate(language: string) {
+  return new Date().toLocaleDateString(language === "en" ? "en-US" : "fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
 }
 
-function relativeTime(dateStr: string) {
+function relativeTime(dateStr: string, t: (key: string, params?: Record<string, string | number>) => string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const h = Math.floor(diff / 3_600_000);
   const d = Math.floor(diff / 86_400_000);
-  if (h < 1) return "il y a moins d'1h";
-  if (h < 24) return `il y a ${h}h`;
-  return `il y a ${d}j`;
+  if (h < 1) return t("admin.home.timeAgo.less1h");
+  if (h < 24) return t("admin.home.timeAgo.hours", { n: h });
+  return t("admin.home.timeAgo.days", { n: d });
 }
 
 // ─── KPI Card ────────────────────────────────────────────────────────────────
@@ -141,6 +142,7 @@ const ActivityRow = ({ item }: { item: ActivityEvent }) => (
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const { t, language } = useLanguage();
   const { profile } = useAuth();
   const { users, isLoading: usersLoading } = useUsers();
   const { videos, isLoading: videosLoading } = useVideos();
@@ -158,7 +160,7 @@ export default function Home() {
     () => [
       {
         id: "users",
-        label: "Utilisateurs",
+        label: t("admin.home.kpi.users"),
         value: users.length,
         icon: "people-outline",
         bg: "#E9F2FF",
@@ -168,7 +170,7 @@ export default function Home() {
       },
       {
         id: "videos",
-        label: "Vidéos",
+        label: t("admin.home.kpi.videos"),
         value: publishedCount,
         icon: "videocam-outline",
         bg: "#FFF3CD",
@@ -178,7 +180,7 @@ export default function Home() {
       },
       {
         id: "parcours",
-        label: "Parcours",
+        label: t("admin.home.kpi.parcours"),
         value: parcours.length,
         icon: "map-outline",
         bg: "#F3E8FF",
@@ -188,7 +190,7 @@ export default function Home() {
       },
       {
         id: "courses",
-        label: "Cours",
+        label: t("admin.home.kpi.courses"),
         value: courses.length,
         icon: "book-outline",
         bg: "#DCFCE7",
@@ -198,7 +200,7 @@ export default function Home() {
       },
       {
         id: "lessons",
-        label: "Leçons",
+        label: t("admin.home.kpi.lessons"),
         value: lessons.length,
         icon: "play-circle-outline",
         bg: "#FFF0E6",
@@ -213,6 +215,7 @@ export default function Home() {
       parcours.length,
       courses.length,
       lessons.length,
+      t,
     ],
   );
 
@@ -250,19 +253,19 @@ export default function Home() {
         id: `user-${u.id}`,
         icon: "person-outline",
         color: "#1E88E5",
-        text: `${u.name} a rejoint la plateforme`,
-        time: relativeTime(u.created_at),
+        text: `${u.name} ${t("admin.home.activity.joined")}`,
+        time: relativeTime(u.created_at, t),
       })),
       ...videos.slice(0, 2).map((v) => ({
         id: `video-${v.id}`,
         icon: "videocam-outline",
         color: "#FF7043",
-        text: `Nouvelle vidéo : « ${v.title} »`,
-        time: relativeTime(v.created_at),
+        text: t("admin.home.activity.newVideo", { title: v.title }),
+        time: relativeTime(v.created_at, t),
       })),
     ];
     return items;
-  }, [users, videos]);
+  }, [users, videos, t]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -281,7 +284,7 @@ export default function Home() {
           <View style={styles.headerTop}>
             <View style={styles.datePill}>
               <Ionicons name="calendar-outline" size={12} color={color.yellow} />
-              <Text style={styles.datePillText}>{getFormattedDate()}</Text>
+              <Text style={styles.datePillText}>{getFormattedDate(language)}</Text>
             </View>
             {profile?.avatar_url ? (
               <Image
@@ -297,10 +300,10 @@ export default function Home() {
             )}
           </View>
 
-          <Text style={styles.greeting}>{getGreeting()},</Text>
+          <Text style={styles.greeting}>{getGreeting(t)},</Text>
           <Text style={styles.name}>{profile?.name ?? "—"} 👋</Text>
           <Text style={styles.subtitle}>
-            Voici un résumé de ton activité aujourd&apos;hui
+            {t("admin.home.summary")}
           </Text>
 
           <View style={styles.summaryStrip}>
@@ -321,7 +324,7 @@ export default function Home() {
 
         {/* ── KPI Cards ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Vue d&apos;ensemble</Text>
+          <Text style={styles.sectionTitle}>{t("admin.home.sectionOverview")}</Text>
         </View>
         {isKpiLoading ? (
           <View style={styles.loadingRow}>
@@ -341,7 +344,7 @@ export default function Home() {
 
         {/* ── Popularity ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Popularité par catégorie</Text>
+          <Text style={styles.sectionTitle}>{t("admin.home.sectionPopularity")}</Text>
         </View>
         <View style={[styles.sectionCard, styles.elevated]}>
           {isPieLoading ? (
@@ -379,14 +382,14 @@ export default function Home() {
                 { textAlign: "center", paddingVertical: 24 },
               ]}
             >
-              Aucune vidéo publiée
+              {t("admin.home.noVideos")}
             </Text>
           )}
         </View>
 
         {/* ── Activity ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Activité récente</Text>
+          <Text style={styles.sectionTitle}>{t("admin.home.sectionActivity")}</Text>
         </View>
         <View style={[styles.sectionCard, styles.elevated]}>
           {isActivityLoading ? (

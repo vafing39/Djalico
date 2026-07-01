@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { color } from "@/config/adminTheme";
+import { useLanguage } from "@/hooks/useLanguage";
 
 type Entry = {
   value: string;
@@ -15,12 +16,13 @@ type Props = {
   variant?: "card";
 };
 
-export default function DurationField({ label = "Durée totale", fields, variant }: Props) {
+export default function DurationField({ label, fields, variant }: Props) {
+  const { t } = useLanguage();
   const inputBg = variant === "card" ? color.bg : color.card;
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label}>{label ?? t("admin.form.durationTotal")}</Text>
       <View style={styles.row}>
         {fields.map((f, idx) => (
           <View key={idx} style={styles.col}>

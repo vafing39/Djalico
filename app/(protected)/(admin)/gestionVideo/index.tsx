@@ -16,18 +16,19 @@ import VideoModal from "@/components/VideoModal";
 import AdminListCard from "@/components/AdminListCard";
 import ModalView from "./modal";
 import { color } from "@/config/adminTheme";
-
+import { useLanguage } from "@/hooks/useLanguage";
 
 const LEVELS = [
-  { key: "all", label: "Tous" },
-  { key: "beginner", label: "Débutant" },
-  { key: "intermediate", label: "Intermédiaire" },
-  { key: "expert", label: "Expert" },
+  { key: "all", labelKey: "common.all" },
+  { key: "beginner", labelKey: "common.level.beginner" },
+  { key: "intermediate", labelKey: "common.level.intermediate" },
+  { key: "expert", labelKey: "common.level.expert" },
 ] as const;
 type LevelKey = (typeof LEVELS)[number]["key"];
 
 export default function GestionVideo() {
   const { videos, isLoading, error, deleteVideo } = useContext(VideoContext);
+  const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [playingVideo, setPlayingVideo] = useState<Video | null>(null);
@@ -47,16 +48,16 @@ export default function GestionVideo() {
 
   function handleDelete(video: Video) {
     Alert.alert(
-      "Supprimer la vidéo",
-      `Voulez-vous vraiment supprimer « ${video.title} » ? Cette action est irréversible.`,
+      t("admin.videos.deleteTitle"),
+      t("admin.videos.deleteConfirm", { title: video.title }),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t("common.delete.cancel"), style: "cancel" },
         {
-          text: "Supprimer",
+          text: t("common.delete.confirm"),
           style: "destructive",
           onPress: () =>
             deleteVideo(video.id).catch((err: Error) =>
-              Alert.alert("Erreur", err.message),
+              Alert.alert(t("common.error"), err.message),
             ),
         },
       ],
@@ -89,13 +90,13 @@ export default function GestionVideo() {
   return (
     <SafeAreaView style={styles.container}>
       <AdminHeader
-        title="Gestion des vidéos"
+        title={t("admin.videos.title")}
         count={videos.length}
-        countLabel="vidéos"
+        countLabel={t("admin.videos.countLabel")}
         onAdd={openAdd}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Rechercher une vidéo…"
+        searchPlaceholder={t("admin.videos.searchPlaceholder")}
       />
 
       <ScrollView
@@ -123,7 +124,7 @@ export default function GestionVideo() {
                   activeLevel === l.key && styles.filterTextActive,
                 ]}
               >
-                {l.label}
+                {t(l.labelKey)}
               </Text>
             </Pressable>
           ))}
@@ -149,7 +150,7 @@ export default function GestionVideo() {
                   activeCategoryId === "all" && styles.filterTextActive,
                 ]}
               >
-                Toutes catégories
+                {t("admin.videos.filterAllCategories")}
               </Text>
             </Pressable>
             {categories.map((cat) => (
@@ -176,9 +177,9 @@ export default function GestionVideo() {
 
         {/* ── Video list ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Mes vidéos</Text>
+          <Text style={styles.sectionTitle}>{t("admin.videos.sectionTitle")}</Text>
           <Text style={styles.sectionCount}>
-            {filteredVideos.length} au total
+            {filteredVideos.length} {t("common.total")}
           </Text>
         </View>
 
@@ -189,9 +190,9 @@ export default function GestionVideo() {
             style={{ marginTop: 40 }}
           />
         ) : error ? (
-          <Text style={styles.errorText}>Erreur de chargement des vidéos</Text>
+          <Text style={styles.errorText}>{t("admin.videos.errorLoading")}</Text>
         ) : filteredVideos.length === 0 ? (
-          <Text style={styles.emptyText}>Aucune vidéo trouvée</Text>
+          <Text style={styles.emptyText}>{t("admin.videos.empty")}</Text>
         ) : (
           <View style={styles.listWrap}>
             {filteredVideos.map((item, i) => {
@@ -207,7 +208,7 @@ export default function GestionVideo() {
                   subtitle={item.subtitle}
                   durationBadge={duration}
                   metaIcon="videocam-outline"
-                  metaText={`${item.category ? `${item.category.emoji} ${item.category.title}` : "Vidéo"} · ${duration}`}
+                  metaText={`${item.category ? `${item.category.emoji} ${item.category.title}` : t("admin.settings.entity.video")} · ${duration}`}
                   published={item.published}
                   showBorder={i < filteredVideos.length - 1}
                   onPlay={() => setPlayingVideo(item)}

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -16,22 +16,25 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { color } from "@/config/color";
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "L'email est requis")
-    .email("Adresse email invalide"),
-  password: z
-    .string()
-    .min(1, "Le mot de passe est requis")
-    .min(6, "Minimum 6 caractères"),
-});
+function makeLoginSchema(t: (key: string) => string) {
+  return z.object({
+    email: z
+      .string()
+      .min(1, t("login.emailRequired"))
+      .email(t("login.emailInvalid")),
+    password: z
+      .string()
+      .min(1, t("login.passwordRequired"))
+      .min(6, t("login.passwordMinLength")),
+  });
+}
 
-type LoginFields = z.infer<typeof loginSchema>;
+type LoginFields = z.infer<ReturnType<typeof makeLoginSchema>>;
 type FieldErrors = Partial<Record<keyof LoginFields, string>>;
 
 // ─── Decorative background notes ────────────────────────────────────────────────
@@ -275,6 +278,8 @@ const DECO_NOTES: DecoNote[] = [
 
 export default function LoginScreen() {
   const { login, loginPending, loginError } = useAuth();
+  const { t } = useLanguage();
+  const loginSchema = useMemo(() => makeLoginSchema(t), [t]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -348,12 +353,12 @@ export default function LoginScreen() {
                 />
               </View>
               <Text style={styles.appName}>Djalico</Text>
-              <Text style={styles.tagline}>La musique, à ton rythme</Text>
+              <Text style={styles.tagline}>{t("login.tagline")}</Text>
             </View>
 
             {/* ── Form card ── */}
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Connexion</Text>
+              <Text style={styles.cardTitle}>{t("login.title")}</Text>
 
               {/* Server error */}
               {loginError && (
@@ -369,7 +374,7 @@ export default function LoginScreen() {
 
               {/* Email */}
               <View style={styles.field}>
-                <Text style={styles.label}>Adresse email</Text>
+                <Text style={styles.label}>{t("login.emailLabel")}</Text>
                 <View
                   style={[
                     styles.inputWrap,
@@ -385,7 +390,7 @@ export default function LoginScreen() {
                   />
                   <TextInput
                     style={styles.input}
-                    placeholder="nom@exemple.com"
+                    placeholder={t("login.emailPlaceholder")}
                     placeholderTextColor={color.softGray}
                     value={email}
                     onChangeText={(v) => {
@@ -407,7 +412,7 @@ export default function LoginScreen() {
 
               {/* Password */}
               <View style={styles.field}>
-                <Text style={styles.label}>Mot de passe</Text>
+                <Text style={styles.label}>{t("login.passwordLabel")}</Text>
                 <View
                   style={[
                     styles.inputWrap,
@@ -423,7 +428,7 @@ export default function LoginScreen() {
                   />
                   <TextInput
                     style={styles.input}
-                    placeholder="••••••••"
+                    placeholder={t("login.passwordPlaceholder")}
                     placeholderTextColor={color.softGray}
                     value={password}
                     onChangeText={(v) => {
@@ -466,7 +471,7 @@ export default function LoginScreen() {
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
                   <>
-                    <Text style={styles.btnText}>Se connecter</Text>
+                    <Text style={styles.btnText}>{t("login.submit")}</Text>
                     <Ionicons
                       name="arrow-forward"
                       size={18}
@@ -478,9 +483,7 @@ export default function LoginScreen() {
             </View>
 
             {/* Footer */}
-            <Text style={styles.footer}>
-              Accès réservé aux membres Djalico.
-            </Text>
+            <Text style={styles.footer}>{t("login.footer")}</Text>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

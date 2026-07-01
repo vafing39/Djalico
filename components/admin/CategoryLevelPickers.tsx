@@ -1,6 +1,7 @@
 import { Picker } from "@react-native-picker/picker";
 import { StyleSheet, Text, View } from "react-native";
 import { color, LEVELS, pickerStyleDefs } from "@/config/adminTheme";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Category, TagType } from "@/types";
 
 type Props = {
@@ -18,10 +19,12 @@ export default function CategoryLevelPickers({
   level,
   setLevel,
 }: Props) {
+  const { t } = useLanguage();
+
   return (
     <View style={styles.row}>
       <View style={styles.col}>
-        <Text style={styles.label}>Catégorie</Text>
+        <Text style={styles.label}>{t("admin.form.category")}</Text>
         <View style={styles.pickerWrap}>
           <Picker
             selectedValue={categoryId}
@@ -29,7 +32,7 @@ export default function CategoryLevelPickers({
             style={styles.picker}
             itemStyle={styles.pickerItem}
           >
-            <Picker.Item label="— Aucune —" value="" color={color.white} />
+            <Picker.Item label={t("admin.form.noneFem")} value="" color={color.white} />
             {categories.map((c) => (
               <Picker.Item key={c.id} label={`${c.emoji} ${c.title}`} value={c.id} color={color.white} />
             ))}
@@ -38,7 +41,7 @@ export default function CategoryLevelPickers({
       </View>
 
       <View style={styles.col}>
-        <Text style={styles.label}>Niveau</Text>
+        <Text style={styles.label}>{t("admin.form.level")}</Text>
         <View style={styles.pickerWrap}>
           <Picker
             selectedValue={level}
@@ -47,7 +50,7 @@ export default function CategoryLevelPickers({
             itemStyle={styles.pickerItem}
           >
             {LEVELS.map((l) => (
-              <Picker.Item key={l.value} label={l.label} value={l.value} color={color.white} />
+              <Picker.Item key={l.value} label={t(`common.level.${l.value}`)} value={l.value} color={color.white} />
             ))}
           </Picker>
         </View>

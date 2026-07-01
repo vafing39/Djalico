@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CourseContext } from "@/contexts/courseContext";
 import { VideoContext } from "@/contexts/videoContext";
 import { supabase } from "@/utils/supabase";
+import { useLanguage } from "@/hooks/useLanguage";
 import { color, LEVELS } from "@/config/adminTheme";
 import type { Video, Category, TagType } from "@/types";
 
@@ -38,6 +39,7 @@ export default function ModalView({
 }) {
   const { saveVideo, isSaving } = useContext(VideoContext);
   const { courses } = useContext(CourseContext);
+  const { t } = useLanguage();
   const isEdit = !!video;
 
   const [title, setTitle] = useState("");
@@ -101,15 +103,15 @@ export default function ModalView({
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
         Alert.alert(
-          "Accès refusé",
-          "Autorisez l'accès à la bibliothèque de photos dans Réglages > Confidentialité > Photos.",
+          t("admin.modals.video.permissionDeniedTitle"),
+          t("admin.modals.video.permissionDeniedBody"),
         );
         return;
       }
       if (perm.accessPrivileges === "limited") {
         Alert.alert(
-          "Accès limité",
-          "L'application n'a accès qu'à certaines photos. Pour sélectionner n'importe quelle vidéo, allez dans Réglages > Confidentialité > Photos et choisissez « Toutes les photos ».",
+          t("admin.modals.video.limitedAccessTitle"),
+          t("admin.modals.video.limitedAccessBody"),
         );
         return;
       }
@@ -120,8 +122,8 @@ export default function ModalView({
       const asset = result.assets?.[0];
       if (!asset?.uri) {
         Alert.alert(
-          "Vidéo inaccessible",
-          "La vidéo est peut-être stockée dans iCloud. Téléchargez-la sur l'appareil depuis l'app Photos puis réessayez.",
+          t("admin.modals.video.unreachableTitle"),
+          t("admin.modals.video.unreachableBody"),
         );
         return;
       }
@@ -134,10 +136,8 @@ export default function ModalView({
       }
     } catch (err: unknown) {
       Alert.alert(
-        "Erreur",
-        err instanceof Error
-          ? err.message
-          : "Impossible de sélectionner la vidéo.",
+        t("common.error"),
+        err instanceof Error ? err.message : t("admin.modals.video.pickError"),
       );
     }
   }
@@ -154,13 +154,13 @@ export default function ModalView({
 
   function handleSubmit() {
     if (!title.trim()) {
-      Alert.alert("Champ requis", "Le titre est obligatoire.");
+      Alert.alert(t("settings.alert.requiredField"), t("admin.form.titleRequired"));
       return;
     }
     if (!videoUri && !videoUrl.trim()) {
       Alert.alert(
-        "Champ requis",
-        "Veuillez importer une vidéo ou saisir une URL.",
+        t("settings.alert.requiredField"),
+        t("admin.modals.video.fileRequired"),
       );
       return;
     }
@@ -180,7 +180,7 @@ export default function ModalView({
       courseId,
     })
       .then(onClose)
-      .catch((err: Error) => Alert.alert("Erreur", err.message));
+      .catch((err: Error) => Alert.alert(t("common.error"), err.message));
   }
 
   return (
@@ -192,10 +192,10 @@ export default function ModalView({
     >
       <SafeAreaView style={styles.container}>
         <ModalHeader
-          title={isEdit ? "Modifier la vidéo" : "Ajouter une vidéo"}
-          subtitle={isEdit ? video!.title : "Nouvelle vidéo"}
+          title={isEdit ? t("admin.modals.video.editTitle") : t("admin.modals.video.addTitle")}
+          subtitle={isEdit ? video!.title : t("admin.modals.video.newSubtitle")}
           isBusy={isSaving}
-          submitLabel={isEdit ? "Enregistrer" : "Publier"}
+          submitLabel={isEdit ? t("common.save") : t("admin.modals.video.publish")}
           submitIcon={isEdit ? "save-outline" : "cloud-upload-outline"}
           onClose={onClose}
           onSubmit={handleSubmit}
@@ -223,7 +223,7 @@ export default function ModalView({
                     tagType === l.value && styles.levelTextActive,
                   ]}
                 >
-                  {l.label}
+                  {t(`common.level.${l.value}`)}
                 </Text>
               </Pressable>
             ))}
@@ -232,7 +232,7 @@ export default function ModalView({
           {/* ── Video ── */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>
-              Vidéo <Text style={{ color: color.red }}>*</Text>
+              {t("admin.modals.video.section")} <Text style={{ color: color.red }}>*</Text>
             </Text>
             <Pressable style={styles.uploadZone} onPress={pickVideo}>
               <Ionicons
@@ -241,14 +241,14 @@ export default function ModalView({
                 color={videoUri ? color.green : color.white}
               />
               <Text style={styles.uploadTitle}>
-                {videoUri ? "Vidéo sélectionnée" : "Importer depuis la galerie"}
+                {videoUri ? t("admin.modals.video.selected") : t("admin.modals.video.import")}
               </Text>
-              <Text style={styles.uploadSub}>MP4, MOV — max 500 Mo</Text>
+              <Text style={styles.uploadSub}>{t("admin.modals.video.formatHint")}</Text>
             </Pressable>
-            <Text style={styles.divider}>— ou saisir une URL —</Text>
+            <Text style={styles.divider}>{t("admin.modals.video.orUrl")}</Text>
             <TextInput
               style={styles.input}
-              placeholder="https://… ou youtube.com/watch?v=…"
+              placeholder={t("admin.modals.video.urlPlaceholder")}
               placeholderTextColor={color.textMuted}
               value={videoUrl}
               onChangeText={(v) => {
@@ -262,7 +262,7 @@ export default function ModalView({
 
           {/* ── Thumbnail ── */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Miniature</Text>
+            <Text style={styles.cardTitle}>{t("admin.modals.video.thumbnail")}</Text>
             <Pressable style={styles.uploadZone} onPress={pickImage}>
               <Ionicons
                 name={imageUri ? "checkmark-circle" : "image-outline"}
@@ -270,14 +270,14 @@ export default function ModalView({
                 color={imageUri ? color.green : color.white}
               />
               <Text style={styles.uploadTitle}>
-                {imageUri ? "Image sélectionnée" : "Choisir une image"}
+                {imageUri ? t("admin.modals.video.imageSelected") : t("admin.form.chooseImage")}
               </Text>
-              <Text style={styles.uploadSub}>JPG, PNG — format 16:9</Text>
+              <Text style={styles.uploadSub}>{t("admin.modals.video.imageFormatHint")}</Text>
             </Pressable>
-            <Text style={styles.divider}>— ou saisir une URL —</Text>
+            <Text style={styles.divider}>{t("admin.modals.video.orUrl")}</Text>
             <TextInput
               style={styles.input}
-              placeholder="https://…"
+              placeholder={t("admin.modals.video.imageUrlPlaceholder")}
               placeholderTextColor={color.textMuted}
               value={imageUrl}
               onChangeText={(v) => {
@@ -291,27 +291,27 @@ export default function ModalView({
 
           {/* ── Informations ── */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Informations</Text>
+            <Text style={styles.cardTitle}>{t("admin.modals.video.information")}</Text>
 
             <FormField
-              label="Titre"
+              label={t("admin.form.title")}
               required
               value={title}
               onChangeText={setTitle}
-              placeholder="Ex : Les gammes pentatoniques"
+              placeholder={t("admin.modals.video.titlePlaceholder")}
               variant="card"
             />
 
             <FormField
-              label="Sous-titre"
+              label={t("admin.modals.video.subtitle")}
               value={subtitle}
               onChangeText={setSubtitle}
-              placeholder="Optionnel"
+              placeholder={t("admin.form.optional")}
               variant="card"
             />
 
             <DurationField
-              label="Durée"
+              label={t("admin.modals.video.duration")}
               variant="card"
               fields={[
                 { value: durationMin, onChange: setDurationMin, unit: "min", placeholder: "mm" },
@@ -322,31 +322,31 @@ export default function ModalView({
 
           {/* ── Classification ── */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Classification</Text>
+            <Text style={styles.cardTitle}>{t("admin.modals.video.classification")}</Text>
 
             <PickerField
-              label="Catégorie"
+              label={t("admin.form.category")}
               variant="card"
               selectedValue={categoryId}
               onValueChange={setCategoryId}
-              placeholder="— Aucune catégorie —"
+              placeholder={t("admin.modals.video.noCategoryPlaceholder")}
               items={categories.map((c) => ({ label: `${c.emoji} ${c.title}`, value: c.id }))}
             />
 
             {!isEdit && (
               <PickerField
-                label="Cours associé"
+                label={t("admin.modals.video.linkedCourse")}
                 variant="card"
                 selectedValue={courseId}
                 onValueChange={setCourseId}
-                placeholder="— Aucun —"
-                hint="La vidéo sera ajoutée comme leçon de ce cours."
+                placeholder={t("admin.form.none")}
+                hint={t("admin.modals.video.linkedCourseHint")}
                 items={courses.map((c) => ({ label: c.title, value: c.id }))}
               />
             )}
 
             <View style={styles.publishRow}>
-              <Text style={styles.label}>Publié</Text>
+              <Text style={styles.label}>{t("admin.modals.video.published")}</Text>
               <Switch
                 value={published}
                 onValueChange={setPublished}

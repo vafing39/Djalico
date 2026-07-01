@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { UserContext } from "@/contexts/userContext";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { User } from "@/types";
 import AdminHeader from "@/components/AdminHeader";
 import UserCard from "@/components/UserCard";
@@ -17,6 +18,7 @@ import { color } from "@/config/adminTheme";
 
 export default function GestionUser() {
   const { users, isLoading, error, deleteUser } = useContext(UserContext);
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [creating, setCreating] = useState(false);
@@ -37,16 +39,16 @@ export default function GestionUser() {
 
   function handleDelete(user: User) {
     Alert.alert(
-      "Supprimer l'utilisateur",
-      `Voulez-vous vraiment supprimer « ${user.name} » ? Cette action est irréversible.`,
+      t("admin.users.deleteTitle"),
+      t("admin.users.deleteConfirm", { name: user.name }),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t("common.delete.cancel"), style: "cancel" },
         {
-          text: "Supprimer",
+          text: t("common.delete.confirm"),
           style: "destructive",
           onPress: () =>
             deleteUser(user.id).catch((err: Error) =>
-              Alert.alert("Erreur", err.message),
+              Alert.alert(t("common.error"), err.message),
             ),
         },
       ],
@@ -56,13 +58,13 @@ export default function GestionUser() {
   return (
     <SafeAreaView style={styles.container}>
       <AdminHeader
-        title="Gestion des utilisateurs"
+        title={t("admin.users.title")}
         count={users.length}
-        countLabel="utilisateurs"
+        countLabel={t("admin.users.countLabel")}
         onAdd={() => setCreating(true)}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Rechercher un utilisateur"
+        searchPlaceholder={t("admin.users.searchPlaceholder")}
       />
 
       <ScrollView
@@ -78,10 +80,10 @@ export default function GestionUser() {
           />
         ) : error ? (
           <Text style={styles.errorText}>
-            Erreur de chargement des utilisateurs
+            {t("admin.users.errorLoading")}
           </Text>
         ) : filteredUsers.length === 0 ? (
-          <Text style={styles.emptyText}>Aucun utilisateur trouvé</Text>
+          <Text style={styles.emptyText}>{t("admin.users.empty")}</Text>
         ) : (
           <View style={styles.listWrap}>
             {filteredUsers.map((item) => (

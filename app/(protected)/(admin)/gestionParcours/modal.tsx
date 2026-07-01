@@ -13,6 +13,7 @@ import { supabase } from "@/utils/supabase";
 import { ParcoursContext } from "@/contexts/parcoursContext";
 import { CourseContext } from "@/contexts/courseContext";
 import { color, LEVELS } from "@/config/adminTheme";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Parcours, Category, TagType } from "@/types";
 
 type Instructor = { id: string; name: string };
@@ -28,6 +29,7 @@ export default function ModalView({
 }) {
   const { saveParcours, isSaving } = useContext(ParcoursContext);
   const { courses } = useContext(CourseContext);
+  const { t } = useLanguage();
   const isEdit = !!parcours;
 
   const [title, setTitle] = useState("");
@@ -112,7 +114,7 @@ export default function ModalView({
 
   function handleSubmit() {
     if (!title.trim()) {
-      Alert.alert("Champ requis", "Le titre est obligatoire.");
+      Alert.alert(t("settings.alert.requiredField"), t("admin.form.titleRequired"));
       return;
     }
     const totalDurationSeconds =
@@ -135,7 +137,7 @@ export default function ModalView({
         reset();
         onClose();
       })
-      .catch((err: Error) => Alert.alert("Erreur", err.message));
+      .catch((err: Error) => Alert.alert(t("common.error"), err.message));
   }
 
   function reset() {
@@ -164,10 +166,10 @@ export default function ModalView({
     >
       <SafeAreaView style={styles.container}>
         <ModalHeader
-          title={isEdit ? "Modifier le parcours" : "Nouveau parcours"}
-          subtitle={isEdit ? parcours!.title : "Remplis les informations du parcours"}
+          title={isEdit ? t("admin.modals.parcours.editTitle") : t("admin.modals.parcours.addTitle")}
+          subtitle={isEdit ? parcours!.title : t("admin.modals.parcours.newSubtitle")}
           isBusy={isSaving}
-          submitLabel={isEdit ? "Enregistrer" : "Créer"}
+          submitLabel={isEdit ? t("common.save") : t("admin.form.create")}
           submitIcon={isEdit ? "save-outline" : "checkmark"}
           onClose={handleClose}
           onSubmit={handleSubmit}
@@ -180,18 +182,18 @@ export default function ModalView({
         >
           <View style={styles.form}>
             <FormField
-              label="Titre"
+              label={t("admin.form.title")}
               required
               value={title}
               onChangeText={setTitle}
-              placeholder="Ex : Chemin vers la guitare"
+              placeholder={t("admin.modals.parcours.titlePlaceholder")}
             />
 
             <FormField
-              label="Description"
+              label={t("admin.modals.parcours.description")}
               value={description}
               onChangeText={setDescription}
-              placeholder="Décris le parcours…"
+              placeholder={t("admin.modals.parcours.descriptionPlaceholder")}
               multiline
             />
 
@@ -204,10 +206,10 @@ export default function ModalView({
             />
 
             <PickerField
-              label="Instructeur"
+              label={t("admin.modals.course.instructor")}
               selectedValue={instructorId}
               onValueChange={setInstructorId}
-              placeholder="— Aucun —"
+              placeholder={t("admin.form.none")}
               items={instructors.map((u) => ({ label: u.name, value: u.id }))}
             />
 
@@ -221,10 +223,14 @@ export default function ModalView({
             <CoverImagePicker coverImage={coverImage} setCoverImage={setCoverImage} />
 
             <View style={styles.field}>
-              <Text style={styles.sectionLabel}>Cours inclus</Text>
+              <Text style={styles.sectionLabel}>{t("admin.modals.parcours.coursesIncluded")}</Text>
               <Text style={styles.fieldHint}>
-                {selectedCourseIds.length} cours sélectionné
-                {selectedCourseIds.length !== 1 ? "s" : ""}
+                {t(
+                  selectedCourseIds.length === 1
+                    ? "admin.modals.parcours.courseSelected"
+                    : "admin.modals.parcours.courseSelectedPlural",
+                  { n: selectedCourseIds.length },
+                )}
               </Text>
               <View style={styles.courseList}>
                 {courses.map((course) => {

@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { color } from "@/config/adminTheme";
+import { useLanguage } from "@/hooks/useLanguage";
 
 type Props = {
   title: string;
@@ -19,12 +20,15 @@ export default function AdminHeader({
   count,
   countLabel,
   onAdd,
-  addLabel = "Ajouter",
+  addLabel,
   searchValue,
   onSearchChange,
-  searchPlaceholder = "Rechercher…",
+  searchPlaceholder,
 }: Props) {
+  const { t } = useLanguage();
   const hasSearch = searchValue !== undefined && onSearchChange !== undefined;
+  const resolvedAddLabel = addLabel ?? t("common.add");
+  const resolvedSearchPlaceholder = searchPlaceholder ?? `${t("common.search")}…`;
 
   return (
     <LinearGradient
@@ -35,7 +39,7 @@ export default function AdminHeader({
     >
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.eyebrow}>Administration</Text>
+          <Text style={styles.eyebrow}>{t("admin.settings.eyebrow")}</Text>
           <Text style={styles.title}>{title}</Text>
         </View>
         <View style={styles.headerRight}>
@@ -45,7 +49,7 @@ export default function AdminHeader({
           </View>
           <Pressable style={styles.addBtn} onPress={onAdd}>
             <Ionicons name="add" size={22} color={color.navy} />
-            <Text style={styles.addBtnText}>{addLabel}</Text>
+            <Text style={styles.addBtnText}>{resolvedAddLabel}</Text>
           </Pressable>
         </View>
       </View>
@@ -54,7 +58,7 @@ export default function AdminHeader({
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={18} color="rgba(255,255,255,0.5)" />
           <TextInput
-            placeholder={searchPlaceholder}
+            placeholder={resolvedSearchPlaceholder}
             placeholderTextColor="rgba(255,255,255,0.4)"
             style={styles.searchInput}
             value={searchValue}

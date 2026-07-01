@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useCourses } from "@/hooks/useCourses";
 import { useLessons } from "@/hooks/useLessons";
 import { useVideos } from "@/hooks/useVideos";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Lesson } from "@/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -26,8 +27,6 @@ const TAG_STYLES = {
   intermediate: { bg: "rgba(29,158,117,0.12)",  text: "#0F6E56", dot: "#1D9E75"       },
   beginner:     { bg: "rgba(181,212,244,0.4)",   text: "#185FA5", dot: "#3A8FD4"       },
 };
-
-const LEVEL_LABEL = { beginner: "Débutant", intermediate: "Intermédiaire", expert: "Expert" };
 
 function formatDuration(seconds: number): string {
   if (!seconds) return "—";
@@ -97,6 +96,7 @@ type SelectedLesson = { lesson: Lesson; url: string };
 export default function CourseLessonsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const { courses }                     = useCourses();
   const { lessons }                     = useLessons();
@@ -144,7 +144,7 @@ export default function CourseLessonsScreen() {
         <View style={styles.headerInfo}>
           <View style={[styles.tagPill, { backgroundColor: tagStyle.bg }]}>
             <View style={[styles.tagDot, { backgroundColor: tagStyle.dot }]} />
-            <Text style={[styles.tagText, { color: tagStyle.text }]}>{LEVEL_LABEL[course.tag_type]}</Text>
+            <Text style={[styles.tagText, { color: tagStyle.text }]}>{t(`common.level.${course.tag_type}`)}</Text>
           </View>
           <Text style={styles.courseTitle}>{course.title}</Text>
           <Text style={styles.courseInstructor}>{course.instructor}</Text>
@@ -152,7 +152,7 @@ export default function CourseLessonsScreen() {
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${overallProgress * 100}%` as any }]} />
             </View>
-            <Text style={styles.progressLabel}>{completedLessons}/{totalLessons} leçons</Text>
+            <Text style={styles.progressLabel}>{completedLessons}/{totalLessons} {t("parcours.lessons")}</Text>
           </View>
         </View>
       </View>
@@ -160,7 +160,7 @@ export default function CourseLessonsScreen() {
       <View style={styles.statsStrip}>
         <View style={styles.statChip}>
           <Feather name="book-open" size={13} color={color.deepBlue} />
-          <Text style={styles.statChipText}>{totalLessons} leçons</Text>
+          <Text style={styles.statChipText}>{totalLessons} {t("parcours.lessons")}</Text>
         </View>
         <View style={styles.statChip}>
           <Feather name="clock" size={13} color={color.deepBlue} />
@@ -175,7 +175,7 @@ export default function CourseLessonsScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.sectionTitle}>Contenu du cours</Text>
+        <Text style={styles.sectionTitle}>{t("parcours.contentCourse")}</Text>
 
         {courseLessons.map((lesson) => (
           <LessonItem

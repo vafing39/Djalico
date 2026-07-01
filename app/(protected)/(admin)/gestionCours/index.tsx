@@ -15,6 +15,7 @@ import AdminHeader from "@/components/AdminHeader";
 import AdminListCard from "@/components/AdminListCard";
 import ModalView from "./modal";
 import { color } from "@/config/adminTheme";
+import { useLanguage } from "@/hooks/useLanguage";
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -25,15 +26,16 @@ function formatDuration(seconds: number): string {
 }
 
 const LEVELS = [
-  { key: "all", label: "Tous" },
-  { key: "beginner", label: "Débutant" },
-  { key: "intermediate", label: "Intermédiaire" },
-  { key: "expert", label: "Expert" },
+  { key: "all", labelKey: "common.all" },
+  { key: "beginner", labelKey: "common.level.beginner" },
+  { key: "intermediate", labelKey: "common.level.intermediate" },
+  { key: "expert", labelKey: "common.level.expert" },
 ] as const;
 type LevelKey = (typeof LEVELS)[number]["key"];
 
 export default function GestionCours() {
   const { courses, isLoading, error, deleteCourse } = useContext(CourseContext);
+  const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [activeFilter, setActiveFilter] = useState<LevelKey>("all");
@@ -51,16 +53,16 @@ export default function GestionCours() {
 
   function handleDelete(course: Course) {
     Alert.alert(
-      "Supprimer le cours",
-      `Voulez-vous vraiment supprimer « ${course.title} » ? Cette action est irréversible.`,
+      t("admin.courses.deleteTitle"),
+      t("admin.courses.deleteConfirm", { title: course.title }),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t("common.delete.cancel"), style: "cancel" },
         {
-          text: "Supprimer",
+          text: t("common.delete.confirm"),
           style: "destructive",
           onPress: () =>
             deleteCourse(course.id).catch((err: Error) =>
-              Alert.alert("Erreur", err.message),
+              Alert.alert(t("common.error"), err.message),
             ),
         },
       ],
@@ -79,13 +81,13 @@ export default function GestionCours() {
   return (
     <SafeAreaView style={styles.container}>
       <AdminHeader
-        title="Gestion des cours"
+        title={t("admin.courses.title")}
         count={courses.length}
-        countLabel="cours"
+        countLabel={t("admin.courses.countLabel")}
         onAdd={openAdd}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Rechercher un cours"
+        searchPlaceholder={t("admin.courses.searchPlaceholder")}
       />
 
       <ScrollView
@@ -113,7 +115,7 @@ export default function GestionCours() {
                   activeFilter === f.key && styles.filterTextActive,
                 ]}
               >
-                {f.label}
+                {t(f.labelKey)}
               </Text>
             </Pressable>
           ))}
@@ -121,8 +123,8 @@ export default function GestionCours() {
 
         {/* ── Course list ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Mes cours</Text>
-          <Text style={styles.sectionCount}>{filtered.length} au total</Text>
+          <Text style={styles.sectionTitle}>{t("admin.courses.sectionTitle")}</Text>
+          <Text style={styles.sectionCount}>{filtered.length} {t("common.total")}</Text>
         </View>
 
         {isLoading ? (
@@ -132,9 +134,9 @@ export default function GestionCours() {
             style={{ marginTop: 40 }}
           />
         ) : error ? (
-          <Text style={styles.errorText}>Erreur de chargement des cours</Text>
+          <Text style={styles.errorText}>{t("admin.courses.errorLoading")}</Text>
         ) : filtered.length === 0 ? (
-          <Text style={styles.emptyText}>Aucun cours trouvé</Text>
+          <Text style={styles.emptyText}>{t("admin.courses.empty")}</Text>
         ) : (
           <View style={styles.listWrap}>
             {filtered.map((course, i) => (

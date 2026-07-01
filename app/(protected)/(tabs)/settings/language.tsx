@@ -1,4 +1,4 @@
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/hooks/useLanguage';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Check, Globe } from 'lucide-react-native';
 import React from 'react';
@@ -6,15 +6,11 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 
 export default function LanguageSettings() {
   const router = useRouter();
-  const { language, setLanguage, t } = useLanguage();
+  const { language: currentLanguage, setLanguage, t } = useLanguage();
 
   const languages = [
     { code: 'fr', name: 'Français', flag: '🇫🇷' },
     { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' },
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-    { code: 'pt', name: 'Português', flag: '🇵🇹' },
   ];
 
   const selectLanguage = (languageCode: string) => {
@@ -45,7 +41,7 @@ export default function LanguageSettings() {
                 key={language.code}
                 style={[
                   styles.languageItem,
-                  language === language.code && styles.selectedLanguageItem
+                  currentLanguage === language.code && styles.selectedLanguageItem
                 ]}
                 onPress={() => selectLanguage(language.code)}
               >
@@ -53,12 +49,12 @@ export default function LanguageSettings() {
                   <Text style={styles.languageFlag}>{language.flag}</Text>
                   <Text style={[
                     styles.languageName,
-                    language === language.code && styles.selectedLanguageName
+                    currentLanguage === language.code && styles.selectedLanguageName
                   ]}>
                     {language.name}
                   </Text>
                 </View>
-                {language === language.code && (
+                {currentLanguage === language.code && (
                   <Check size={20} color="#6B73FF" />
                 )}
               </TouchableOpacity>
@@ -70,10 +66,9 @@ export default function LanguageSettings() {
         <View style={styles.infoSection}>
           <View style={styles.infoCard}>
             <Globe size={24} color="#6B73FF" />
-            <Text style={styles.infoTitle}>Changement de langue</Text>
+            <Text style={styles.infoTitle}>{t('settings.language.changeTitle')}</Text>
             <Text style={styles.infoText}>
-              Le changement de langue sera appliqué immédiatement à toute l'application.
-              Certains contenus générés par les utilisateurs resteront dans leur langue d'origine.
+              {t('settings.language.changeDesc')}
             </Text>
           </View>
         </View>

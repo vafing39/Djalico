@@ -2,12 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { User } from "@/types";
 import { color } from "@/config/adminTheme";
-
-const ROLE_LABELS: Record<User["role"], string> = {
-  eleve: "Élève",
-  professeur: "Professeur",
-  admin: "Admin",
-};
+import { useLanguage } from "@/hooks/useLanguage";
 
 const ROLE_COLORS: Record<User["role"], { text: string; bg: string }> = {
   eleve: { text: "#1E4FA5", bg: "#E9F2FF" },
@@ -22,6 +17,7 @@ type Props = {
 };
 
 export default function UserCard({ item, onEdit, onDelete }: Props) {
+  const { t } = useLanguage();
   return (
     <View style={styles.card}>
       <View style={styles.avatar}>
@@ -41,7 +37,7 @@ export default function UserCard({ item, onEdit, onDelete }: Props) {
           <Text
             style={[styles.roleText, { color: ROLE_COLORS[item.role].text }]}
           >
-            {ROLE_LABELS[item.role]}
+            {t(`settings.role.${item.role}`)}
           </Text>
         </View>
       </View>

@@ -5,14 +5,11 @@ import FormField from "@/components/admin/FormField";
 import PickerField from "@/components/admin/PickerField";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { UserContext } from "@/contexts/userContext";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { User } from "@/types";
 import { color, LEVELS } from "@/config/adminTheme";
 
-const ROLES: { label: string; value: User["role"] }[] = [
-  { label: "Élève",      value: "eleve"      },
-  { label: "Professeur", value: "professeur" },
-  { label: "Admin",      value: "admin"      },
-];
+const ROLE_VALUES: User["role"][] = ["eleve", "professeur", "admin"];
 
 type Props = {
   user: User | null;
@@ -22,8 +19,11 @@ type Props = {
 
 export default function UserEditModal({ user, visible, onClose }: Props) {
   const { createUser, updateUser, isCreating, isUpdating } = useContext(UserContext);
+  const { t } = useLanguage();
   const isEdit = !!user;
   const isBusy = isCreating || isUpdating;
+  const roles = ROLE_VALUES.map((value) => ({ label: t(`settings.role.${value}`), value }));
+  const levels = LEVELS.map((l) => ({ label: t(`common.level.${l.value}`), value: l.value }));
 
   const [name,     setName]     = useState("");
   const [email,    setEmail]    = useState("");
@@ -46,15 +46,15 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
 
   function handleSubmit() {
     if (!name.trim()) {
-      Alert.alert("Champ requis", "Le nom est obligatoire.");
+      Alert.alert(t("settings.alert.requiredField"), t("admin.modals.user.nameRequired"));
       return;
     }
     if (!email.trim()) {
-      Alert.alert("Champ requis", "L'email est obligatoire.");
+      Alert.alert(t("settings.alert.requiredField"), t("admin.modals.user.emailRequired"));
       return;
     }
     if (!isEdit && password.length < 6) {
-      Alert.alert("Mot de passe trop court", "Le mot de passe doit contenir au moins 6 caractères.");
+      Alert.alert(t("settings.alert.passwordTooShort"), t("settings.alert.passwordMinLength"));
       return;
     }
 
@@ -62,7 +62,7 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
       ? updateUser(user!.id, { name: name.trim(), role, level })
       : createUser({ name: name.trim(), email: email.trim(), password, role, level });
 
-    action.then(onClose).catch((err: Error) => Alert.alert("Erreur", err.message));
+    action.then(onClose).catch((err: Error) => Alert.alert(t("common.error"), err.message));
   }
 
   return (
@@ -74,10 +74,10 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
     >
       <SafeAreaView style={styles.container}>
         <ModalHeader
-          title={isEdit ? "Modifier l'utilisateur" : "Nouvel utilisateur"}
-          subtitle={isEdit ? user!.name : "Remplis les informations du compte"}
+          title={isEdit ? t("admin.modals.user.editTitle") : t("admin.modals.user.addTitle")}
+          subtitle={isEdit ? user!.name : t("admin.modals.user.newSubtitle")}
           isBusy={isBusy}
-          submitLabel={isEdit ? "Enregistrer" : "Créer"}
+          submitLabel={isEdit ? t("common.save") : t("admin.form.create")}
           submitIcon={isEdit ? "save-outline" : "checkmark"}
           onClose={onClose}
           onSubmit={handleSubmit}
@@ -89,18 +89,18 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
         >
           <View style={styles.form}>
             <FormField
-              label="Nom"
+              label={t("admin.modals.user.name")}
               required
               value={name}
               onChangeText={setName}
-              placeholder="Nom complet"
+              placeholder={t("admin.modals.user.namePlaceholder")}
             />
 
             <FormField
-              label="Email"
+              label={t("admin.modals.user.email")}
               value={email}
               onChangeText={setEmail}
-              placeholder="adresse@email.com"
+              placeholder={t("admin.modals.user.emailPlaceholder")}
               keyboardType="email-address"
               autoCapitalize="none"
               editable={!isEdit}
@@ -108,27 +108,27 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
 
             {!isEdit && (
               <FormField
-                label="Mot de passe"
+                label={t("admin.modals.user.password")}
                 required
                 value={password}
                 onChangeText={setPassword}
-                placeholder="6 caractères minimum"
+                placeholder={t("settings.passwordModal.newPlaceholder")}
                 secureTextEntry
               />
             )}
 
             <PickerField
-              label="Rôle"
+              label={t("admin.form.role")}
               selectedValue={role}
               onValueChange={(v) => setRole(v as User["role"])}
-              items={ROLES}
+              items={roles}
             />
 
             <PickerField
-              label="Niveau"
+              label={t("admin.form.level")}
               selectedValue={level}
               onValueChange={(v) => setLevel(v as User["level"])}
-              items={LEVELS}
+              items={levels}
             />
           </View>
         </ScrollView>

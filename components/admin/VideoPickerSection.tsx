@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { color } from "@/config/adminTheme";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Video, LessonDraft } from "@/types";
 
 type Props = {
@@ -23,6 +24,7 @@ export default function VideoPickerSection({
   onMoveUp,
   onMoveDown,
 }: Props) {
+  const { t } = useLanguage();
   const filtered = videos.filter(
     (v) =>
       videoSearch.trim() === "" ||
@@ -32,7 +34,7 @@ export default function VideoPickerSection({
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <Text style={styles.title}>Vidéos</Text>
+        <Text style={styles.title}>{t("admin.modals.course.videosTitle")}</Text>
         {lessonDrafts.length > 0 && (
           <View style={styles.countBadge}>
             <Text style={styles.countText}>{lessonDrafts.length}</Text>
@@ -45,7 +47,7 @@ export default function VideoPickerSection({
           <Ionicons name="search-outline" size={15} color={color.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher une vidéo…"
+            placeholder={t("admin.videos.searchPlaceholder")}
             placeholderTextColor={color.textMuted}
             value={videoSearch}
             onChangeText={onSearchChange}
@@ -57,7 +59,7 @@ export default function VideoPickerSection({
       {videos.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="film-outline" size={32} color={color.textMuted} />
-          <Text style={styles.emptyText}>Aucune vidéo disponible</Text>
+          <Text style={styles.emptyText}>{t("admin.modals.course.noVideosAvailable")}</Text>
         </View>
       ) : (
         <ScrollView

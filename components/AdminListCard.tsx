@@ -1,15 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { color, TAG_STYLES } from "@/config/adminTheme";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { TagType } from "@/types";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
-
-const TAG_LABELS: Record<TagType, string> = {
-  beginner: "Débutant",
-  intermediate: "Intermédiaire",
-  expert: "Expert",
-};
 
 type Props = {
   imageUrl: string | null;
@@ -47,6 +42,7 @@ export default function AdminListCard({
   onEdit,
   onDelete,
 }: Props) {
+  const { t } = useLanguage();
   const tag = TAG_STYLES[tagType] ?? TAG_STYLES.beginner;
 
   const thumbnailInner = (
@@ -100,7 +96,7 @@ export default function AdminListCard({
           </Text>
           <View style={[styles.tagBadge, { backgroundColor: tag.bg }]}>
             <Text style={[styles.tagText, { color: tag.text }]}>
-              {TAG_LABELS[tagType]}
+              {t(`common.level.${tagType}`)}
             </Text>
           </View>
         </View>

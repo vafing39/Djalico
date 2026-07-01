@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { color } from "@/config/adminTheme";
+import { useLanguage } from "@/hooks/useLanguage";
 
 type Props = {
   coverImage: string | null;
@@ -9,10 +10,15 @@ type Props = {
 };
 
 export default function CoverImagePicker({ coverImage, setCoverImage }: Props) {
+  const { t } = useLanguage();
+
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission requise", "Autorise l'accès à ta galerie pour choisir une image.");
+      Alert.alert(
+        t("admin.form.permissionRequiredTitle"),
+        t("admin.form.permissionRequiredBody"),
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -26,14 +32,14 @@ export default function CoverImagePicker({ coverImage, setCoverImage }: Props) {
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>Image de couverture</Text>
+      <Text style={styles.label}>{t("admin.form.coverImage")}</Text>
       <Pressable style={styles.picker} onPress={pickImage}>
         {coverImage ? (
           <>
             <Image source={{ uri: coverImage }} style={styles.preview} />
             <View style={styles.overlay}>
               <Ionicons name="camera-outline" size={20} color={color.white} />
-              <Text style={styles.overlayText}>Changer</Text>
+              <Text style={styles.overlayText}>{t("admin.form.change")}</Text>
             </View>
           </>
         ) : (
@@ -41,8 +47,8 @@ export default function CoverImagePicker({ coverImage, setCoverImage }: Props) {
             <View style={styles.iconWrap}>
               <Ionicons name="image-outline" size={28} color={color.navy} />
             </View>
-            <Text style={styles.pickerTitle}>Choisir une image</Text>
-            <Text style={styles.pickerSub}>Format 16:9 recommandé</Text>
+            <Text style={styles.pickerTitle}>{t("admin.form.chooseImage")}</Text>
+            <Text style={styles.pickerSub}>{t("admin.form.format169")}</Text>
           </>
         )}
       </Pressable>

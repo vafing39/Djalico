@@ -6,15 +6,10 @@ import React, { useMemo } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Screen from "@/components/Screen";
 import { useParcours } from "@/hooks/useParcours";
-import type { Parcours, TagType } from "@/types";
+import { useLanguage } from "@/hooks/useLanguage";
+import type { Parcours } from "@/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const LEVEL_LABEL: Record<TagType, string> = {
-  beginner:     "Débutant",
-  intermediate: "Intermédiaire",
-  expert:       "Expert",
-};
 
 function formatDuration(seconds: number): string {
   if (!seconds) return "—";
@@ -24,12 +19,13 @@ function formatDuration(seconds: number): string {
   return `${h}h${m > 0 ? ` ${m}min` : ""}`;
 }
 
-function toCardItem(p: Parcours): ParcoursCardItem {
+function toCardItem(p: Parcours, t: (key: string) => string): ParcoursCardItem {
   return {
     id:       p.id,
     title:    p.title,
     subtitle: p.category?.title ?? "",
-    level:    LEVEL_LABEL[p.tag_type],
+    level:    t(`common.level.${p.tag_type}`),
+    tagType:  p.tag_type,
     duration: formatDuration(p.total_duration_seconds),
     image:    p.cover_image_url,
   };
@@ -38,6 +34,7 @@ function toCardItem(p: Parcours): ParcoursCardItem {
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 function Header({ count }: { count: number }) {
+  const { t } = useLanguage();
   return (
     <View>
       <Pressable style={styles.backBtn} onPress={() => router.back()}>
@@ -45,8 +42,8 @@ function Header({ count }: { count: number }) {
       </Pressable>
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerEyebrow}>Bibliothèque</Text>
-          <Text style={styles.headerTitle}>Tous les parcours</Text>
+          <Text style={styles.headerEyebrow}>{t("categorie.library")}</Text>
+          <Text style={styles.headerTitle}>{t("categorie.allParcours")}</Text>
         </View>
         <View style={styles.headerCount}>
           <Text style={styles.headerCountText}>{count}</Text>
@@ -60,8 +57,9 @@ function Header({ count }: { count: number }) {
 
 export default function AllParcoursScreen() {
   const { parcours } = useParcours();
+  const { t } = useLanguage();
 
-  const items = useMemo(() => parcours.map(toCardItem), [parcours]);
+  const items = useMemo(() => parcours.map((p) => toCardItem(p, t)), [parcours, t]);
 
   return (
     <Screen>

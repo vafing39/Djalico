@@ -15,7 +15,7 @@ import AdminHeader from "@/components/AdminHeader";
 import AdminListCard from "@/components/AdminListCard";
 import ModalView from "./modal";
 import { color } from "@/config/adminTheme";
-
+import { useLanguage } from "@/hooks/useLanguage";
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -26,15 +26,16 @@ function formatDuration(seconds: number): string {
 }
 
 const LEVELS = [
-  { key: "all", label: "Tous" },
-  { key: "beginner", label: "Débutant" },
-  { key: "intermediate", label: "Intermédiaire" },
-  { key: "expert", label: "Expert" },
+  { key: "all", labelKey: "common.all" },
+  { key: "beginner", labelKey: "common.level.beginner" },
+  { key: "intermediate", labelKey: "common.level.intermediate" },
+  { key: "expert", labelKey: "common.level.expert" },
 ] as const;
 type LevelKey = (typeof LEVELS)[number]["key"];
 
 export default function GestionParcours() {
   const { parcours, isLoading, error, deleteParcours } = useContext(ParcoursContext);
+  const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingParcours, setEditingParcours] = useState<Parcours | null>(null);
   const [activeFilter, setActiveFilter] = useState<LevelKey>("all");
@@ -47,16 +48,16 @@ export default function GestionParcours() {
 
   function handleDelete(p: Parcours) {
     Alert.alert(
-      "Supprimer le parcours",
-      `Voulez-vous vraiment supprimer « ${p.title} » ? Cette action est irréversible.`,
+      t("admin.parcours.deleteTitle"),
+      t("admin.parcours.deleteConfirm", { title: p.title }),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t("common.delete.cancel"), style: "cancel" },
         {
-          text: "Supprimer",
+          text: t("common.delete.confirm"),
           style: "destructive",
           onPress: () =>
             deleteParcours(p.id).catch((err: Error) =>
-              Alert.alert("Erreur", err.message),
+              Alert.alert(t("common.error"), err.message),
             ),
         },
       ],
@@ -75,13 +76,13 @@ export default function GestionParcours() {
   return (
     <SafeAreaView style={styles.container}>
       <AdminHeader
-        title="Gestion des parcours"
+        title={t("admin.parcours.title")}
         count={parcours.length}
-        countLabel="parcours"
+        countLabel={t("admin.parcours.countLabel")}
         onAdd={() => { setEditingParcours(null); setModalVisible(true); }}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Rechercher un parcours"
+        searchPlaceholder={t("admin.parcours.searchPlaceholder")}
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -89,23 +90,23 @@ export default function GestionParcours() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
           {LEVELS.map((f) => (
             <Pressable key={f.key} style={[styles.filterChip, activeFilter === f.key && styles.filterChipActive]} onPress={() => setActiveFilter(f.key)}>
-              <Text style={[styles.filterText, activeFilter === f.key && styles.filterTextActive]}>{f.label}</Text>
+              <Text style={[styles.filterText, activeFilter === f.key && styles.filterTextActive]}>{t(f.labelKey)}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
         {/* ── Parcours list ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Mes parcours</Text>
-          <Text style={styles.sectionCount}>{filtered.length} au total</Text>
+          <Text style={styles.sectionTitle}>{t("admin.parcours.sectionTitle")}</Text>
+          <Text style={styles.sectionCount}>{filtered.length} {t("common.total")}</Text>
         </View>
 
         {isLoading ? (
           <ActivityIndicator size="large" color={color.navy} style={{ marginTop: 40 }} />
         ) : error ? (
-          <Text style={styles.errorText}>Erreur de chargement des parcours</Text>
+          <Text style={styles.errorText}>{t("admin.parcours.errorLoading")}</Text>
         ) : filtered.length === 0 ? (
-          <Text style={styles.emptyText}>Aucun parcours trouvé</Text>
+          <Text style={styles.emptyText}>{t("admin.parcours.empty")}</Text>
         ) : (
           <View style={styles.listWrap}>
             {filtered.map((p, i) => (

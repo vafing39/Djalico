@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 import { HapticTab } from "@/components/Archives/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
+import { useLanguage } from "@/hooks/useLanguage";
 
 const COLORS = {
   deepBlue: "#0E2B45", // text & deep accents
@@ -18,6 +19,7 @@ const COLORS = {
 };
 
 export default function TabLayout() {
+  const { t } = useLanguage();
   return (
     <Tabs
       screenOptions={{
@@ -38,7 +40,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Acceuil",
+          title: t("tabs.home"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
@@ -47,7 +49,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="Explorer"
         options={{
-          title: "Explorer",
+          title: t("tabs.explorer"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="magnifyingglass" color={color} />
           ),
@@ -56,7 +58,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="mesCours"
         options={{
-          title: "Mes cours",
+          title: t("tabs.mesCours"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="play.fill" color={color} />
           ),
@@ -65,7 +67,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="sauvegardes"
         options={{
-          title: "Suavegardés",
+          title: t("tabs.sauvegardes"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="bookmark" color={color} />
           ),
@@ -74,7 +76,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Profil",
+          title: t("tabs.profil"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="person.fill" color={color} />
           ),

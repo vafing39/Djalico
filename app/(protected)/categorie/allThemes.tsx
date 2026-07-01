@@ -2,6 +2,7 @@ import { ThemeCard } from "@/components/ThemeCard";
 import { color } from "@/config/color";
 import { useCategories } from "@/hooks/useCategories";
 import { useVideos } from "@/hooks/useVideos";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Category } from "@/types";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -19,17 +20,25 @@ const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
 };
 const DEFAULT_GRADIENT: [string, string] = ["#0E2B45", "#1A5F9A"];
 
-function toCategoryTheme(cat: Category, videoCount: number) {
+function toCategoryTheme(
+  cat: Category,
+  videoCount: number,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
   return {
     id: cat.id,
     title: cat.title,
     emoji: cat.emoji,
-    count: `${videoCount} vidéo${videoCount !== 1 ? "s" : ""}`,
+    count: t(
+      videoCount === 1 ? "categorie.themes.videoCount" : "categorie.themes.videoCountPlural",
+      { n: videoCount },
+    ),
     colors: CATEGORY_GRADIENTS[cat.title] ?? DEFAULT_GRADIENT,
   };
 }
 
 function Header({ count }: { count: number }) {
+  const { t } = useLanguage();
   return (
     <View style={styles.headerWrap}>
       <Pressable style={styles.backBtn} onPress={() => router.back()}>
@@ -37,8 +46,8 @@ function Header({ count }: { count: number }) {
       </Pressable>
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerEyebrow}>Explorer</Text>
-          <Text style={styles.headerTitle}>Thèmes musicaux</Text>
+          <Text style={styles.headerEyebrow}>{t("categorie.themes.eyebrow")}</Text>
+          <Text style={styles.headerTitle}>{t("categorie.themes.title")}</Text>
         </View>
         <View style={styles.headerCount}>
           <Text style={styles.headerCountText}>{count}</Text>
@@ -51,6 +60,7 @@ function Header({ count }: { count: number }) {
 export default function AllThemesScreen() {
   const { categories } = useCategories();
   const { videos } = useVideos();
+  const { t } = useLanguage();
 
   const publishedVideos = useMemo(() => videos.filter((v) => v.published), [videos]);
 
@@ -60,9 +70,10 @@ export default function AllThemesScreen() {
         toCategoryTheme(
           cat,
           publishedVideos.filter((v) => v.category?.id === cat.id).length,
+          t,
         ),
       ),
-    [categories, publishedVideos],
+    [categories, publishedVideos, t],
   );
 
   return (

@@ -19,7 +19,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/hooks/useAuth";
 import { color } from "@/config/adminTheme";
 import { useAuditLog, AuditEntry } from "@/hooks/useAuditLog";
@@ -27,11 +27,11 @@ import * as ImagePicker from "expo-image-picker";
 
 // ─── Audit helpers ────────────────────────────────────────────────────────────
 
-const ACTION_META: Record<string, { label: string; bg: string; text: string }> =
+const ACTION_META: Record<string, { labelKey: string; bg: string; text: string }> =
   {
-    created: { label: "Créé", bg: "#DCFCE7", text: "#166534" },
-    updated: { label: "Modifié", bg: "#E9F2FF", text: "#1E4FA5" },
-    deleted: { label: "Supprimé", bg: "#FFE7E7", text: "#B91C1C" },
+    created: { labelKey: "admin.settings.audit.created", bg: "#DCFCE7", text: "#166534" },
+    updated: { labelKey: "admin.settings.audit.updated", bg: "#E9F2FF", text: "#1E4FA5" },
+    deleted: { labelKey: "admin.settings.audit.deleted", bg: "#FFE7E7", text: "#B91C1C" },
   };
 
 const ENTITY_ICON: Record<string, string> = {
@@ -41,43 +41,44 @@ const ENTITY_ICON: Record<string, string> = {
   users: "person-outline",
 };
 
-const ENTITY_LABEL: Record<string, string> = {
-  videos: "Vidéo",
-  courses: "Cours",
-  parcours: "Parcours",
-  users: "Utilisateur",
+const ENTITY_LABEL_KEY: Record<string, string> = {
+  videos: "admin.settings.entity.video",
+  courses: "admin.settings.entity.course",
+  parcours: "admin.settings.entity.parcours",
+  users: "admin.settings.entity.user",
 };
 
-function formatRelative(iso: string): string {
+function formatRelative(iso: string, t: (key: string, params?: Record<string, string | number>) => string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60) return "À l'instant";
-  if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
-  if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)} h`;
-  return `Il y a ${Math.floor(diff / 86400)} j`;
+  if (diff < 60) return t("admin.settings.timeAgo.now");
+  if (diff < 3600) return t("admin.settings.timeAgo.minutes", { n: Math.floor(diff / 60) });
+  if (diff < 86400) return t("admin.settings.timeAgo.hours", { n: Math.floor(diff / 3600) });
+  return t("admin.settings.timeAgo.days", { n: Math.floor(diff / 86400) });
 }
 
 function AuditRow({ item }: { item: AuditEntry }) {
-  const meta = ACTION_META[item.action] ?? {
-    label: item.action,
-    bg: color.border,
-    text: color.textMuted,
-  };
+  const { t } = useLanguage();
+  const meta = ACTION_META[item.action];
+  const label = meta ? t(meta.labelKey) : item.action;
+  const bg = meta?.bg ?? color.border;
+  const text = meta?.text ?? color.textMuted;
   const icon = ENTITY_ICON[item.entity_type] ?? "ellipse-outline";
-  const etype = ENTITY_LABEL[item.entity_type] ?? item.entity_type;
+  const etypeKey = ENTITY_LABEL_KEY[item.entity_type];
+  const etype = etypeKey ? t(etypeKey) : item.entity_type;
 
   return (
     <View style={auditStyles.row}>
-      <View style={[auditStyles.iconWrap, { backgroundColor: meta.bg }]}>
-        <Ionicons name={icon as any} size={18} color={meta.text} />
+      <View style={[auditStyles.iconWrap, { backgroundColor: bg }]}>
+        <Ionicons name={icon as any} size={18} color={text} />
       </View>
       <View style={auditStyles.body}>
         <View style={auditStyles.topRow}>
           <Text style={auditStyles.title} numberOfLines={1}>
             {item.entity_title}
           </Text>
-          <View style={[auditStyles.badge, { backgroundColor: meta.bg }]}>
-            <Text style={[auditStyles.badgeText, { color: meta.text }]}>
-              {meta.label}
+          <View style={[auditStyles.badge, { backgroundColor: bg }]}>
+            <Text style={[auditStyles.badgeText, { color: text }]}>
+              {label}
             </Text>
           </View>
         </View>
@@ -85,7 +86,7 @@ function AuditRow({ item }: { item: AuditEntry }) {
           {etype}
           {item.actor_name ? ` · ${item.actor_name}` : ""}
         </Text>
-        <Text style={auditStyles.time}>{formatRelative(item.created_at)}</Text>
+        <Text style={auditStyles.time}>{formatRelative(item.created_at, t)}</Text>
       </View>
     </View>
   );
@@ -216,10 +217,6 @@ function Section({
 const LANGUAGES = [
   { code: "fr", name: "Français", flag: "🇫🇷" },
   { code: "en", name: "English", flag: "🇺🇸" },
-  { code: "es", name: "Español", flag: "🇪🇸" },
-  { code: "de", name: "Deutsch", flag: "🇩🇪" },
-  { code: "it", name: "Italiano", flag: "🇮🇹" },
-  { code: "pt", name: "Português", flag: "🇵🇹" },
 ] as const;
 
 export default function Setting() {
@@ -241,7 +238,7 @@ export default function Setting() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const {
     logOut,
     logoutPending,
@@ -280,8 +277,8 @@ export default function Setting() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
-        "Permission refusée",
-        "L'accès à la galerie est nécessaire pour changer la photo.",
+        t("settings.alert.permissionDenied"),
+        t("settings.alert.galleryAccess"),
       );
       return;
     }
@@ -296,8 +293,8 @@ export default function Setting() {
       await uploadAvatar(result.assets[0].uri);
     } catch (err: any) {
       Alert.alert(
-        "Erreur",
-        err?.message ?? "Impossible de mettre à jour la photo.",
+        t("common.error"),
+        err?.message ?? t("settings.alert.cannotUpdatePhoto"),
       );
     }
   }
@@ -305,53 +302,53 @@ export default function Setting() {
   async function handleChangeEmail() {
     const trimmed = newEmail.trim().toLowerCase();
     if (!trimmed) {
-      Alert.alert("Champ requis", "Veuillez saisir une adresse e-mail.");
+      Alert.alert(t("settings.alert.requiredField"), t("settings.alert.enterEmail"));
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmed)) {
       Alert.alert(
-        "Adresse invalide",
-        "Veuillez saisir une adresse e-mail valide.",
+        t("settings.alert.invalidAddress"),
+        t("settings.alert.enterValidEmail"),
       );
       return;
     }
     if (trimmed === profile?.email) {
-      Alert.alert("Identique", "Cette adresse est déjà votre e-mail actuel.");
+      Alert.alert(t("settings.alert.sameEmail"), t("settings.alert.alreadyCurrentEmail"));
       return;
     }
     try {
       await updateEmail(trimmed);
       setEmailModalVisible(false);
       Alert.alert(
-        "E-mail envoyé",
-        `Un lien de confirmation a été envoyé à ${trimmed}. Vérifiez votre boîte de réception pour finaliser le changement.`,
+        t("settings.alert.emailSentTitle"),
+        t("settings.alert.emailSentBody", { email: trimmed }),
       );
     } catch (err: any) {
-      Alert.alert("Erreur", err?.message ?? "Impossible de changer l'e-mail.");
+      Alert.alert(t("common.error"), err?.message ?? t("settings.alert.cannotChangeEmail"));
     }
   }
 
   async function handleChangePassword() {
     if (newPassword.length < 6) {
       Alert.alert(
-        "Mot de passe trop court",
-        "Le mot de passe doit contenir au moins 6 caractères.",
+        t("settings.alert.passwordTooShort"),
+        t("settings.alert.passwordMinLength"),
       );
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert("Erreur", "Les mots de passe ne correspondent pas.");
+      Alert.alert(t("common.error"), t("settings.alert.passwordMismatch"));
       return;
     }
     try {
       await updatePassword(newPassword);
       setPasswordModalVisible(false);
-      Alert.alert("Succès", "Votre mot de passe a été modifié.");
+      Alert.alert(t("settings.alert.passwordChangedTitle"), t("settings.alert.passwordChangedBody"));
     } catch (err: any) {
       Alert.alert(
-        "Erreur",
-        err?.message ?? "Impossible de modifier le mot de passe.",
+        t("common.error"),
+        err?.message ?? t("settings.alert.cannotUpdatePassword"),
       );
     }
   }
@@ -359,7 +356,7 @@ export default function Setting() {
   async function handleSaveProfile() {
     const trimmed = editName.trim();
     if (!trimmed) {
-      Alert.alert("Champ requis", "Le nom ne peut pas être vide.");
+      Alert.alert(t("settings.alert.requiredField"), t("admin.settings.profileModal.requiredName"));
       return;
     }
     try {
@@ -367,8 +364,8 @@ export default function Setting() {
       setProfileModalVisible(false);
     } catch (err: any) {
       Alert.alert(
-        "Erreur",
-        err?.message ?? "Impossible de mettre à jour le profil.",
+        t("common.error"),
+        err?.message ?? t("admin.settings.profileModal.cannotUpdate"),
       );
     }
   }
@@ -382,8 +379,8 @@ export default function Setting() {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <Text style={styles.headerEyebrow}>Administration</Text>
-        <Text style={styles.headerTitle}>Réglages</Text>
+        <Text style={styles.headerEyebrow}>{t("admin.settings.eyebrow")}</Text>
+        <Text style={styles.headerTitle}>{t("admin.settings.title")}</Text>
 
         {/* Profile card */}
         <View style={styles.profileCard}>
@@ -398,7 +395,9 @@ export default function Setting() {
           )}
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{profile?.name ?? "—"}</Text>
-            <Text style={styles.profileRole}>{profile?.role ?? "—"}</Text>
+            <Text style={styles.profileRole}>
+              {profile?.role ? t(`settings.role.${profile.role}`) : "—"}
+            </Text>
             <Text style={styles.profileEmail}>{profile?.email ?? "—"}</Text>
           </View>
           <Pressable
@@ -423,19 +422,19 @@ export default function Setting() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* ── Profil ── */}
-        <Section title="Profil">
+        <Section title={t("admin.settings.sectionProfile")}>
           <SettingItem
             icon="person-outline"
             iconBg="#E9F2FF"
             iconColor="#1E88E5"
-            label="Modifier le profil"
+            label={t("admin.settings.editProfile")}
             onPress={() => setProfileModalVisible(true)}
           />
           <SettingItem
             icon="mail-outline"
             iconBg="#FFF3CD"
             iconColor="#F59E0B"
-            label="Changer l'email"
+            label={t("admin.settings.changeEmail")}
             sublabel={profile?.email}
             onPress={() => setEmailModalVisible(true)}
           />
@@ -443,7 +442,7 @@ export default function Setting() {
             icon="lock-closed-outline"
             iconBg="#F3E8FF"
             iconColor="#9333EA"
-            label="Modifier mot de passe"
+            label={t("admin.settings.changePassword")}
             onPress={() => setPasswordModalVisible(true)}
             isLast
           />
@@ -494,7 +493,7 @@ export default function Setting() {
           >
             <Pressable style={styles.modalSheet} onPress={() => {}}>
               <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>Langue</Text>
+              <Text style={styles.modalTitle}>{t("admin.settings.langModalTitle")}</Text>
               {LANGUAGES.map((lang, i) => {
                 const selected = lang.code === language;
                 return (
@@ -544,9 +543,9 @@ export default function Setting() {
             {/* Header */}
             <View style={auditModalStyles.header}>
               <View>
-                <Text style={auditModalStyles.title}>Journal d'activité</Text>
+                <Text style={auditModalStyles.title}>{t("admin.settings.activityLog")}</Text>
                 <Text style={auditModalStyles.sub}>
-                  {auditEntries.length} entrées
+                  {auditEntries.length} {t("admin.settings.entries")}
                 </Text>
               </View>
               <Pressable
@@ -567,7 +566,7 @@ export default function Setting() {
                   color={color.softGray}
                 />
                 <Text style={auditModalStyles.emptyText}>
-                  Aucune activité enregistrée
+                  {t("admin.settings.noActivity")}
                 </Text>
               </View>
             ) : (
@@ -599,10 +598,10 @@ export default function Setting() {
           >
             <Pressable style={styles.modalSheet} onPress={() => {}}>
               <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>Modifier le mot de passe</Text>
+              <Text style={styles.modalTitle}>{t("settings.passwordModal.title")}</Text>
 
               <View style={styles.modalField}>
-                <Text style={styles.modalFieldLabel}>Nouveau mot de passe</Text>
+                <Text style={styles.modalFieldLabel}>{t("settings.passwordModal.newLabel")}</Text>
                 <View style={styles.modalInputRow}>
                   <Ionicons
                     name="lock-closed-outline"
@@ -613,7 +612,7 @@ export default function Setting() {
                     style={styles.modalInput}
                     value={newPassword}
                     onChangeText={setNewPassword}
-                    placeholder="6 caractères minimum"
+                    placeholder={t("settings.passwordModal.newPlaceholder")}
                     placeholderTextColor={color.textMuted}
                     secureTextEntry={!showNewPassword}
                     autoFocus
@@ -630,7 +629,7 @@ export default function Setting() {
 
               <View style={styles.modalField}>
                 <Text style={styles.modalFieldLabel}>
-                  Confirmer le mot de passe
+                  {t("settings.passwordModal.confirmLabel")}
                 </Text>
                 <View
                   style={[
@@ -649,7 +648,7 @@ export default function Setting() {
                     style={styles.modalInput}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
-                    placeholder="Répétez le mot de passe"
+                    placeholder={t("settings.passwordModal.confirmPlaceholder")}
                     placeholderTextColor={color.textMuted}
                     secureTextEntry={!showConfirmPassword}
                   />
@@ -666,7 +665,7 @@ export default function Setting() {
                 {confirmPassword.length > 0 &&
                   newPassword !== confirmPassword && (
                     <Text style={styles.modalError}>
-                      Les mots de passe ne correspondent pas.
+                      {t("settings.passwordModal.mismatch")}
                     </Text>
                   )}
               </View>
@@ -688,7 +687,7 @@ export default function Setting() {
                       size={16}
                       color={color.navy}
                     />
-                    <Text style={styles.modalSaveBtnText}>Modifier</Text>
+                    <Text style={styles.modalSaveBtnText}>{t("settings.passwordModal.submit")}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -714,11 +713,11 @@ export default function Setting() {
           >
             <Pressable style={styles.modalSheet} onPress={() => {}}>
               <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>Changer l'e-mail</Text>
+              <Text style={styles.modalTitle}>{t("settings.emailModal.title")}</Text>
 
               {/* Current email */}
               <View style={styles.modalField}>
-                <Text style={styles.modalFieldLabel}>E-mail actuel</Text>
+                <Text style={styles.modalFieldLabel}>{t("settings.emailModal.currentLabel")}</Text>
                 <View
                   style={[styles.modalInputRow, styles.modalInputRowDisabled]}
                 >
@@ -735,7 +734,7 @@ export default function Setting() {
 
               {/* New email */}
               <View style={styles.modalField}>
-                <Text style={styles.modalFieldLabel}>Nouvel e-mail</Text>
+                <Text style={styles.modalFieldLabel}>{t("settings.emailModal.newLabel")}</Text>
                 <View style={styles.modalInputRow}>
                   <Ionicons
                     name="mail-outline"
@@ -746,7 +745,7 @@ export default function Setting() {
                     style={styles.modalInput}
                     value={newEmail}
                     onChangeText={setNewEmail}
-                    placeholder="nouvelle@adresse.com"
+                    placeholder={t("settings.emailModal.newPlaceholder")}
                     placeholderTextColor={color.textMuted}
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -754,7 +753,7 @@ export default function Setting() {
                   />
                 </View>
                 <Text style={styles.modalHint}>
-                  Un lien de confirmation sera envoyé à cette adresse.
+                  {t("settings.emailModal.hint")}
                 </Text>
               </View>
 
@@ -776,7 +775,7 @@ export default function Setting() {
                       size={16}
                       color={color.navy}
                     />
-                    <Text style={styles.modalSaveBtnText}>Envoyer le lien</Text>
+                    <Text style={styles.modalSaveBtnText}>{t("settings.emailModal.submit")}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -802,7 +801,7 @@ export default function Setting() {
           >
             <Pressable style={styles.modalSheet} onPress={() => {}}>
               <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>Modifier le profil</Text>
+              <Text style={styles.modalTitle}>{t("admin.settings.profileModal.title")}</Text>
 
               {/* Avatar preview */}
               <Pressable
@@ -839,7 +838,7 @@ export default function Setting() {
 
               {/* Name field */}
               <View style={styles.modalField}>
-                <Text style={styles.modalFieldLabel}>Nom complet</Text>
+                <Text style={styles.modalFieldLabel}>{t("admin.settings.profileModal.fullName")}</Text>
                 <View style={styles.modalInputRow}>
                   <Ionicons
                     name="person-outline"
@@ -850,7 +849,7 @@ export default function Setting() {
                     style={styles.modalInput}
                     value={editName}
                     onChangeText={setEditName}
-                    placeholder="Votre nom"
+                    placeholder={t("admin.settings.profileModal.namePlaceholder")}
                     placeholderTextColor={color.textMuted}
                     autoCapitalize="words"
                     autoFocus
@@ -860,7 +859,7 @@ export default function Setting() {
 
               {/* Email (read-only) */}
               <View style={styles.modalField}>
-                <Text style={styles.modalFieldLabel}>Adresse e-mail</Text>
+                <Text style={styles.modalFieldLabel}>{t("admin.settings.profileModal.emailLabel")}</Text>
                 <View
                   style={[styles.modalInputRow, styles.modalInputRowDisabled]}
                 >
@@ -874,7 +873,7 @@ export default function Setting() {
                   </Text>
                 </View>
                 <Text style={styles.modalHint}>
-                  L'e-mail ne peut pas être modifié ici.
+                  {t("admin.settings.profileModal.emailHint")}
                 </Text>
               </View>
 
@@ -896,7 +895,7 @@ export default function Setting() {
                       size={16}
                       color={color.navy}
                     />
-                    <Text style={styles.modalSaveBtnText}>Enregistrer</Text>
+                    <Text style={styles.modalSaveBtnText}>{t("admin.settings.profileModal.submit")}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -906,13 +905,13 @@ export default function Setting() {
         </Modal>
 
         {/* ── Sécurité & gestion ── */}
-        <Section title="Sécurité & gestion">
+        <Section title={t("admin.settings.sectionSecurity")}>
           <SettingItem
             icon="shield-outline"
             iconBg="#FFF3CD"
             iconColor="#F59E0B"
-            label="Journal d'activité"
-            sublabel={`${auditEntries.length} entrées`}
+            label={t("admin.settings.activityLog")}
+            sublabel={`${auditEntries.length} ${t("admin.settings.entries")}`}
             onPress={() => {
               refetchAudit();
               setAuditModalVisible(true);
@@ -922,12 +921,12 @@ export default function Setting() {
         </Section>
 
         {/* ── Déconnexion ── */}
-        <Section title="Compte">
+        <Section title={t("admin.settings.sectionAccount")}>
           <SettingItem
             icon="log-out-outline"
             iconBg={color.redLight}
             iconColor={color.red}
-            label="Se déconnecter"
+            label={t("admin.settings.logout")}
             onPress={logOut}
             loading={logoutPending}
             destructive

@@ -6,9 +6,11 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export default function AdminLayout() {
   const colorScheme = useColorScheme();
+  const { t } = useLanguage();
 
   return (
     <Tabs
@@ -30,7 +32,7 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Home",
+          title: t("admin.tabs.home"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
@@ -39,7 +41,7 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="gestionVideo"
         options={{
-          title: "Vidéos",
+          title: t("admin.tabs.videos"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="play.rectangle.fill" color={color} />
           ),
@@ -48,7 +50,7 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="gestionCours"
         options={{
-          title: "Cours",
+          title: t("admin.tabs.courses"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="book.fill" color={color} />
           ),
@@ -57,7 +59,7 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="gestionParcours"
         options={{
-          title: "Parcours",
+          title: t("admin.tabs.parcours"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="map.fill" color={color} />
           ),
@@ -66,7 +68,7 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="gestionUser"
         options={{
-          title: "Utilisateurs",
+          title: t("admin.tabs.users"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="person.badge.plus.fill" color={color} />
           ),
@@ -75,7 +77,7 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="setting"
         options={{
-          title: "Réglages",
+          title: t("admin.tabs.settings"),
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="gearshape.fill" color={color} />
           ),

@@ -1,19 +1,13 @@
 import { color } from "@/config/color";
 import { VideoCard } from "@/components/VideoCard";
 import VideoModal from "@/components/VideoModal";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/hooks/useLanguage";
 import { useVideos } from "@/hooks/useVideos";
 import { useSaved } from "@/hooks/useSaved";
 import { Feather } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const LEVEL_LABEL: Record<string, string> = {
-  expert: "Expert",
-  intermediate: "Intermédiaire",
-  beginner: "Débutant",
-};
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
@@ -50,6 +44,7 @@ function EmptyState() {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function Favoris() {
+  const { t } = useLanguage();
   const { videos, videoProgress, saveProgress } = useVideos();
   const { isVideoSaved, toggleVideoSave } = useSaved();
 
@@ -67,14 +62,14 @@ export default function Favoris() {
             title: v.title,
             subtitle: v.subtitle ? `${v.subtitle} · ${mins} min` : `${catTitle} · ${mins} min`,
             image: v.image_url ?? "",
-            tag: LEVEL_LABEL[v.tag_type] ?? v.tag_type,
+            tag: t(`common.level.${v.tag_type}`),
             tagType: v.tag_type,
             progress: videoProgress[v.id]?.pct ?? 0,
             bookmarked: true,
             url: v.url,
           };
         }),
-    [videos, isVideoSaved, videoProgress],
+    [videos, isVideoSaved, videoProgress, t],
   );
 
   const handleProgress = useCallback(

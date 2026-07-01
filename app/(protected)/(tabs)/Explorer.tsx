@@ -6,6 +6,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { useParcours } from "@/hooks/useParcours";
 import { useVideos } from "@/hooks/useVideos";
 import { useSaved } from "@/hooks/useSaved";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Category, Parcours, Video } from "@/types";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,6 +27,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const TABS = ["Tout", "Vidéos", "Parcours"] as const;
 type Tab = (typeof TABS)[number];
+const TAB_KEYS: Record<Tab, string> = {
+  Tout: "explorer.tabAll",
+  Vidéos: "explorer.tabVideos",
+  Parcours: "explorer.tabParcours",
+};
 
 const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
   Guitare: ["#0E2B45", "#1A5F9A"],
@@ -36,12 +42,6 @@ const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
   Balafon: ["#5C2E00", "#A0522D"],
 };
 const DEFAULT_GRADIENT: [string, string] = ["#0E2B45", "#1A5F9A"];
-
-const LEVEL_LABEL: Record<string, string> = {
-  expert: "Expert",
-  intermediate: "Intermédiaire",
-  beginner: "Débutant",
-};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,23 +55,30 @@ function formatDuration(seconds: number): string {
 
 // ─── Adapters ─────────────────────────────────────────────────────────────────
 
-function toCategoryTheme(cat: Category, videoCount: number) {
+function toCategoryTheme(
+  cat: Category,
+  videoCount: number,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
   return {
     id: cat.id,
     title: cat.title,
     emoji: cat.emoji,
-    count: `${videoCount} vidéo${videoCount !== 1 ? "s" : ""}`,
+    count: t(
+      videoCount === 1 ? "categorie.themes.videoCount" : "categorie.themes.videoCountPlural",
+      { n: videoCount },
+    ),
     colors: CATEGORY_GRADIENTS[cat.title] ?? DEFAULT_GRADIENT,
   };
 }
 
-function toParcoursItem(p: Parcours) {
+function toParcoursItem(p: Parcours, t: (key: string) => string) {
   return {
     id: p.id,
     title: p.title,
     subtitle: formatDuration(p.total_duration_seconds),
     image: p.cover_image_url ?? "",
-    tag: LEVEL_LABEL[p.tag_type] ?? p.tag_type,
+    tag: t(`common.level.${p.tag_type}`),
     tagType: p.tag_type,
     progress: 0,
     bookmarked: false,
@@ -80,7 +87,7 @@ function toParcoursItem(p: Parcours) {
   };
 }
 
-function toVideoItem(v: Video) {
+function toVideoItem(v: Video, t: (key: string) => string) {
   const catTitle = v.category?.title ?? "";
   const mins = Math.floor(v.duration_seconds / 60);
   return {
@@ -88,7 +95,7 @@ function toVideoItem(v: Video) {
     title: v.title,
     subtitle: v.subtitle ? `${v.subtitle} · ${mins} min` : `${catTitle} · ${mins} min`,
     image: v.image_url ?? "",
-    tag: LEVEL_LABEL[v.tag_type] ?? v.tag_type,
+    tag: t(`common.level.${v.tag_type}`),
     tagType: v.tag_type,
     progress: 0,
     bookmarked: false,
@@ -101,6 +108,7 @@ function toVideoItem(v: Video) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function ExploreScreen() {
+  const { t } = useLanguage();
   const { categories } = useCategories();
   const { parcours } = useParcours();
   const { videos, videoProgress, saveProgress } = useVideos();
@@ -115,15 +123,15 @@ export default function ExploreScreen() {
   const publishedVideos = useMemo(() => videos.filter((v) => v.published), [videos]);
   const themes = useMemo(
     () => categories.map((cat) =>
-      toCategoryTheme(cat, publishedVideos.filter((v) => v.category?.id === cat.id).length)
+      toCategoryTheme(cat, publishedVideos.filter((v) => v.category?.id === cat.id).length, t)
     ),
-    [categories, publishedVideos],
+    [categories, publishedVideos, t],
   );
   const previewThemes = useMemo(() => themes.slice(0, 4), [themes]);
-  const parcoursItems = useMemo(() => parcours.map(toParcoursItem), [parcours]);
+  const parcoursItems = useMemo(() => parcours.map((p) => toParcoursItem(p, t)), [parcours, t]);
   const videoItems = useMemo(
-    () => publishedVideos.map((v) => ({ ...toVideoItem(v), bookmarked: isVideoSaved(v.id) })),
-    [publishedVideos, isVideoSaved],
+    () => publishedVideos.map((v) => ({ ...toVideoItem(v, t), bookmarked: isVideoSaved(v.id) })),
+    [publishedVideos, isVideoSaved, t],
   );
 
   const q = searchQuery.toLowerCase().trim();
@@ -181,9 +189,9 @@ export default function ExploreScreen() {
         {/* ── Header ── */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerEyebrow}>Découvrir</Text>
+            <Text style={styles.headerEyebrow}>{t("explorer.eyebrow")}</Text>
             <Text style={styles.headerTitle}>
-              Explorer <Text style={styles.headerTitleAccent}>la musique</Text>
+              {t("explorer.title")} <Text style={styles.headerTitleAccent}>{t("explorer.titleAccent")}</Text>
             </Text>
           </View>
           <Pressable style={styles.filterBtn} onPress={() => setFilterVisible(true)}>
@@ -197,7 +205,7 @@ export default function ExploreScreen() {
           <View style={styles.searchBox}>
             <Feather name="search" size={17} color={color.softGray} />
             <TextInput
-              placeholder="Instrument, style, artiste…"
+              placeholder={t("explorer.searchPlaceholder")}
               placeholderTextColor={color.softGray}
               style={styles.searchInput}
               value={searchQuery}
@@ -231,7 +239,7 @@ export default function ExploreScreen() {
                   activeTab === tab && styles.tabTextActive,
                 ]}
               >
-                {tab}
+                {t(TAB_KEYS[tab])}
               </Text>
             </Pressable>
           ))}
@@ -245,9 +253,9 @@ export default function ExploreScreen() {
           {hasNoResults ? (
             <View style={styles.emptyState}>
               <Feather name="search" size={36} color={color.softGray} />
-              <Text style={styles.emptyTitle}>Aucun résultat</Text>
+              <Text style={styles.emptyTitle}>{t("explorer.noResults")}</Text>
               <Text style={styles.emptySubtitle}>
-                Essayez un autre instrument ou style
+                {t("explorer.noResultsDesc")}
               </Text>
             </View>
           ) : (
@@ -258,13 +266,13 @@ export default function ExploreScreen() {
                   <View
                     style={[styles.sectionHeader, { paddingHorizontal: 24 }]}
                   >
-                    <Text style={styles.sectionTitle}>Thèmes musicaux</Text>
+                    <Text style={styles.sectionTitle}>{t("explorer.sectionThemes")}</Text>
                     <Pressable
                       onPress={() =>
                         router.navigate("/categorie/allThemes")
                       }
                     >
-                      <Text style={styles.sectionLink}>Voir tout</Text>
+                      <Text style={styles.sectionLink}>{t("common.seeAll")}</Text>
                     </Pressable>
                   </View>
                   <View style={[styles.themeGrid, { paddingHorizontal: 24 }]}>
@@ -289,13 +297,13 @@ export default function ExploreScreen() {
                     { marginTop: 24, paddingHorizontal: 24 },
                   ]}
                 >
-                  <Text style={styles.sectionTitle}>Parcours populaires</Text>
+                  <Text style={styles.sectionTitle}>{t("explorer.sectionParcours")}</Text>
                   <Pressable
                     onPress={() =>
                       router.navigate("/categorie/allParcoursScreen")
                     }
                   >
-                    <Text style={styles.sectionLink}>Voir tout</Text>
+                    <Text style={styles.sectionLink}>{t("common.seeAll")}</Text>
                   </Pressable>
                 </View>
               )}
@@ -316,11 +324,11 @@ export default function ExploreScreen() {
                     { marginTop: 24, paddingHorizontal: 24 },
                   ]}
                 >
-                  <Text style={styles.sectionTitle}>Tendances</Text>
+                  <Text style={styles.sectionTitle}>{t("explorer.sectionTrending")}</Text>
                   <Pressable
                     onPress={() => router.navigate("/categorie/allVideos")}
                   >
-                    <Text style={styles.sectionLink}>Voir tout</Text>
+                    <Text style={styles.sectionLink}>{t("common.seeAll")}</Text>
                   </Pressable>
                 </View>
               )}
@@ -358,13 +366,13 @@ export default function ExploreScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setFilterVisible(false)}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Filtrer par niveau</Text>
+            <Text style={styles.modalTitle}>{t("explorer.filterLevel")}</Text>
 
             {([
-              { label: "Tous les niveaux", value: null },
-              { label: "Débutant", value: "beginner" },
-              { label: "Intermédiaire", value: "intermediate" },
-              { label: "Expert", value: "expert" },
+              { labelKey: "explorer.levelAll", value: null },
+              { labelKey: "common.level.beginner", value: "beginner" },
+              { labelKey: "common.level.intermediate", value: "intermediate" },
+              { labelKey: "common.level.expert", value: "expert" },
             ] as const).map((opt) => (
               <Pressable
                 key={String(opt.value)}
@@ -372,7 +380,7 @@ export default function ExploreScreen() {
                 onPress={() => { setFilterLevel(opt.value); setFilterVisible(false); }}
               >
                 <Text style={[styles.filterOptionText, filterLevel === opt.value && styles.filterOptionTextActive]}>
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </Text>
                 {filterLevel === opt.value && (
                   <Feather name="check" size={16} color={color.deepBlue} />

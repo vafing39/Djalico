@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
 import YoutubeIframe, { YoutubeIframeRef } from "react-native-youtube-iframe";
+import { useLanguage } from "@/hooks/useLanguage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -161,6 +162,7 @@ export default function VideoModal({
   initialTime,
   onProgress,
 }: VideoModalProps) {
+  const { t } = useLanguage();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const videoWidth = width;
@@ -232,7 +234,7 @@ export default function VideoModal({
 
           {!isYouTube && !isNative && videoUrl && (
             <View style={[styles.errorContainer, { width: videoWidth, height: videoHeight }]}>
-              <Text style={styles.errorText}>Format vidéo non supporté</Text>
+              <Text style={styles.errorText}>{t("video.unsupportedFormat")}</Text>
             </View>
           )}
 

@@ -5,6 +5,7 @@ import { CourseContext } from "@/contexts/courseContext";
 import { LessonContext } from "@/contexts/lessonContext";
 import { VideoContext } from "@/contexts/videoContext";
 import { color, LEVELS } from "@/config/adminTheme";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Course, TagType, LessonDraft, Video } from "@/types";
 import ModalHeader from "@/components/admin/ModalHeader";
 import CourseForm from "@/components/admin/CourseForm";
@@ -22,6 +23,7 @@ export default function ModalView({
   const { saveCourse, isSaving } = useContext(CourseContext);
   const { lessons: allLessons, saveLessons, isSavingLessons } = useContext(LessonContext);
   const { videos: rawVideos } = useContext(VideoContext);
+  const { t } = useLanguage();
   const videos = [...rawVideos].sort((a, b) =>
     a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
   );
@@ -101,8 +103,8 @@ export default function ModalView({
   // ── Submit ────────────────────────────────────────────────────────────────────
 
   async function handleSubmit() {
-    if (!title.trim()) { Alert.alert("Champ requis", "Le titre est obligatoire."); return; }
-    if (!instructor.trim()) { Alert.alert("Champ requis", "L'instructeur est obligatoire."); return; }
+    if (!title.trim()) { Alert.alert(t("settings.alert.requiredField"), t("admin.form.titleRequired")); return; }
+    if (!instructor.trim()) { Alert.alert(t("settings.alert.requiredField"), t("admin.modals.course.instructorRequired")); return; }
 
     const totalDurationSeconds =
       (parseInt(durationHours) || 0) * 3600 + (parseInt(durationMin) || 0) * 60;
@@ -122,7 +124,7 @@ export default function ModalView({
       reset();
       onClose();
     } catch (err: unknown) {
-      Alert.alert("Erreur", (err as Error).message);
+      Alert.alert(t("common.error"), (err as Error).message);
     }
   }
 
@@ -145,10 +147,10 @@ export default function ModalView({
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={handleClose}>
       <SafeAreaView style={styles.container}>
         <ModalHeader
-          title={isEdit ? "Modifier le cours" : "Nouveau cours"}
-          subtitle={isEdit ? course!.title : "Remplis les informations du cours"}
+          title={isEdit ? t("admin.modals.course.editTitle") : t("admin.modals.course.addTitle")}
+          subtitle={isEdit ? course!.title : t("admin.modals.course.newSubtitle")}
           isBusy={isSaving || isSavingLessons}
-          submitLabel={isEdit ? "Enregistrer" : "Créer"}
+          submitLabel={isEdit ? t("common.save") : t("admin.form.create")}
           submitIcon={isEdit ? "save-outline" : "checkmark"}
           onClose={handleClose}
           onSubmit={handleSubmit}

@@ -4,18 +4,14 @@ import VideoModal from "@/components/VideoModal";
 import Screen from "@/components/Screen";
 import { useVideos } from "@/hooks/useVideos";
 import { useSaved } from "@/hooks/useSaved";
+import { useLanguage } from "@/hooks/useLanguage";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
-const LEVEL_LABEL: Record<string, string> = {
-  expert: "Expert",
-  intermediate: "Intermédiaire",
-  beginner: "Débutant",
-};
-
 function Header({ count }: { count: number }) {
+  const { t } = useLanguage();
   return (
     <View style={styles.headerWrap}>
       <Pressable style={styles.backBtn} onPress={() => router.back()}>
@@ -23,8 +19,8 @@ function Header({ count }: { count: number }) {
       </Pressable>
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerEyebrow}>Bibliothèque</Text>
-          <Text style={styles.headerTitle}>Toutes les vidéos</Text>
+          <Text style={styles.headerEyebrow}>{t("categorie.library")}</Text>
+          <Text style={styles.headerTitle}>{t("categorie.allVideos")}</Text>
         </View>
         <View style={styles.headerCount}>
           <Text style={styles.headerCountText}>{count}</Text>
@@ -37,6 +33,7 @@ function Header({ count }: { count: number }) {
 export default function AllVideos() {
   const { videos, videoProgress, saveProgress } = useVideos();
   const { isVideoSaved, toggleVideoSave } = useSaved();
+  const { t } = useLanguage();
 
   const [selectedVideo, setSelectedVideo] = useState<{ id: string; url: string; title: string } | null>(null);
 
@@ -52,14 +49,14 @@ export default function AllVideos() {
           title: v.title,
           subtitle: v.subtitle ? `${v.subtitle} · ${mins} min` : `${catTitle} · ${mins} min`,
           image: v.image_url ?? "",
-          tag: LEVEL_LABEL[v.tag_type] ?? v.tag_type,
+          tag: t(`common.level.${v.tag_type}`),
           tagType: v.tag_type,
           progress: videoProgress[v.id]?.pct ?? 0,
           bookmarked: isVideoSaved(v.id),
           url: v.url,
         };
       }),
-    [publishedVideos, videoProgress, isVideoSaved],
+    [publishedVideos, videoProgress, isVideoSaved, t],
   );
 
   const handleProgress = useCallback(

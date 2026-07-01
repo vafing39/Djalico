@@ -20,7 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/hooks/useLanguage";
 
 const C = {
   navy: "#103149",
@@ -38,19 +38,9 @@ const C = {
   paleBlue: "#F3F8FB",
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  eleve: "Élève",
-  professeur: "Professeur",
-  admin: "Administrateur",
-};
-
 const LANGUAGES = [
   { code: "fr", name: "Français", flag: "🇫🇷" },
   { code: "en", name: "English", flag: "🇺🇸" },
-  { code: "es", name: "Español", flag: "🇪🇸" },
-  { code: "de", name: "Deutsch", flag: "🇩🇪" },
-  { code: "it", name: "Italiano", flag: "🇮🇹" },
-  { code: "pt", name: "Português", flag: "🇵🇹" },
 ] as const;
 
 // ─── Setting row ──────────────────────────────────────────────────────────────
@@ -137,7 +127,7 @@ function Section({
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const {
     profile,
     logOut,
@@ -178,8 +168,8 @@ export default function ProfileScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
-        "Permission refusée",
-        "L'accès à la galerie est nécessaire pour changer la photo.",
+        t("settings.alert.permissionDenied"),
+        t("settings.alert.galleryAccess"),
       );
       return;
     }
@@ -193,52 +183,52 @@ export default function ProfileScreen() {
     try {
       await uploadAvatar(result.assets[0].uri);
     } catch (err: any) {
-      Alert.alert("Erreur", err?.message ?? "Impossible de mettre à jour la photo.");
+      Alert.alert(t("common.error"), err?.message ?? t("settings.alert.cannotUpdatePhoto"));
     }
   }
 
   async function handleChangeEmail() {
     const trimmed = newEmail.trim().toLowerCase();
     if (!trimmed) {
-      Alert.alert("Champ requis", "Veuillez saisir une adresse e-mail.");
+      Alert.alert(t("settings.alert.requiredField"), t("settings.alert.enterEmail"));
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmed)) {
-      Alert.alert("Adresse invalide", "Veuillez saisir une adresse e-mail valide.");
+      Alert.alert(t("settings.alert.invalidAddress"), t("settings.alert.enterValidEmail"));
       return;
     }
     if (trimmed === profile?.email) {
-      Alert.alert("Identique", "Cette adresse est déjà votre e-mail actuel.");
+      Alert.alert(t("settings.alert.sameEmail"), t("settings.alert.alreadyCurrentEmail"));
       return;
     }
     try {
       await updateEmail(trimmed);
       closeEmailModal();
       Alert.alert(
-        "E-mail envoyé",
-        `Un lien de confirmation a été envoyé à ${trimmed}. Vérifiez votre boîte de réception pour finaliser le changement.`,
+        t("settings.alert.emailSentTitle"),
+        t("settings.alert.emailSentBody", { email: trimmed }),
       );
     } catch (err: any) {
-      Alert.alert("Erreur", err?.message ?? "Impossible de changer l'e-mail.");
+      Alert.alert(t("common.error"), err?.message ?? t("settings.alert.cannotChangeEmail"));
     }
   }
 
   async function handleChangePassword() {
     if (newPassword.length < 6) {
-      Alert.alert("Mot de passe trop court", "Le mot de passe doit contenir au moins 6 caractères.");
+      Alert.alert(t("settings.alert.passwordTooShort"), t("settings.alert.passwordMinLength"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert("Erreur", "Les mots de passe ne correspondent pas.");
+      Alert.alert(t("common.error"), t("settings.alert.passwordMismatch"));
       return;
     }
     try {
       await updatePassword(newPassword);
       closePasswordModal();
-      Alert.alert("Succès", "Votre mot de passe a été modifié.");
+      Alert.alert(t("settings.alert.passwordChangedTitle"), t("settings.alert.passwordChangedBody"));
     } catch (err: any) {
-      Alert.alert("Erreur", err?.message ?? "Impossible de modifier le mot de passe.");
+      Alert.alert(t("common.error"), err?.message ?? t("settings.alert.cannotUpdatePassword"));
     }
   }
 
@@ -251,8 +241,8 @@ export default function ProfileScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <Text style={styles.headerEyebrow}>Mon compte</Text>
-        <Text style={styles.headerTitle}>Profil</Text>
+        <Text style={styles.headerEyebrow}>{t("settings.eyebrow")}</Text>
+        <Text style={styles.headerTitle}>{t("settings.title")}</Text>
 
         <View style={styles.profileCard}>
           {profile?.avatar_url ? (
@@ -267,7 +257,7 @@ export default function ProfileScreen() {
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{profile?.name ?? "—"}</Text>
             <Text style={styles.profileRole}>
-              {profile?.role ? (ROLE_LABELS[profile.role] ?? profile.role) : "—"}
+              {profile?.role ? t(`settings.role.${profile.role}`) : "—"}
             </Text>
             <Text style={styles.profileEmail}>{profile?.email ?? "—"}</Text>
           </View>
@@ -290,19 +280,19 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* ── Profil ── */}
-        <Section title="Profil">
+        <Section title={t("settings.sectionProfile")}>
           <SettingItem
             icon="person-outline"
             iconBg="#E9F2FF"
             iconColor="#1E88E5"
-            label="Modifier le profil"
+            label={t("settings.editProfile")}
             onPress={() => router.push("/(protected)/(tabs)/settings/editProfile")}
           />
           <SettingItem
             icon="mail-outline"
             iconBg="#FFF3CD"
             iconColor="#F59E0B"
-            label="Changer l'e-mail"
+            label={t("settings.changeEmail")}
             sublabel={profile?.email}
             onPress={() => setEmailModalVisible(true)}
           />
@@ -310,19 +300,19 @@ export default function ProfileScreen() {
             icon="lock-closed-outline"
             iconBg="#F3E8FF"
             iconColor="#9333EA"
-            label="Modifier le mot de passe"
+            label={t("settings.changePassword")}
             onPress={() => setPasswordModalVisible(true)}
             isLast
           />
         </Section>
 
         {/* ── Préférences ── */}
-        <Section title="Préférences">
+        <Section title={t("settings.sectionPreferences")}>
           <SettingItem
             icon="language-outline"
             iconBg="#E9F2FF"
             iconColor="#1E88E5"
-            label="Langue"
+            label={t("settings.language")}
             sublabel={`${currentLang.flag}  ${currentLang.name}`}
             onPress={() => router.push("/(protected)/(tabs)/settings/language")}
             isLast
@@ -346,10 +336,10 @@ export default function ProfileScreen() {
             >
               <Pressable style={styles.modalSheet} onPress={() => {}}>
                 <View style={styles.modalHandle} />
-                <Text style={styles.modalTitle}>Changer l'e-mail</Text>
+                <Text style={styles.modalTitle}>{t("settings.emailModal.title")}</Text>
 
                 <View style={styles.modalField}>
-                  <Text style={styles.modalFieldLabel}>E-mail actuel</Text>
+                  <Text style={styles.modalFieldLabel}>{t("settings.emailModal.currentLabel")}</Text>
                   <View style={[styles.modalInputRow, styles.modalInputRowDisabled]}>
                     <Ionicons name="mail-outline" size={16} color={C.softGray} />
                     <Text style={styles.modalInputDisabled}>{profile?.email ?? "—"}</Text>
@@ -357,14 +347,14 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={styles.modalField}>
-                  <Text style={styles.modalFieldLabel}>Nouvel e-mail</Text>
+                  <Text style={styles.modalFieldLabel}>{t("settings.emailModal.newLabel")}</Text>
                   <View style={styles.modalInputRow}>
                     <Ionicons name="mail-outline" size={16} color={C.textMuted} />
                     <TextInput
                       style={styles.modalInput}
                       value={newEmail}
                       onChangeText={setNewEmail}
-                      placeholder="nouvelle@adresse.com"
+                      placeholder={t("settings.emailModal.newPlaceholder")}
                       placeholderTextColor={C.textMuted}
                       keyboardType="email-address"
                       autoCapitalize="none"
@@ -372,7 +362,7 @@ export default function ProfileScreen() {
                     />
                   </View>
                   <Text style={styles.modalHint}>
-                    Un lien de confirmation sera envoyé à cette adresse.
+                    {t("settings.emailModal.hint")}
                   </Text>
                 </View>
 
@@ -386,7 +376,7 @@ export default function ProfileScreen() {
                   ) : (
                     <>
                       <Ionicons name="send-outline" size={16} color={C.navy} />
-                      <Text style={styles.modalSaveBtnText}>Envoyer le lien</Text>
+                      <Text style={styles.modalSaveBtnText}>{t("settings.emailModal.submit")}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -412,17 +402,17 @@ export default function ProfileScreen() {
             >
               <Pressable style={styles.modalSheet} onPress={() => {}}>
                 <View style={styles.modalHandle} />
-                <Text style={styles.modalTitle}>Modifier le mot de passe</Text>
+                <Text style={styles.modalTitle}>{t("settings.passwordModal.title")}</Text>
 
                 <View style={styles.modalField}>
-                  <Text style={styles.modalFieldLabel}>Nouveau mot de passe</Text>
+                  <Text style={styles.modalFieldLabel}>{t("settings.passwordModal.newLabel")}</Text>
                   <View style={styles.modalInputRow}>
                     <Ionicons name="lock-closed-outline" size={16} color={C.textMuted} />
                     <TextInput
                       style={styles.modalInput}
                       value={newPassword}
                       onChangeText={setNewPassword}
-                      placeholder="6 caractères minimum"
+                      placeholder={t("settings.passwordModal.newPlaceholder")}
                       placeholderTextColor={C.textMuted}
                       secureTextEntry={!showNewPassword}
                       autoFocus
@@ -438,7 +428,7 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={styles.modalField}>
-                  <Text style={styles.modalFieldLabel}>Confirmer le mot de passe</Text>
+                  <Text style={styles.modalFieldLabel}>{t("settings.passwordModal.confirmLabel")}</Text>
                   <View
                     style={[
                       styles.modalInputRow,
@@ -452,7 +442,7 @@ export default function ProfileScreen() {
                       style={styles.modalInput}
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
-                      placeholder="Répétez le mot de passe"
+                      placeholder={t("settings.passwordModal.confirmPlaceholder")}
                       placeholderTextColor={C.textMuted}
                       secureTextEntry={!showConfirmPassword}
                     />
@@ -466,7 +456,7 @@ export default function ProfileScreen() {
                   </View>
                   {confirmPassword.length > 0 && newPassword !== confirmPassword && (
                     <Text style={styles.modalError}>
-                      Les mots de passe ne correspondent pas.
+                      {t("settings.passwordModal.mismatch")}
                     </Text>
                   )}
                 </View>
@@ -481,7 +471,7 @@ export default function ProfileScreen() {
                   ) : (
                     <>
                       <Ionicons name="checkmark-circle-outline" size={16} color={C.navy} />
-                      <Text style={styles.modalSaveBtnText}>Modifier</Text>
+                      <Text style={styles.modalSaveBtnText}>{t("settings.passwordModal.submit")}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -491,12 +481,12 @@ export default function ProfileScreen() {
         </Modal>
 
         {/* ── Légal ── */}
-        <Section title="Légal">
+        <Section title={t("settings.sectionLegal")}>
           <SettingItem
             icon="document-text-outline"
             iconBg="#E9F2FF"
             iconColor="#1E88E5"
-            label="Mentions légales"
+            label={t("settings.mentions")}
             onPress={() =>
               router.push({
                 pathname: "/(protected)/(tabs)/settings/legal",
@@ -508,7 +498,7 @@ export default function ProfileScreen() {
             icon="reader-outline"
             iconBg="#FFF3CD"
             iconColor="#F59E0B"
-            label="Conditions générales d'utilisation"
+            label={t("settings.cgu")}
             onPress={() =>
               router.push({
                 pathname: "/(protected)/(tabs)/settings/legal",
@@ -520,7 +510,7 @@ export default function ProfileScreen() {
             icon="shield-checkmark-outline"
             iconBg="#DCFCE7"
             iconColor="#22C55E"
-            label="Politique de confidentialité"
+            label={t("settings.privacy")}
             onPress={() =>
               router.push({
                 pathname: "/(protected)/(tabs)/settings/legal",
@@ -532,7 +522,7 @@ export default function ProfileScreen() {
             icon="cookie-outline"
             iconBg="#FEF3C7"
             iconColor="#D97706"
-            label="Politique de cookies"
+            label={t("settings.cookies")}
             onPress={() =>
               router.push({
                 pathname: "/(protected)/(tabs)/settings/legal",
@@ -544,12 +534,12 @@ export default function ProfileScreen() {
         </Section>
 
         {/* ── Compte ── */}
-        <Section title="Compte">
+        <Section title={t("settings.sectionAccount")}>
           <SettingItem
             icon="log-out-outline"
             iconBg={C.redLight}
             iconColor={C.red}
-            label="Se déconnecter"
+            label={t("settings.logout")}
             onPress={logOut}
             loading={logoutPending}
             destructive

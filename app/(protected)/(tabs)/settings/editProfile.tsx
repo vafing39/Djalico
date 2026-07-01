@@ -1,4 +1,5 @@
 import { AuthContext } from "@/contexts/authContext";
+import { useLanguage } from "@/hooks/useLanguage";
 import { useRouter } from "expo-router";
 import { Camera, ChevronLeft, Mail, Save, User } from "lucide-react-native";
 import React, { useContext, useEffect, useState } from "react";
@@ -30,15 +31,10 @@ const COLORS = {
   red: "#EF4444",
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  eleve: "Élève",
-  professeur: "Professeur",
-  admin: "Administrateur",
-};
-
 export default function EditProfileScreen() {
   const router = useRouter();
   const { profile, updateProfile, updateProfilePending } = useContext(AuthContext);
+  const { t } = useLanguage();
 
   const [name, setName] = useState("");
 
@@ -51,14 +47,14 @@ export default function EditProfileScreen() {
   async function handleSave() {
     const trimmed = name.trim();
     if (!trimmed) {
-      Alert.alert("Champ requis", "Le nom ne peut pas être vide.");
+      Alert.alert(t("settings.alert.requiredField"), t("admin.settings.profileModal.requiredName"));
       return;
     }
     try {
       await updateProfile({ name: trimmed });
       router.back();
     } catch (err: any) {
-      Alert.alert("Erreur", err?.message ?? "Impossible de mettre à jour le profil.");
+      Alert.alert(t("common.error"), err?.message ?? t("admin.settings.profileModal.cannotUpdate"));
     }
   }
 
@@ -69,7 +65,7 @@ export default function EditProfileScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <ChevronLeft size={20} color={COLORS.navy} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Modifier le profil</Text>
+        <Text style={styles.headerTitle}>{t("admin.settings.profileModal.title")}</Text>
         <TouchableOpacity
           style={[styles.saveBtn, updateProfilePending && styles.saveBtnDisabled]}
           onPress={handleSave}
@@ -80,7 +76,7 @@ export default function EditProfileScreen() {
           ) : (
             <>
               <Save size={15} color={COLORS.navy} />
-              <Text style={styles.saveBtnText}>Enregistrer</Text>
+              <Text style={styles.saveBtnText}>{t("admin.settings.profileModal.submit")}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -106,7 +102,7 @@ export default function EditProfileScreen() {
           <View style={styles.roleBadgeWrapper}>
             <View style={styles.roleBadge}>
               <Text style={styles.roleBadgeText}>
-                {ROLE_LABELS[profile.role] ?? profile.role}
+                {t(`settings.role.${profile.role}`)}
               </Text>
             </View>
           </View>
@@ -115,14 +111,14 @@ export default function EditProfileScreen() {
         {/* Form */}
         <View style={styles.form}>
           <View style={styles.field}>
-            <Text style={styles.label}>Nom complet</Text>
+            <Text style={styles.label}>{t("admin.settings.profileModal.fullName")}</Text>
             <View style={styles.inputRow}>
               <User size={16} color={COLORS.textMuted} />
               <TextInput
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
-                placeholder="Votre nom"
+                placeholder={t("admin.settings.profileModal.namePlaceholder")}
                 placeholderTextColor={COLORS.textMuted}
                 autoCapitalize="words"
               />
@@ -130,12 +126,12 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Adresse e-mail</Text>
+            <Text style={styles.label}>{t("admin.settings.profileModal.emailLabel")}</Text>
             <View style={[styles.inputRow, styles.inputRowDisabled]}>
               <Mail size={16} color={COLORS.softGray} />
               <Text style={styles.inputDisabled}>{profile?.email ?? ""}</Text>
             </View>
-            <Text style={styles.hint}>L'e-mail ne peut pas être modifié ici.</Text>
+            <Text style={styles.hint}>{t("admin.settings.profileModal.emailHint")}</Text>
           </View>
         </View>
       </ScrollView>

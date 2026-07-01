@@ -7,6 +7,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { useParcours } from "@/hooks/useParcours";
 import { useVideos } from "@/hooks/useVideos";
 import { useSaved } from "@/hooks/useSaved";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { Category, Parcours } from "@/types";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -39,12 +40,6 @@ const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
 };
 const DEFAULT_GRADIENT: [string, string] = ["#0E2B45", "#1A5F9A"];
 
-const LEVEL_LABEL: Record<string, string> = {
-  expert: "Expert",
-  intermediate: "Intermédiaire",
-  beginner: "Débutant",
-};
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDuration(seconds: number): string {
@@ -55,21 +50,21 @@ function formatDuration(seconds: number): string {
   return `${m} min`;
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (key: string, params?: Record<string, string | number>) => string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "à l'instant";
-  if (mins < 60) return `il y a ${mins} min`;
+  if (mins < 1) return t("home.timeAgo.now");
+  if (mins < 60) return t("home.timeAgo.minutes", { n: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `il y a ${hours}h`;
+  if (hours < 24) return t("home.timeAgo.hours", { n: hours });
   const days = Math.floor(hours / 24);
-  if (days === 1) return "hier";
-  return `il y a ${days}j`;
+  if (days === 1) return t("home.timeAgo.yesterday");
+  return t("home.timeAgo.days", { n: days });
 }
 
 // ─── Adapters ─────────────────────────────────────────────────────────────────
 
-function toFeaturedItem(p: Parcours) {
+function toFeaturedItem(p: Parcours, t: (key: string) => string) {
   const catTitle = p.category?.title ?? "";
   const [gradientStart, gradientEnd] =
     CATEGORY_GRADIENTS[catTitle] ?? DEFAULT_GRADIENT;
@@ -77,7 +72,7 @@ function toFeaturedItem(p: Parcours) {
     id: p.id,
     title: p.title,
     subtitle: formatDuration(p.total_duration_seconds),
-    badge: LEVEL_LABEL[p.tag_type] ?? p.tag_type,
+    badge: t(`common.level.${p.tag_type}`),
     badgeLight: true,
     gradientStart,
     gradientEnd,
@@ -98,6 +93,7 @@ type SelectedVideo = {
 };
 
 export default function HomeScreen() {
+  const { t } = useLanguage();
   const { profile } = useAuth();
   const { videoProgress, saveProgress } = useVideos();
   const { isVideoSaved, toggleVideoSave } = useSaved();
@@ -132,7 +128,7 @@ export default function HomeScreen() {
         title: v.title,
         subtitle: v.subtitle ? `${v.subtitle} · ${mins} min` : `${catTitle} · ${mins} min`,
         image: v.image_url ?? "",
-        tag: LEVEL_LABEL[v.tag_type] ?? v.tag_type,
+        tag: t(`common.level.${v.tag_type}`),
         tagType: v.tag_type,
         progress: 0,
         bookmarked: isVideoSaved(v.id),
@@ -141,7 +137,7 @@ export default function HomeScreen() {
         url: v.url,
       };
     }),
-    [rawVideos, isVideoSaved],
+    [rawVideos, isVideoSaved, t],
   );
 
   // ── Derived data ──
@@ -150,8 +146,8 @@ export default function HomeScreen() {
     [rawCategories],
   );
   const featuredItems = useMemo(
-    () => rawParcours.map(toFeaturedItem),
-    [rawParcours],
+    () => rawParcours.map((p) => toFeaturedItem(p, t)),
+    [rawParcours, t],
   );
   const q = searchQuery.toLowerCase().trim();
 
@@ -268,7 +264,7 @@ export default function HomeScreen() {
                 </View>
               )}
               <View style={{ marginLeft: 10 }}>
-                <Text style={styles.greetingSmall}>Bonjour 👋</Text>
+                <Text style={styles.greetingSmall}>{t("home.greeting")}</Text>
                 <Text style={styles.greetingName}>{userName}</Text>
               </View>
             </View>
@@ -277,21 +273,21 @@ export default function HomeScreen() {
               <View style={styles.expertBadge}>
                 <AntDesign name="star" size={12} color={color.deepBlue} />
                 <Text style={styles.expertText}>
-                  {LEVEL_LABEL[userLevel] ?? userLevel}
+                  {t(`common.level.${userLevel}`)}
                 </Text>
               </View>
             )}
           </View>
 
           <Animated.Text style={[styles.headline, { opacity: titleOpacity }]}>
-            Transforme tes instants en{" "}
-            <Text style={styles.headlineAccent}>mélodie</Text>
+            {t("home.headline")}{" "}
+            <Text style={styles.headlineAccent}>{t("home.headlineAccent")}</Text>
           </Animated.Text>
 
           <View style={styles.searchBox}>
             <Feather name="search" size={18} color={color.softGray} />
             <TextInput
-              placeholder="Instrument, vidéo, cours…"
+              placeholder={t("home.searchPlaceholder")}
               placeholderTextColor={color.softGray}
               style={styles.searchInput}
               value={searchQuery}
@@ -319,9 +315,9 @@ export default function HomeScreen() {
         >
           {/* Categories */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Instruments</Text>
+            <Text style={styles.sectionTitle}>{t("home.sectionInstruments")}</Text>
             <Pressable onPress={() => router.navigate("/Explorer")}>
-              <Text style={styles.sectionLink}>Voir tout</Text>
+              <Text style={styles.sectionLink}>{t("common.seeAll")}</Text>
             </Pressable>
           </View>
 
@@ -342,7 +338,7 @@ export default function HomeScreen() {
                   <Text
                     style={[styles.pillText, active && styles.pillTextActive]}
                   >
-                    {c.title}
+                    {c.id === "0" ? t("common.all") : c.title}
                   </Text>
                 </Pressable>
               );
@@ -353,7 +349,7 @@ export default function HomeScreen() {
           {inProgressVideos.length > 0 && (
             <>
               <View style={[styles.sectionHeader, { marginTop: 28 }]}>
-                <Text style={styles.sectionTitle}>Reprendre</Text>
+                <Text style={styles.sectionTitle}>{t("home.sectionResume")}</Text>
               </View>
               <ScrollView
                 horizontal
@@ -404,7 +400,7 @@ export default function HomeScreen() {
                         </View>
                         <Text style={styles.resumeMeta}>
                           {Math.round(prog.pct * 100)}% ·{" "}
-                          {timeAgo(prog.updatedAt)}
+                          {timeAgo(prog.updatedAt, t)}
                         </Text>
                       </View>
                     </Pressable>
@@ -416,13 +412,13 @@ export default function HomeScreen() {
 
           {/* Featured parcours */}
           <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-            <Text style={styles.sectionTitle}>À la une</Text>
+            <Text style={styles.sectionTitle}>{t("home.sectionFeatured")}</Text>
             <TouchableOpacity
               onPress={() =>
                 router.navigate({ pathname: "/categorie/allParcoursScreen" })
               }
             >
-              <Text style={styles.sectionLink}>Tous les parcours</Text>
+              <Text style={styles.sectionLink}>{t("home.sectionAllParcours")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -449,9 +445,9 @@ export default function HomeScreen() {
 
           {/* Top Videos */}
           <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-            <Text style={styles.sectionTitle}>Top Vidéos</Text>
+            <Text style={styles.sectionTitle}>{t("home.sectionTopVideos")}</Text>
             <Pressable onPress={() => router.navigate("/categorie/allVideos")}>
-              <Text style={styles.sectionLink}>Voir tout</Text>
+              <Text style={styles.sectionLink}>{t("common.seeAll")}</Text>
             </Pressable>
           </View>
 
@@ -467,9 +463,9 @@ export default function HomeScreen() {
           {hasNoResults && (
             <View style={styles.emptyState}>
               <Feather name="search" size={36} color={color.softGray} />
-              <Text style={styles.emptyTitle}>Aucun résultat</Text>
+              <Text style={styles.emptyTitle}>{t("home.noResults")}</Text>
               <Text style={styles.emptySubtitle}>
-                Essayez un autre terme ou changez d&apos;instrument
+                {t("home.noResultsDesc")}
               </Text>
             </View>
           )}

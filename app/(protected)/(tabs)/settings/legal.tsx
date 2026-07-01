@@ -1,6 +1,8 @@
 import { LEGAL_CONTENT } from "@/constants/legalContent";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
@@ -10,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const C = {
   navy: "#103149",
@@ -29,22 +31,29 @@ const C = {
 
 export default function LegalScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const { type } = useLocalSearchParams<{ type: string }>();
   const content = LEGAL_CONTENT[type ?? "mentions"] ?? LEGAL_CONTENT.mentions;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
+      <StatusBar style="light" />
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={[C.navyDeep, C.navy]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 14 }]}
+      >
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color={C.navy} />
+          <Ionicons name="chevron-back" size={20} color={C.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {content.heading}
         </Text>
         <View style={styles.backBtn} />
-      </View>
+      </LinearGradient>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -82,15 +91,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: C.white,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
   },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: C.bg,
+    backgroundColor: "rgba(255,255,255,0.12)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -99,7 +105,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 17,
     fontWeight: "700",
-    color: C.navy,
+    color: C.white,
     marginHorizontal: 8,
   },
 

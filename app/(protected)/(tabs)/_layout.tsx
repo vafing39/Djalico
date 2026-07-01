@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, usePathname } from "expo-router";
 import React from "react";
 import { Platform } from "react-native";
 
@@ -18,8 +18,23 @@ const COLORS = {
   softGray: "#9AA6B2",
 };
 
+const TAB_BAR_STYLE = Platform.select({
+  ios: {
+    // Use a transparent background on iOS to show the blur effect
+    position: "absolute" as const,
+    backgroundColor: "transparent",
+  },
+  default: {},
+});
+
+// Settings sub-screens that should render full-screen, without the tab bar
+const SETTINGS_SUBSCREENS = ["/settings/language", "/settings/editProfile", "/settings/legal"];
+
 export default function TabLayout() {
   const { t } = useLanguage();
+  const pathname = usePathname();
+  const hideTabBar = SETTINGS_SUBSCREENS.some((route) => pathname.startsWith(route));
+
   return (
     <Tabs
       screenOptions={{
@@ -27,14 +42,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: "absolute",
-            backgroundColor: "transparent",
-          },
-          default: {},
-        }),
+        tabBarStyle: hideTabBar ? { display: "none" } : TAB_BAR_STYLE,
       }}
     >
       <Tabs.Screen

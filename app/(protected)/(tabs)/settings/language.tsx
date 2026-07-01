@@ -1,16 +1,37 @@
-import { useLanguage } from '@/hooks/useLanguage';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Check, Globe } from 'lucide-react-native';
-import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { color } from "@/config/color";
+import { useLanguage } from "@/hooks/useLanguage";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
+import { ChevronLeft, Check, Globe } from "lucide-react-native";
+import React from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
+const C = {
+  ...color,
+  white: "#FFFFFF",
+  navyDeep: "#0A1E2E",
+  card: "#FFFFFF",
+  border: "#E5EDF4",
+  textPrimary: "#0E2B45",
+  textMuted: "#6B7280",
+};
 
 export default function LanguageSettings() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { language: currentLanguage, setLanguage, t } = useLanguage();
 
   const languages = [
-    { code: 'fr', name: 'Français', flag: '🇫🇷' },
-    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: "fr", name: "Français", flag: "🇫🇷" },
+    { code: "en", name: "English", flag: "🇺🇸" },
   ];
 
   const selectLanguage = (languageCode: string) => {
@@ -18,20 +39,26 @@ export default function LanguageSettings() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
+      <StatusBar style="light" />
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
+      <LinearGradient
+        colors={[C.navyDeep, C.navy]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 16 }]}
+      >
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <ArrowLeft size={24} color="#111827" />
+          <ChevronLeft size={20} color={C.white} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>{t('settings.language.title')}</Text>
-          <Text style={styles.subtitle}>{t('settings.language.subtitle')}</Text>
+          <Text style={styles.title}>{t("settings.language.title")}</Text>
+          <Text style={styles.subtitle}>{t("settings.language.subtitle")}</Text>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
@@ -41,21 +68,25 @@ export default function LanguageSettings() {
                 key={language.code}
                 style={[
                   styles.languageItem,
-                  currentLanguage === language.code && styles.selectedLanguageItem
+                  currentLanguage === language.code &&
+                    styles.selectedLanguageItem,
                 ]}
                 onPress={() => selectLanguage(language.code)}
               >
                 <View style={styles.languageInfo}>
                   <Text style={styles.languageFlag}>{language.flag}</Text>
-                  <Text style={[
-                    styles.languageName,
-                    currentLanguage === language.code && styles.selectedLanguageName
-                  ]}>
+                  <Text
+                    style={[
+                      styles.languageName,
+                      currentLanguage === language.code &&
+                        styles.selectedLanguageName,
+                    ]}
+                  >
                     {language.name}
                   </Text>
                 </View>
                 {currentLanguage === language.code && (
-                  <Check size={20} color="#6B73FF" />
+                  <Check size={20} color={C.navy} />
                 )}
               </TouchableOpacity>
             ))}
@@ -65,10 +96,12 @@ export default function LanguageSettings() {
         {/* Info */}
         <View style={styles.infoSection}>
           <View style={styles.infoCard}>
-            <Globe size={24} color="#6B73FF" />
-            <Text style={styles.infoTitle}>{t('settings.language.changeTitle')}</Text>
+            <Globe size={24} color={C.yellowDark} />
+            <Text style={styles.infoTitle}>
+              {t("settings.language.changeTitle")}
+            </Text>
             <Text style={styles.infoText}>
-              {t('settings.language.changeDesc')}
+              {t("settings.language.changeDesc")}
             </Text>
           </View>
         </View>
@@ -82,59 +115,67 @@ export default function LanguageSettings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFBFC',
+    backgroundColor: C.bgGradientTop,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+    gap: 12,
   },
   backButton: {
-    marginRight: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerContent: {
     flex: 1,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 17,
+    fontWeight: "700",
+    color: C.white,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#4B5563',
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
     marginTop: 2,
   },
   section: {
     paddingHorizontal: 20,
+    marginTop: 24,
     marginBottom: 24,
   },
   languagesList: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    shadowColor: '#000',
+    backgroundColor: C.card,
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   languageItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: C.border,
   },
   selectedLanguageItem: {
-    backgroundColor: '#F0F1FF',
+    backgroundColor: color.yellowDark,
   },
   languageInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   languageFlag: {
@@ -143,33 +184,33 @@ const styles = StyleSheet.create({
   },
   languageName: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#111827',
+    fontWeight: "500",
+    color: C.textPrimary,
   },
   selectedLanguageName: {
-    fontWeight: '600',
-    color: '#6B73FF',
+    fontWeight: "700",
+    color: C.navy,
   },
   infoSection: {
     paddingHorizontal: 20,
   },
   infoCard: {
-    backgroundColor: '#F0F1FF',
+    backgroundColor: C.deepBlue,
     padding: 20,
     borderRadius: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   infoTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#4F46E5',
+    fontWeight: "700",
+    color: C.white,
     marginTop: 12,
     marginBottom: 8,
   },
   infoText: {
     fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
     lineHeight: 20,
   },
   bottomSpace: {

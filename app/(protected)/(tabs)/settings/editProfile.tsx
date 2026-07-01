@@ -1,5 +1,6 @@
 import { AuthContext } from "@/contexts/authContext";
 import { useLanguage } from "@/hooks/useLanguage";
+import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Camera, ChevronLeft, Mail, Save, User } from "lucide-react-native";
 import React, { useContext, useEffect, useState } from "react";
@@ -7,7 +8,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const COLORS = {
   deepBlue: "#0E2B45",
@@ -33,6 +34,7 @@ const COLORS = {
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { profile, updateProfile, updateProfilePending } = useContext(AuthContext);
   const { t } = useLanguage();
 
@@ -59,11 +61,12 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
+      <StatusBar style="light" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <ChevronLeft size={20} color={COLORS.navy} />
+          <ChevronLeft size={20} color={COLORS.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t("admin.settings.profileModal.title")}</Text>
         <TouchableOpacity
@@ -150,16 +153,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 14,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.deepBlue,
     gap: 12,
   },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.paleBlue,
+    backgroundColor: "rgba(255,255,255,0.12)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -167,7 +168,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 17,
     fontWeight: "700",
-    color: COLORS.navy,
+    color: COLORS.white,
     textAlign: "center",
   },
   saveBtn: {

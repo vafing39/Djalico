@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -19,7 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/hooks/useAuth";
 import { color } from "@/config/adminTheme";
@@ -222,6 +223,7 @@ const LANGUAGES = [
 
 export default function Setting() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [langModalVisible, setLangModalVisible] = useState(false);
@@ -373,13 +375,14 @@ export default function Setting() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
+      <StatusBar style="light" />
       {/* ── Header ── */}
       <LinearGradient
         colors={[color.navyDeep, color.navy]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 16 }]}
       >
         <Text style={styles.headerEyebrow}>{t("admin.settings.eyebrow")}</Text>
         <Text style={styles.headerTitle}>{t("admin.settings.title")}</Text>

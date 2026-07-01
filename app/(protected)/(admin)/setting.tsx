@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -220,6 +221,7 @@ const LANGUAGES = [
 ] as const;
 
 export default function Setting() {
+  const router = useRouter();
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [langModalVisible, setLangModalVisible] = useState(false);
@@ -444,6 +446,59 @@ export default function Setting() {
             iconColor="#9333EA"
             label={t("admin.settings.changePassword")}
             onPress={() => setPasswordModalVisible(true)}
+            isLast
+          />
+        </Section>
+
+        {/* ── Légal ── */}
+        <Section title={t("settings.sectionLegal")}>
+          <SettingItem
+            icon="document-text-outline"
+            iconBg="#E9F2FF"
+            iconColor="#1E88E5"
+            label={t("settings.mentions")}
+            onPress={() =>
+              router.push({
+                pathname: "/(protected)/(tabs)/settings/legal",
+                params: { type: "mentions" },
+              })
+            }
+          />
+          <SettingItem
+            icon="reader-outline"
+            iconBg="#FFF3CD"
+            iconColor="#F59E0B"
+            label={t("settings.cgu")}
+            onPress={() =>
+              router.push({
+                pathname: "/(protected)/(tabs)/settings/legal",
+                params: { type: "cgu" },
+              })
+            }
+          />
+          <SettingItem
+            icon="shield-checkmark-outline"
+            iconBg="#DCFCE7"
+            iconColor="#22C55E"
+            label={t("settings.privacy")}
+            onPress={() =>
+              router.push({
+                pathname: "/(protected)/(tabs)/settings/legal",
+                params: { type: "privacy" },
+              })
+            }
+          />
+          <SettingItem
+            icon="cookie-outline"
+            iconBg="#FEF3C7"
+            iconColor="#D97706"
+            label={t("settings.cookies")}
+            onPress={() =>
+              router.push({
+                pathname: "/(protected)/(tabs)/settings/legal",
+                params: { type: "cookies" },
+              })
+            }
             isLast
           />
         </Section>

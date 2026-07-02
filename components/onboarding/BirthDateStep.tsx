@@ -10,6 +10,18 @@ type Props = {
   error?: string;
 };
 
+// Numeric keypad has no "/" key, so we insert the separators ourselves as the user types digits.
+function formatBirthDate(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  if (digits.length > 4) {
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  }
+  if (digits.length > 2) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+  return digits;
+}
+
 export default function BirthDateStep({ value, onChange, error }: Props) {
   const { t } = useLanguage();
   return (
@@ -30,8 +42,9 @@ export default function BirthDateStep({ value, onChange, error }: Props) {
             placeholder={t("onboarding.birthDatePlaceholder")}
             placeholderTextColor={color.softGray}
             value={value}
-            onChangeText={onChange}
+            onChangeText={(v) => onChange(formatBirthDate(v))}
             keyboardType="number-pad"
+            maxLength={10}
           />
         </View>
         {error && <Text style={s.fieldError}>{error}</Text>}

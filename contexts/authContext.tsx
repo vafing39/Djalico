@@ -2,6 +2,7 @@ import { supabase } from "@/utils/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Session } from "@supabase/supabase-js";
 import { router } from "expo-router";
+import * as Linking from "expo-linking";
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
 import type { UserProfile, UpdateProfileInput } from "@/types";
 
@@ -15,6 +16,23 @@ type AuthType = {
   login: (credentials: { email: string; password: string }) => void;
   loginPending: boolean;
   loginError: string | null;
+  register: (input: { name: string; email: string; password: string }) => void;
+  registerPending: boolean;
+  registerError: string | null;
+  registerRequiresConfirmation: boolean;
+  resetRegister: () => void;
+  requestPasswordReset: (email: string) => void;
+  requestPasswordResetPending: boolean;
+  requestPasswordResetError: string | null;
+  requestPasswordResetSuccess: boolean;
+  resetRequestPasswordReset: () => void;
+  verifyRecoverySession: (tokens: {
+    access_token: string;
+    refresh_token: string;
+  }) => void;
+  verifyRecoverySessionPending: boolean;
+  verifyRecoverySessionError: string | null;
+  verifyRecoverySessionSuccess: boolean;
   logOut: () => void;
   logoutPending: boolean;
   updateProfile: (input: UpdateProfileInput) => Promise<void>;
@@ -101,6 +119,88 @@ export function AuthProvider({ children }: PropsWithChildren) {
           ? "/(protected)/(admin)/home"
           : "/(protected)/(tabs)",
       );
+    },
+  });
+
+  // Création de compte (auto-connexion si aucune confirmation email n'est requise)
+  const {
+    mutate: register,
+    reset: resetRegister,
+    isPending: registerPending,
+    error: registerMutationError,
+    data: registerResult,
+  } = useMutation({
+    mutationFn: async ({
+      name,
+      email,
+      password,
+    }: {
+      name: string;
+      email: string;
+      password: string;
+    }) => {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name } },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (data) => {
+      if (!data.session) return;
+      setSession(data.session);
+      const fetched = await queryClient.fetchQuery(
+        profileQueryOptions(data.user!.id),
+      );
+      router.replace(
+        fetched?.role === "admin"
+          ? "/(protected)/(admin)/home"
+          : "/(protected)/(tabs)",
+      );
+    },
+  });
+  const registerRequiresConfirmation = !!registerResult && !registerResult.session;
+
+  // Demande de réinitialisation du mot de passe (envoi de l'email)
+  const {
+    mutate: requestPasswordReset,
+    reset: resetRequestPasswordReset,
+    isPending: requestPasswordResetPending,
+    error: requestPasswordResetMutationError,
+    isSuccess: requestPasswordResetSuccess,
+  } = useMutation({
+    mutationFn: async (email: string) => {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: Linking.createURL("reset-password"),
+      });
+      if (error) throw error;
+    },
+  });
+
+  // Établissement de la session de récupération à partir des tokens du lien reçu par email
+  const {
+    mutate: verifyRecoverySession,
+    isPending: verifyRecoverySessionPending,
+    error: verifyRecoverySessionMutationError,
+    isSuccess: verifyRecoverySessionSuccess,
+  } = useMutation({
+    mutationFn: async ({
+      access_token,
+      refresh_token,
+    }: {
+      access_token: string;
+      refresh_token: string;
+    }) => {
+      const { data, error } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      setSession(data.session);
     },
   });
 
@@ -193,6 +293,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
         login,
         loginPending,
         loginError: loginMutationError?.message ?? null,
+        register,
+        registerPending,
+        registerError: registerMutationError?.message ?? null,
+        registerRequiresConfirmation,
+        resetRegister,
+        requestPasswordReset,
+        requestPasswordResetPending,
+        requestPasswordResetError: requestPasswordResetMutationError?.message ?? null,
+        requestPasswordResetSuccess,
+        resetRequestPasswordReset,
+        verifyRecoverySession,
+        verifyRecoverySessionPending,
+        verifyRecoverySessionError: verifyRecoverySessionMutationError?.message ?? null,
+        verifyRecoverySessionSuccess,
         logOut,
         logoutPending,
         updateProfile,

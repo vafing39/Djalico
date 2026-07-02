@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { Link } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -458,6 +459,15 @@ export default function LoginScreen() {
                 )}
               </View>
 
+              {/* Forgot password */}
+              <Link href="/forgot-password" asChild>
+                <Pressable hitSlop={8} style={styles.forgotPasswordBtn}>
+                  <Text style={styles.forgotPasswordText}>
+                    {t("login.forgotPassword")}
+                  </Text>
+                </Pressable>
+              </Link>
+
               {/* Submit */}
               <Pressable
                 style={({ pressed }) => [
@@ -480,6 +490,20 @@ export default function LoginScreen() {
                   </>
                 )}
               </Pressable>
+
+              {/* Register */}
+              <View style={styles.registerRow}>
+                <Text style={styles.registerText}>
+                  {t("login.noAccount")}
+                </Text>
+                <Link href="/register" asChild>
+                  <Pressable hitSlop={8}>
+                    <Text style={styles.registerLink}>
+                      {t("login.registerLink")}
+                    </Text>
+                  </Pressable>
+                </Link>
+              </View>
             </View>
 
             {/* Footer */}
@@ -612,6 +636,31 @@ const styles = StyleSheet.create({
     color: "#EF4444",
     fontWeight: "500",
     marginLeft: 2,
+  },
+
+  // Forgot password
+  forgotPasswordBtn: { alignSelf: "flex-end", marginTop: -6 },
+  forgotPasswordText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: color.yellowDark,
+  },
+
+  // Register
+  registerRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  registerText: {
+    fontSize: 13,
+    color: color.softGray,
+  },
+  registerLink: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: color.deepBlue,
   },
 
   // Button

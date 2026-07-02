@@ -35,6 +35,18 @@ export default function RootLayout() {
                         options={{ headerShown: false, animation: "none" }}
                       />
                       <Stack.Screen
+                        name="register"
+                        options={{ headerShown: false, animation: "none" }}
+                      />
+                      <Stack.Screen
+                        name="forgot-password"
+                        options={{ headerShown: false, animation: "none" }}
+                      />
+                      <Stack.Screen
+                        name="reset-password"
+                        options={{ headerShown: false, animation: "none" }}
+                      />
+                      <Stack.Screen
                         name="(protected)"
                         options={{ headerShown: false, animation: "none" }}
                       />

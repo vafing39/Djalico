@@ -16,9 +16,11 @@ type UserContextType = {
   refetch: () => void;
   createUser: (input: CreateUserInput) => Promise<void>;
   updateUser: (id: string, payload: UserPayload) => Promise<void>;
+  updateUserInstruments: (id: string, categoryIds: string[]) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   isCreating: boolean;
   isUpdating: boolean;
+  isUpdatingInstruments: boolean;
 };
 
 export const UserContext = createContext<UserContextType>(
@@ -41,7 +43,7 @@ export function UserProvider({ children }: PropsWithChildren) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("users")
-        .select("*")
+        .select("*, user_instruments(category:categories(id, title, emoji))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as User[];
@@ -64,12 +66,13 @@ export function UserProvider({ children }: PropsWithChildren) {
       const userId = authData.user?.id;
       if (!userId) throw new Error("Échec de la création du compte.");
 
-      // Trigger already inserted the public.users row — update role & level
+      // Trigger already inserted the public.users row — update role, level,
+      // and mark active since the admin already vetted this account at creation.
       const { data: updated, error: updateError } = await supabase
         .from("users")
-        .update({ role: input.role, level: input.level })
+        .update({ role: input.role, level: input.level, status: "active" })
         .eq("id", userId)
-        .select()
+        .select("*, user_instruments(category:categories(id, title, emoji))")
         .single();
       if (updateError) throw updateError;
       return updated as User;
@@ -104,6 +107,37 @@ export function UserProvider({ children }: PropsWithChildren) {
     },
   });
 
+  const updateInstrumentsMutation = useMutation({
+    mutationFn: async ({
+      id,
+      categoryIds,
+    }: {
+      id: string;
+      categoryIds: string[];
+    }) => {
+      const { error: deleteError } = await supabase
+        .from("user_instruments")
+        .delete()
+        .eq("user_id", id);
+      if (deleteError) throw deleteError;
+
+      if (categoryIds.length > 0) {
+        const { error: insertError } = await supabase
+          .from("user_instruments")
+          .insert(
+            categoryIds.map((categoryId) => ({
+              user_id: id,
+              category_id: categoryId,
+            })),
+          );
+        if (insertError) throw insertError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.functions.invoke("delete-user", {
@@ -129,9 +163,12 @@ export function UserProvider({ children }: PropsWithChildren) {
         createUser: createMutation.mutateAsync,
         updateUser: (id, payload) =>
           updateMutation.mutateAsync({ id, payload }),
+        updateUserInstruments: (id, categoryIds) =>
+          updateInstrumentsMutation.mutateAsync({ id, categoryIds }),
         deleteUser: deleteMutation.mutateAsync,
         isCreating: createMutation.isPending,
         isUpdating: updateMutation.isPending,
+        isUpdatingInstruments: updateInstrumentsMutation.isPending,
       }}
     >
       {children}

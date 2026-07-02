@@ -4,7 +4,7 @@ import { Session } from "@supabase/supabase-js";
 import { router } from "expo-router";
 import * as Linking from "expo-linking";
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
-import type { UserProfile, UpdateProfileInput } from "@/types";
+import type { UserProfile, UpdateProfileInput, OnboardingInput } from "@/types";
 
 export type { UserProfile, UpdateProfileInput };
 
@@ -35,6 +35,9 @@ type AuthType = {
   verifyRecoverySessionSuccess: boolean;
   logOut: () => void;
   logoutPending: boolean;
+  refreshProfile: () => void;
+  completeOnboarding: (input: OnboardingInput) => Promise<void>;
+  completeOnboardingPending: boolean;
   updateProfile: (input: UpdateProfileInput) => Promise<void>;
   updateProfilePending: boolean;
   updateEmail: (newEmail: string) => Promise<void>;
@@ -52,7 +55,7 @@ const profileQueryOptions = (userId: string) => ({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("users")
-      .select("name, email, avatar_url, role, level")
+      .select("name, email, avatar_url, role, level, status")
       .eq("id", userId)
       .single();
     if (error) throw error;
@@ -204,6 +207,44 @@ export function AuthProvider({ children }: PropsWithChildren) {
     },
   });
 
+  function refreshProfile() {
+    if (session?.user?.id) {
+      queryClient.invalidateQueries({ queryKey: ["profile", session.user.id] });
+    }
+  }
+
+  // Soumission du formulaire d'onboarding (passe le statut à "pending_review")
+  const {
+    mutateAsync: completeOnboarding,
+    isPending: completeOnboardingPending,
+  } = useMutation({
+    mutationFn: async (input: OnboardingInput) => {
+      if (!session?.user?.id) throw new Error("Non connecté.");
+      const { error } = await supabase
+        .from("users")
+        .update({
+          birth_date: input.birthDate,
+          phone: input.phone,
+          learning_goal: input.learningGoal,
+          requested_level: input.requestedLevel,
+          status: "pending_review",
+        })
+        .eq("id", session.user.id);
+      if (error) throw error;
+
+      const { error: instrumentsError } = await supabase
+        .from("user_instruments")
+        .insert(
+          input.instrumentCategoryIds.map((categoryId) => ({
+            user_id: session.user.id,
+            category_id: categoryId,
+          })),
+        );
+      if (instrumentsError) throw instrumentsError;
+    },
+    onSuccess: refreshProfile,
+  });
+
   const { mutateAsync: updateProfile, isPending: updateProfilePending } =
     useMutation({
       mutationFn: async (input: UpdateProfileInput) => {
@@ -309,6 +350,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         verifyRecoverySessionSuccess,
         logOut,
         logoutPending,
+        refreshProfile,
+        completeOnboarding,
+        completeOnboardingPending,
         updateProfile,
         updateProfilePending,
         updateEmail,

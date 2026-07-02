@@ -6,16 +6,27 @@ export type Category = { id: string; title: string; emoji: string };
 
 // ─── Auth / Profile ───────────────────────────────────────────────────────────
 
+export type UserStatus = "onboarding" | "pending_review" | "active";
+
 export type UserProfile = {
   name: string;
   email: string;
   avatar_url: string | null;
   role: "eleve" | "professeur" | "admin";
   level?: TagType;
+  status: UserStatus;
 };
 
 export type UpdateProfileInput = {
   name: string;
+};
+
+export type OnboardingInput = {
+  birthDate: string;
+  phone: string;
+  instrumentCategoryIds: string[];
+  learningGoal: string;
+  requestedLevel: TagType;
 };
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -27,6 +38,12 @@ export type User = {
   avatar_url: string | null;
   role: "eleve" | "professeur" | "admin";
   level: TagType;
+  status: UserStatus;
+  birth_date: string | null;
+  phone: string | null;
+  learning_goal: string | null;
+  requested_level: TagType | null;
+  user_instruments: { category: { id: string; title: string; emoji: string } }[];
   created_at: string;
 };
 
@@ -34,6 +51,7 @@ export type UserPayload = {
   name: string;
   role: "eleve" | "professeur" | "admin";
   level: TagType;
+  status?: UserStatus;
 };
 
 export type CreateUserInput = {

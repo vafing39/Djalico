@@ -2,6 +2,7 @@ import React, { useContext, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,15 +23,23 @@ export default function GestionUser() {
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [creating, setCreating] = useState(false);
+  const [pendingOnly, setPendingOnly] = useState(false);
+
+  const pendingCount = useMemo(
+    () => users.filter((u) => u.status === "pending_review").length,
+    [users],
+  );
 
   const filteredUsers = useMemo(
     () =>
-      users.filter(
-        (u) =>
-          u.name.toLowerCase().includes(search.toLowerCase()) ||
-          u.email.toLowerCase().includes(search.toLowerCase()),
-      ),
-    [users, search],
+      users
+        .filter((u) => !pendingOnly || u.status === "pending_review")
+        .filter(
+          (u) =>
+            u.name.toLowerCase().includes(search.toLowerCase()) ||
+            u.email.toLowerCase().includes(search.toLowerCase()),
+        ),
+    [users, search, pendingOnly],
   );
 
   function handleEdit(user: User) {
@@ -66,6 +75,35 @@ export default function GestionUser() {
         onSearchChange={setSearch}
         searchPlaceholder={t("admin.users.searchPlaceholder")}
       />
+
+      <View style={styles.filterRow}>
+        <Pressable
+          style={[styles.filterChip, !pendingOnly && styles.filterChipActive]}
+          onPress={() => setPendingOnly(false)}
+        >
+          <Text
+            style={[
+              styles.filterChipText,
+              !pendingOnly && styles.filterChipTextActive,
+            ]}
+          >
+            {t("admin.users.filterAll")}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.filterChip, pendingOnly && styles.filterChipActive]}
+          onPress={() => setPendingOnly(true)}
+        >
+          <Text
+            style={[
+              styles.filterChipText,
+              pendingOnly && styles.filterChipTextActive,
+            ]}
+          >
+            {t("admin.users.filterPending", { count: pendingCount })}
+          </Text>
+        </Pressable>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -109,6 +147,32 @@ export default function GestionUser() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.bg },
+  filterRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 12,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: color.card,
+    borderWidth: 1,
+    borderColor: color.border,
+  },
+  filterChipActive: {
+    backgroundColor: color.navy,
+    borderColor: color.navy,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: color.textMuted,
+  },
+  filterChipTextActive: {
+    color: color.white,
+  },
   listContent: { paddingTop: 16, paddingBottom: 120 },
   listWrap: { marginHorizontal: 20, gap: 12 },
   errorText: {

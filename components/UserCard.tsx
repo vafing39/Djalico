@@ -10,6 +10,11 @@ const ROLE_COLORS: Record<User["role"], { text: string; bg: string }> = {
   admin: { text: color.red, bg: color.redLight },
 };
 
+const STATUS_COLORS: Record<"pending_review" | "onboarding", { text: string; bg: string }> = {
+  pending_review: { text: "#92610A", bg: "#FFF3CD" },
+  onboarding: { text: color.textMuted, bg: color.border },
+};
+
 type Props = {
   item: User;
   onEdit?: (user: User) => void;
@@ -40,6 +45,27 @@ export default function UserCard({ item, onEdit, onDelete }: Props) {
             {t(`settings.role.${item.role}`)}
           </Text>
         </View>
+        {item.status !== "active" && (
+          <View
+            style={[
+              styles.roleBadge,
+              { backgroundColor: STATUS_COLORS[item.status].bg },
+            ]}
+          >
+            <Text
+              style={[
+                styles.roleText,
+                { color: STATUS_COLORS[item.status].text },
+              ]}
+            >
+              {t(
+                item.status === "pending_review"
+                  ? "admin.users.statusPendingReview"
+                  : "admin.users.statusOnboarding",
+              )}
+            </Text>
+          </View>
+        )}
       </View>
       <View style={styles.actions}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => onEdit?.(item)}>

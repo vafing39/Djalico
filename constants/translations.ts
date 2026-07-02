@@ -104,6 +104,34 @@ export const translations = {
     "register.confirmationBody": "Un email de confirmation vient de t'être envoyé. Clique sur le lien qu'il contient pour activer ton compte.",
     "register.backToLogin": "Retour à la connexion",
 
+    // ── Onboarding ────────────────────────────────────────────────────────────────
+    "onboarding.stepOf": "Étape {{current}} sur {{total}}",
+    "onboarding.title": "Encore un peu d'infos",
+    "onboarding.subtitle": "Complète ton profil pour que notre équipe puisse valider ton compte.",
+    "onboarding.birthDateLabel": "Date de naissance",
+    "onboarding.birthDatePlaceholder": "JJ/MM/AAAA",
+    "onboarding.birthDateRequired": "La date de naissance est requise",
+    "onboarding.birthDateInvalid": "Format attendu : JJ/MM/AAAA",
+    "onboarding.phoneLabel": "Téléphone",
+    "onboarding.phonePlaceholder": "06 12 34 56 78",
+    "onboarding.phoneRequired": "Le téléphone est requis",
+    "onboarding.instrumentLabel": "Quels instruments souhaites-tu apprendre ?",
+    "onboarding.instrumentRequired": "Choisis au moins un instrument",
+    "onboarding.goalLabel": "Quel est ton objectif ?",
+    "onboarding.goalPlaceholder": "Ex : jouer mes premiers morceaux, me préparer à un concours...",
+    "onboarding.goalRequired": "Cette information est requise",
+    "onboarding.levelLabel": "Quel est ton niveau ?",
+    "onboarding.levelRequired": "Choisis ton niveau",
+    "onboarding.next": "Suivant",
+    "onboarding.submit": "Envoyer pour validation",
+    "onboarding.logout": "Se déconnecter",
+
+    // ── Pending review ────────────────────────────────────────────────────────────
+    "pendingReview.title": "Compte en attente de validation",
+    "pendingReview.body": "Ton profil a bien été envoyé. Un administrateur va valider ton compte et choisir ton niveau — tu pourras alors accéder à tous les contenus.",
+    "pendingReview.refresh": "Réessayer",
+    "pendingReview.logout": "Se déconnecter",
+
     // ── Home (tabs/index.tsx) ─────────────────────────────────────────────────
     "home.greeting": "Bonjour 👋",
     "home.headline": "Transforme tes instants en",
@@ -309,6 +337,10 @@ export const translations = {
     "admin.users.empty": "Aucun utilisateur trouvé",
     "admin.users.deleteTitle": "Supprimer l'utilisateur",
     "admin.users.deleteConfirm": "Voulez-vous vraiment supprimer « {{name}} » ? Cette action est irréversible.",
+    "admin.users.filterAll": "Tous",
+    "admin.users.filterPending": "En attente ({{count}})",
+    "admin.users.statusPendingReview": "En attente de validation",
+    "admin.users.statusOnboarding": "Onboarding",
 
     // ── Admin — gestionVideo (admin/gestionVideo/index.tsx) ───────────────────
     "admin.videos.title": "Gestion des vidéos",
@@ -425,6 +457,14 @@ export const translations = {
     "admin.modals.user.email": "Email",
     "admin.modals.user.emailPlaceholder": "adresse@email.com",
     "admin.modals.user.password": "Mot de passe",
+    "admin.modals.user.pendingNotice": "Ce compte attend une validation. Choisis un niveau puis valide pour lui donner accès à l'application.",
+    "admin.modals.user.onboardingInfoTitle": "Informations d'inscription",
+    "admin.modals.user.birthDate": "Date de naissance",
+    "admin.modals.user.phone": "Téléphone",
+    "admin.modals.user.instrument": "Instrument(s)",
+    "admin.modals.user.goal": "Objectif",
+    "admin.modals.user.requestedLevel": "Niveau indiqué par l'utilisateur",
+    "admin.modals.user.validateSubmit": "Valider le compte",
     "admin.form.role": "Rôle",
 
     // ── Video player (components/VideoModal.tsx) ──────────────────────────────
@@ -535,6 +575,34 @@ export const translations = {
     "register.confirmationTitle": "Check your inbox",
     "register.confirmationBody": "A confirmation email has just been sent to you. Click the link inside to activate your account.",
     "register.backToLogin": "Back to sign in",
+
+    // ── Onboarding ────────────────────────────────────────────────────────────────
+    "onboarding.stepOf": "Step {{current}} of {{total}}",
+    "onboarding.title": "A few more details",
+    "onboarding.subtitle": "Complete your profile so our team can validate your account.",
+    "onboarding.birthDateLabel": "Date of birth",
+    "onboarding.birthDatePlaceholder": "DD/MM/YYYY",
+    "onboarding.birthDateRequired": "Date of birth is required",
+    "onboarding.birthDateInvalid": "Expected format: DD/MM/YYYY",
+    "onboarding.phoneLabel": "Phone",
+    "onboarding.phonePlaceholder": "06 12 34 56 78",
+    "onboarding.phoneRequired": "Phone is required",
+    "onboarding.instrumentLabel": "Which instruments do you want to learn?",
+    "onboarding.instrumentRequired": "Choose at least one instrument",
+    "onboarding.goalLabel": "What's your goal?",
+    "onboarding.goalPlaceholder": "E.g. play my first songs, prepare for a contest...",
+    "onboarding.goalRequired": "This information is required",
+    "onboarding.levelLabel": "What's your level?",
+    "onboarding.levelRequired": "Choose your level",
+    "onboarding.next": "Next",
+    "onboarding.submit": "Submit for review",
+    "onboarding.logout": "Sign out",
+
+    // ── Pending review ────────────────────────────────────────────────────────────
+    "pendingReview.title": "Account pending review",
+    "pendingReview.body": "Your profile has been submitted. An admin will validate your account and set your level — you'll then be able to access all content.",
+    "pendingReview.refresh": "Try again",
+    "pendingReview.logout": "Sign out",
 
     // ── Home ──────────────────────────────────────────────────────────────────
     "home.greeting": "Hello 👋",
@@ -736,6 +804,10 @@ export const translations = {
     "admin.users.empty": "No users found",
     "admin.users.deleteTitle": "Delete user",
     "admin.users.deleteConfirm": "Are you sure you want to delete «{{name}}»? This action is irreversible.",
+    "admin.users.filterAll": "All",
+    "admin.users.filterPending": "Pending ({{count}})",
+    "admin.users.statusPendingReview": "Pending review",
+    "admin.users.statusOnboarding": "Onboarding",
 
     // ── Admin — gestionVideo ──────────────────────────────────────────────────
     "admin.videos.title": "Video management",
@@ -852,6 +924,14 @@ export const translations = {
     "admin.modals.user.email": "Email",
     "admin.modals.user.emailPlaceholder": "address@email.com",
     "admin.modals.user.password": "Password",
+    "admin.modals.user.pendingNotice": "This account is awaiting review. Pick a level and validate to grant app access.",
+    "admin.modals.user.onboardingInfoTitle": "Sign-up information",
+    "admin.modals.user.birthDate": "Date of birth",
+    "admin.modals.user.phone": "Phone",
+    "admin.modals.user.instrument": "Instrument(s)",
+    "admin.modals.user.goal": "Goal",
+    "admin.modals.user.requestedLevel": "User's requested level",
+    "admin.modals.user.validateSubmit": "Validate account",
     "admin.form.role": "Role",
 
     // ── Video player ───────────────────────────────────────────────────────────

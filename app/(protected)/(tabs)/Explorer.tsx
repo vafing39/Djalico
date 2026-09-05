@@ -7,6 +7,8 @@ import { useParcours } from "@/hooks/useParcours";
 import { useVideos } from "@/hooks/useVideos";
 import { useSaved } from "@/hooks/useSaved";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useUserLevel } from "@/hooks/useUserLevel";
+import { accessibleLevels, isLevelAccessible } from "@/utils/level";
 import type { Category, Parcours, Video } from "@/types";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -113,6 +115,7 @@ export default function ExploreScreen() {
   const { parcours } = useParcours();
   const { videos, videoProgress, saveProgress } = useVideos();
   const { isVideoSaved, toggleVideoSave } = useSaved();
+  const userLevel = useUserLevel();
 
   const [activeTab, setActiveTab] = useState<Tab>("Tout");
   const [searchQuery, setSearchQuery] = useState("");
@@ -143,7 +146,7 @@ export default function ExploreScreen() {
   }, [themes, previewThemes, q]);
 
   const filteredParcours = useMemo(() => {
-    let results = parcoursItems;
+    let results = parcoursItems.filter((p) => isLevelAccessible(p.tagType, userLevel));
     if (q) results = results.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
@@ -151,10 +154,10 @@ export default function ExploreScreen() {
     );
     if (filterLevel) results = results.filter((p) => p.tagType === filterLevel);
     return results;
-  }, [parcoursItems, q, filterLevel]);
+  }, [parcoursItems, q, filterLevel, userLevel]);
 
   const filteredVideos = useMemo(() => {
-    let results = videoItems;
+    let results = videoItems.filter((v) => isLevelAccessible(v.tagType, userLevel));
     if (q) results = results.filter(
       (v) =>
         v.title.toLowerCase().includes(q) ||
@@ -163,7 +166,18 @@ export default function ExploreScreen() {
     );
     if (filterLevel) results = results.filter((v) => v.tagType === filterLevel);
     return results;
-  }, [videoItems, q, filterLevel]);
+  }, [videoItems, q, filterLevel, userLevel]);
+
+  const levelOptions = useMemo<{ labelKey: string; value: typeof filterLevel }[]>(
+    () => [
+      { labelKey: "explorer.levelAll", value: null },
+      ...accessibleLevels(userLevel).map((lvl) => ({
+        labelKey: `common.level.${lvl}`,
+        value: lvl,
+      })),
+    ],
+    [userLevel],
+  );
 
   const handleProgress = useCallback(
     (currentTime: number, pct: number) => {
@@ -369,12 +383,7 @@ export default function ExploreScreen() {
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>{t("explorer.filterLevel")}</Text>
 
-            {([
-              { labelKey: "explorer.levelAll", value: null },
-              { labelKey: "common.level.beginner", value: "beginner" },
-              { labelKey: "common.level.intermediate", value: "intermediate" },
-              { labelKey: "common.level.expert", value: "expert" },
-            ] as const).map((opt) => (
+            {levelOptions.map((opt) => (
               <Pressable
                 key={String(opt.value)}
                 style={[styles.filterOption, filterLevel === opt.value && styles.filterOptionActive]}

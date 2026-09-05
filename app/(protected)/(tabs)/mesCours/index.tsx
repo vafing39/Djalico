@@ -18,6 +18,8 @@ import { useCourses } from "@/hooks/useCourses";
 import { useLessons } from "@/hooks/useLessons";
 import { useVideos } from "@/hooks/useVideos";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useUserLevel } from "@/hooks/useUserLevel";
+import { isLevelAccessible } from "@/utils/level";
 import type { Course } from "@/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -233,9 +235,15 @@ export default function MesCoursScreen() {
   const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState(0);
 
-  const { courses } = useCourses();
+  const { courses: allCourses } = useCourses();
   const { lessons } = useLessons();
   const { videoProgress } = useVideos();
+  const userLevel = useUserLevel();
+
+  const courses = useMemo(
+    () => allCourses.filter((c) => isLevelAccessible(c.tag_type, userLevel)),
+    [allCourses, userLevel],
+  );
 
   const getCourseLessons = useCallback(
     (courseId: string) => lessons.filter((l) => l.course_id === courseId),

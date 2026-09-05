@@ -20,7 +20,8 @@
       "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "package": "com.vafing_black.djalico"
     },
     "web": {
       "bundler": "metro",

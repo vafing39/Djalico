@@ -7,6 +7,8 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Screen from "@/components/Screen";
 import { useParcours } from "@/hooks/useParcours";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useUserLevel } from "@/hooks/useUserLevel";
+import { isLevelAccessible } from "@/utils/level";
 import type { Parcours } from "@/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -58,8 +60,15 @@ function Header({ count }: { count: number }) {
 export default function AllParcoursScreen() {
   const { parcours } = useParcours();
   const { t } = useLanguage();
+  const userLevel = useUserLevel();
 
-  const items = useMemo(() => parcours.map((p) => toCardItem(p, t)), [parcours, t]);
+  const items = useMemo(
+    () =>
+      parcours
+        .filter((p) => isLevelAccessible(p.tag_type, userLevel))
+        .map((p) => toCardItem(p, t)),
+    [parcours, t, userLevel],
+  );
 
   return (
     <Screen>

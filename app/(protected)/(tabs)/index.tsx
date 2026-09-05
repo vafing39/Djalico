@@ -8,6 +8,8 @@ import { useParcours } from "@/hooks/useParcours";
 import { useVideos } from "@/hooks/useVideos";
 import { useSaved } from "@/hooks/useSaved";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useUserLevel } from "@/hooks/useUserLevel";
+import { isLevelAccessible } from "@/utils/level";
 import type { Category, Parcours } from "@/types";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -95,6 +97,7 @@ type SelectedVideo = {
 export default function HomeScreen() {
   const { t } = useLanguage();
   const { profile } = useAuth();
+  const userLevel = useUserLevel();
   const { videoProgress, saveProgress } = useVideos();
   const { isVideoSaved, toggleVideoSave } = useSaved();
   const [scrollY] = useState(() => new Animated.Value(0));
@@ -111,12 +114,18 @@ export default function HomeScreen() {
   const { videos } = useVideos();
 
   const rawParcours = useMemo(
-    () => parcours.slice(0, 20),
-    [parcours],
+    () =>
+      parcours
+        .filter((p) => isLevelAccessible(p.tag_type, userLevel))
+        .slice(0, 20),
+    [parcours, userLevel],
   );
   const rawVideos = useMemo(
-    () => videos.filter((v) => v.published).slice(0, 15),
-    [videos],
+    () =>
+      videos
+        .filter((v) => v.published && isLevelAccessible(v.tag_type, userLevel))
+        .slice(0, 15),
+    [videos, userLevel],
   );
 
   const videoItems = useMemo(
@@ -241,7 +250,6 @@ export default function HomeScreen() {
   );
 
   const userName = profile?.name ?? "";
-  const userLevel = profile?.level;
   const avatarUri = profile?.avatar_url ?? null;
 
   return (

@@ -492,7 +492,7 @@ export default function ProfileScreen() {
             label={t("settings.mentions")}
             onPress={() =>
               router.push({
-                pathname: "/(protected)/(tabs)/settings/legal",
+                pathname: "/(protected)/legal",
                 params: { type: "mentions" },
               })
             }
@@ -504,7 +504,7 @@ export default function ProfileScreen() {
             label={t("settings.cgu")}
             onPress={() =>
               router.push({
-                pathname: "/(protected)/(tabs)/settings/legal",
+                pathname: "/(protected)/legal",
                 params: { type: "cgu" },
               })
             }
@@ -516,7 +516,7 @@ export default function ProfileScreen() {
             label={t("settings.privacy")}
             onPress={() =>
               router.push({
-                pathname: "/(protected)/(tabs)/settings/legal",
+                pathname: "/(protected)/legal",
                 params: { type: "privacy" },
               })
             }
@@ -528,7 +528,7 @@ export default function ProfileScreen() {
             label={t("settings.cookies")}
             onPress={() =>
               router.push({
-                pathname: "/(protected)/(tabs)/settings/legal",
+                pathname: "/(protected)/legal",
                 params: { type: "cookies" },
               })
             }

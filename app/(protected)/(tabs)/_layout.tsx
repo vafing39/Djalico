@@ -28,7 +28,7 @@ const TAB_BAR_STYLE = Platform.select({
 });
 
 // Settings sub-screens that should render full-screen, without the tab bar
-const SETTINGS_SUBSCREENS = ["/settings/language", "/settings/editProfile", "/settings/legal"];
+const SETTINGS_SUBSCREENS = ["/settings/language", "/settings/editProfile"];
 
 export default function TabLayout() {
   const { t } = useLanguage();

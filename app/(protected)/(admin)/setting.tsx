@@ -389,15 +389,22 @@ export default function Setting() {
 
         {/* Profile card */}
         <View style={styles.profileCard}>
-          {profile?.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarInitial}>
-                {profile?.name?.[0]?.toUpperCase() ?? "?"}
-              </Text>
-            </View>
-          )}
+          <View style={styles.avatarWrapper}>
+            {profile?.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarInitial}>
+                  {profile?.name?.[0]?.toUpperCase() ?? "?"}
+                </Text>
+              </View>
+            )}
+            {uploadAvatarPending && (
+              <View style={styles.avatarLoadingOverlay}>
+                <ActivityIndicator size="small" color={color.white} />
+              </View>
+            )}
+          </View>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{profile?.name ?? "—"}</Text>
             <Text style={styles.profileRole}>
@@ -867,20 +874,27 @@ export default function Setting() {
                 onPress={pickAvatar}
                 disabled={uploadAvatarPending}
               >
-                {profile?.avatar_url ? (
-                  <Image
-                    source={{ uri: profile.avatar_url }}
-                    style={styles.modalAvatar}
-                  />
-                ) : (
-                  <View
-                    style={[styles.modalAvatar, styles.modalAvatarPlaceholder]}
-                  >
-                    <Text style={styles.modalAvatarInitial}>
-                      {editName?.[0]?.toUpperCase() ?? "?"}
-                    </Text>
-                  </View>
-                )}
+                <View style={styles.modalAvatarWrapper}>
+                  {profile?.avatar_url ? (
+                    <Image
+                      source={{ uri: profile.avatar_url }}
+                      style={styles.modalAvatar}
+                    />
+                  ) : (
+                    <View
+                      style={[styles.modalAvatar, styles.modalAvatarPlaceholder]}
+                    >
+                      <Text style={styles.modalAvatarInitial}>
+                        {editName?.[0]?.toUpperCase() ?? "?"}
+                      </Text>
+                    </View>
+                  )}
+                  {uploadAvatarPending && (
+                    <View style={styles.modalAvatarLoadingOverlay}>
+                      <ActivityIndicator size="small" color={color.white} />
+                    </View>
+                  )}
+                </View>
                 <View style={styles.modalAvatarCamera}>
                   {uploadAvatarPending ? (
                     <ActivityIndicator size="small" color={color.navy} />
@@ -1032,6 +1046,7 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 14,
   },
+  avatarWrapper: { position: "relative" },
   avatar: {
     width: 52,
     height: 52,
@@ -1041,6 +1056,17 @@ const styles = StyleSheet.create({
   },
   avatarPlaceholder: {
     backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1156,6 +1182,7 @@ const styles = StyleSheet.create({
   langNameSelected: { fontWeight: "700", color: color.navy },
 
   modalAvatarRow: { alignItems: "center", marginBottom: 20 },
+  modalAvatarWrapper: { position: "relative" },
   modalAvatar: {
     width: 72,
     height: 72,
@@ -1165,6 +1192,17 @@ const styles = StyleSheet.create({
   },
   modalAvatarPlaceholder: {
     backgroundColor: color.paleBlue,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalAvatarLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
   },

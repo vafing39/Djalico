@@ -118,13 +118,20 @@ export default function EditProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Avatar */}
         <View style={styles.avatarSection}>
-          {profile?.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <User size={40} color={COLORS.softGray} />
-            </View>
-          )}
+          <View style={styles.avatarWrapper}>
+            {profile?.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <User size={40} color={COLORS.softGray} />
+              </View>
+            )}
+            {uploadAvatarPending && (
+              <View style={styles.avatarLoadingOverlay}>
+                <ActivityIndicator size="small" color={COLORS.white} />
+              </View>
+            )}
+          </View>
           <TouchableOpacity
             style={[styles.cameraBtn, uploadAvatarPending && { opacity: 0.5 }]}
             onPress={pickAvatar}
@@ -235,6 +242,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     position: "relative",
   },
+  avatarWrapper: { position: "relative" },
   avatar: {
     width: 100,
     height: 100,
@@ -249,6 +257,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.paleBlue,
     borderWidth: 3,
     borderColor: COLORS.white,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 50,
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
   },

@@ -1,6 +1,7 @@
 import { supabase } from "@/utils/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Session } from "@supabase/supabase-js";
+import { File } from "expo-file-system";
 import { router } from "expo-router";
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
 import type { UserProfile, UpdateProfileInput, OnboardingInput } from "@/types";
@@ -267,19 +268,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
     useMutation({
       mutationFn: async (localUri: string) => {
         if (!session?.user?.id) throw new Error("Non connecté.");
-        const response = await fetch(localUri);
-        const blob = await response.blob();
+        const arrayBuffer = await new File(localUri).arrayBuffer();
         const path = `avatars/${session.user.id}.jpg`;
         const { error: uploadError } = await supabase.storage
           .from("image")
-          .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+          .upload(path, arrayBuffer, { upsert: true, contentType: "image/jpeg" });
         if (uploadError) throw uploadError;
         const {
           data: { publicUrl },
         } = supabase.storage.from("image").getPublicUrl(path);
+        // Cache-bust: the storage path is stable across uploads (upsert),
+        // so without a unique query param the Image component keeps
+        // serving the previously cached bytes for that same URL.
+        const cacheBustedUrl = `${publicUrl}?updatedAt=${Date.now()}`;
         const { error: updateError } = await supabase
           .from("users")
-          .update({ avatar_url: publicUrl })
+          .update({ avatar_url: cacheBustedUrl })
           .eq("id", session.user.id);
         if (updateError) throw updateError;
       },

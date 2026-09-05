@@ -3509,6 +3509,11 @@ expo-constants@^56.0.18, expo-constants@~56.0.18:
   dependencies:
     "@expo/env" "~2.3.0"
 
+expo-file-system@~56.0.11:
+  version "56.0.11"
+  resolved "https://registry.yarnpkg.com/expo-file-system/-/expo-file-system-56.0.11.tgz#658b16c08c2f31cdfe9379f4c1867be9404c2e56"
+  integrity sha512-0a0QQIUPxU8ds78hIVjSEFzs+vGCzwTVguCssmjhLJgUyUCEiC8en3xuRbBUCKw1YS+8HZVEZdMvF4qr9RzjXQ==
+
 expo-file-system@~56.0.8:
   version "56.0.8"
   resolved "https://registry.npmjs.org/expo-file-system/-/expo-file-system-56.0.8.tgz"

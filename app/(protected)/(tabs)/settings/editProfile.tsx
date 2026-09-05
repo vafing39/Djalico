@@ -1,9 +1,10 @@
-import { AuthContext } from "@/contexts/authContext";
+import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/hooks/useLanguage";
 import { StatusBar } from "expo-status-bar";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Camera, ChevronLeft, Mail, Save, User } from "lucide-react-native";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -35,7 +36,13 @@ const COLORS = {
 export default function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profile, updateProfile, updateProfilePending } = useContext(AuthContext);
+  const {
+    profile,
+    updateProfile,
+    updateProfilePending,
+    uploadAvatar,
+    uploadAvatarPending,
+  } = useAuth();
   const { t } = useLanguage();
 
   const [name, setName] = useState("");
@@ -45,6 +52,29 @@ export default function EditProfileScreen() {
       setName(profile.name ?? "");
     }
   }, [profile]);
+
+  async function pickAvatar() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        t("settings.alert.permissionDenied"),
+        t("settings.alert.galleryAccess"),
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    try {
+      await uploadAvatar(result.assets[0].uri);
+    } catch (err: any) {
+      Alert.alert(t("common.error"), err?.message ?? t("settings.alert.cannotUpdatePhoto"));
+    }
+  }
 
   async function handleSave() {
     const trimmed = name.trim();
@@ -95,8 +125,16 @@ export default function EditProfileScreen() {
               <User size={40} color={COLORS.softGray} />
             </View>
           )}
-          <TouchableOpacity style={styles.cameraBtn}>
-            <Camera size={16} color={COLORS.white} />
+          <TouchableOpacity
+            style={[styles.cameraBtn, uploadAvatarPending && { opacity: 0.5 }]}
+            onPress={pickAvatar}
+            disabled={uploadAvatarPending}
+          >
+            {uploadAvatarPending ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Camera size={16} color={COLORS.white} />
+            )}
           </TouchableOpacity>
         </View>
 

@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: "600",
-    color: color.softGray,
+    color: color.deepBlue,
     padding: 5,
   },
   tabTextActive: { color: color.deepBlue },

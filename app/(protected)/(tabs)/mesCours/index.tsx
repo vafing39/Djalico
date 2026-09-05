@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   filterTabsWrap:      { flexDirection: "row", paddingHorizontal: 24, marginBottom: 16, borderBottomWidth: 1.5, borderBottomColor: "rgba(14,43,69,0.07)" },
   filterTab:           { marginRight: 22, paddingBottom: 10, position: "relative", marginBottom: -1.5 },
   filterTabActive:     {},
-  filterTabText:       { fontSize: 14, fontWeight: "600", color: color.softGray, paddingVertical: 4 },
+  filterTabText:       { fontSize: 14, fontWeight: "600", color: color.deepBlue, paddingVertical: 4 },
   filterTabTextActive: { color: color.deepBlue },
   filterTabUnderline:  { position: "absolute", bottom: 0, left: 0, right: 0, height: 2.5, backgroundColor: color.yellowDark, borderRadius: 2 },
 

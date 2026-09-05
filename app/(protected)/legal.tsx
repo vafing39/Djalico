@@ -49,10 +49,10 @@ export default function LegalScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={20} color={C.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
+        <Text style={styles.headerTitle} numberOfLines={2}>
           {content.heading}
         </Text>
-        <View style={styles.backBtn} />
+        <View style={[styles.backBtn, { backgroundColor: "transparent" }]} />
       </LinearGradient>
 
       <ScrollView

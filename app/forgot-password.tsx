@@ -33,7 +33,6 @@ export default function ForgotPasswordScreen() {
     requestPasswordReset,
     requestPasswordResetPending,
     requestPasswordResetError,
-    requestPasswordResetSuccess,
     resetRequestPasswordReset,
   } = useAuth();
   const { t } = useLanguage();
@@ -84,122 +83,97 @@ export default function ForgotPasswordScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.card}>
-              {requestPasswordResetSuccess ? (
-                <View style={styles.successWrap}>
+              <Text style={styles.cardTitle}>
+                {t("forgotPassword.title")}
+              </Text>
+              <Text style={styles.subtitle}>
+                {t("forgotPassword.subtitle")}
+              </Text>
+
+              {requestPasswordResetError && (
+                <View style={styles.serverError}>
                   <Ionicons
-                    name="checkmark-circle-outline"
-                    size={48}
-                    color={color.yellowDark}
+                    name="alert-circle-outline"
+                    size={16}
+                    color="#B91C1C"
                   />
-                  <Text style={styles.cardTitle}>
-                    {t("forgotPassword.successTitle")}
+                  <Text style={styles.serverErrorText}>
+                    {requestPasswordResetError}
                   </Text>
-                  <Text style={styles.subtitle}>
-                    {t("forgotPassword.successBody")}
-                  </Text>
-                  <Link href="/login" asChild>
-                    <Pressable style={styles.linkBtn}>
-                      <Text style={styles.linkText}>
-                        {t("forgotPassword.backToLogin")}
-                      </Text>
-                    </Pressable>
-                  </Link>
                 </View>
-              ) : (
-                <>
-                  <Text style={styles.cardTitle}>
-                    {t("forgotPassword.title")}
-                  </Text>
-                  <Text style={styles.subtitle}>
-                    {t("forgotPassword.subtitle")}
-                  </Text>
-
-                  {requestPasswordResetError && (
-                    <View style={styles.serverError}>
-                      <Ionicons
-                        name="alert-circle-outline"
-                        size={16}
-                        color="#B91C1C"
-                      />
-                      <Text style={styles.serverErrorText}>
-                        {requestPasswordResetError}
-                      </Text>
-                    </View>
-                  )}
-
-                  <View style={styles.field}>
-                    <Text style={styles.label}>
-                      {t("forgotPassword.emailLabel")}
-                    </Text>
-                    <View
-                      style={[
-                        styles.inputWrap,
-                        emailFocused && styles.inputWrapFocused,
-                        !!fieldError && styles.inputWrapError,
-                      ]}
-                    >
-                      <Ionicons
-                        name="mail-outline"
-                        size={18}
-                        color={emailFocused ? color.yellowDark : color.softGray}
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={t("forgotPassword.emailPlaceholder")}
-                        placeholderTextColor={color.softGray}
-                        value={email}
-                        onChangeText={(v) => {
-                          setEmail(v);
-                          setFieldError(null);
-                        }}
-                        onFocus={() => setEmailFocused(true)}
-                        onBlur={() => setEmailFocused(false)}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        returnKeyType="done"
-                        onSubmitEditing={handleSubmit}
-                      />
-                    </View>
-                    {fieldError && (
-                      <Text style={styles.fieldError}>{fieldError}</Text>
-                    )}
-                  </View>
-
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.btn,
-                      pressed && styles.btnPressed,
-                    ]}
-                    onPress={handleSubmit}
-                    disabled={requestPasswordResetPending}
-                  >
-                    {requestPasswordResetPending ? (
-                      <ActivityIndicator color="#fff" size="small" />
-                    ) : (
-                      <>
-                        <Text style={styles.btnText}>
-                          {t("forgotPassword.submit")}
-                        </Text>
-                        <Ionicons
-                          name="arrow-forward"
-                          size={18}
-                          color={color.deepBlue}
-                        />
-                      </>
-                    )}
-                  </Pressable>
-
-                  <Link href="/login" asChild>
-                    <Pressable style={styles.linkBtn}>
-                      <Text style={styles.linkText}>
-                        {t("forgotPassword.backToLogin")}
-                      </Text>
-                    </Pressable>
-                  </Link>
-                </>
               )}
+
+              <View style={styles.field}>
+                <Text style={styles.label}>
+                  {t("forgotPassword.emailLabel")}
+                </Text>
+                <View
+                  style={[
+                    styles.inputWrap,
+                    emailFocused && styles.inputWrapFocused,
+                    !!fieldError && styles.inputWrapError,
+                  ]}
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={18}
+                    color={emailFocused ? color.yellowDark : color.softGray}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t("forgotPassword.emailPlaceholder")}
+                    placeholderTextColor={color.softGray}
+                    value={email}
+                    onChangeText={(v) => {
+                      setEmail(v);
+                      setFieldError(null);
+                    }}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="done"
+                    onSubmitEditing={handleSubmit}
+                  />
+                </View>
+                {fieldError && (
+                  <Text style={styles.fieldError}>{fieldError}</Text>
+                )}
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.btn,
+                  pressed && styles.btnPressed,
+                ]}
+                onPress={handleSubmit}
+                disabled={requestPasswordResetPending}
+              >
+                {requestPasswordResetPending ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.btnText}>
+                      {t("forgotPassword.submit")}
+                    </Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={18}
+                      color={color.deepBlue}
+                    />
+                  </>
+                )}
+              </Pressable>
+
+              <Link href="/login" asChild>
+                <Pressable style={styles.linkBtn}>
+                  <Text style={styles.linkText}>
+                    {t("forgotPassword.backToLogin")}
+                  </Text>
+                </Pressable>
+              </Link>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -255,8 +229,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: "center",
   },
-
-  successWrap: { alignItems: "center", gap: 12 },
 
   serverError: {
     flexDirection: "row",

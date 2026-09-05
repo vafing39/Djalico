@@ -2,7 +2,6 @@ import { supabase } from "@/utils/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Session } from "@supabase/supabase-js";
 import { router } from "expo-router";
-import * as Linking from "expo-linking";
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
 import type { UserProfile, UpdateProfileInput, OnboardingInput } from "@/types";
 
@@ -26,13 +25,8 @@ type AuthType = {
   requestPasswordResetError: string | null;
   requestPasswordResetSuccess: boolean;
   resetRequestPasswordReset: () => void;
-  verifyRecoverySession: (tokens: {
-    access_token: string;
-    refresh_token: string;
-  }) => void;
-  verifyRecoverySessionPending: boolean;
-  verifyRecoverySessionError: string | null;
-  verifyRecoverySessionSuccess: boolean;
+  verifyPasswordResetOtp: (input: { email: string; token: string }) => Promise<void>;
+  verifyPasswordResetOtpPending: boolean;
   logOut: () => void;
   logoutPending: boolean;
   refreshProfile: () => void;
@@ -165,7 +159,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   });
   const registerRequiresConfirmation = !!registerResult && !registerResult.session;
 
-  // Demande de réinitialisation du mot de passe (envoi de l'email)
+  // Demande de réinitialisation du mot de passe (envoi du code par email)
   const {
     mutate: requestPasswordReset,
     reset: resetRequestPasswordReset,
@@ -174,35 +168,32 @@ export function AuthProvider({ children }: PropsWithChildren) {
     isSuccess: requestPasswordResetSuccess,
   } = useMutation({
     mutationFn: async (email: string) => {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: Linking.createURL("reset-password"),
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
+    },
+    onSuccess: (_data, email) => {
+      router.replace({ pathname: "/reset-password", params: { email } });
     },
   });
 
-  // Établissement de la session de récupération à partir des tokens du lien reçu par email
+  // Vérification du code OTP reçu par email pour établir la session de récupération
   const {
-    mutate: verifyRecoverySession,
-    isPending: verifyRecoverySessionPending,
-    error: verifyRecoverySessionMutationError,
-    isSuccess: verifyRecoverySessionSuccess,
+    mutateAsync: verifyPasswordResetOtp,
+    isPending: verifyPasswordResetOtpPending,
   } = useMutation({
     mutationFn: async ({
-      access_token,
-      refresh_token,
+      email,
+      token,
     }: {
-      access_token: string;
-      refresh_token: string;
+      email: string;
+      token: string;
     }) => {
-      const { data, error } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: "recovery",
       });
       if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
       setSession(data.session);
     },
   });
@@ -344,10 +335,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
         requestPasswordResetError: requestPasswordResetMutationError?.message ?? null,
         requestPasswordResetSuccess,
         resetRequestPasswordReset,
-        verifyRecoverySession,
-        verifyRecoverySessionPending,
-        verifyRecoverySessionError: verifyRecoverySessionMutationError?.message ?? null,
-        verifyRecoverySessionSuccess,
+        verifyPasswordResetOtp,
+        verifyPasswordResetOtpPending,
         logOut,
         logoutPending,
         refreshProfile,

@@ -1,8 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Linking from "expo-linking";
-import { Link } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { Link, useLocalSearchParams } from "expo-router";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -21,26 +20,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/hooks/useLanguage";
 import { color } from "@/config/color";
 
-function parseRecoveryTokens(url: string) {
-  const hashIndex = url.indexOf("#");
-  const queryIndex = url.indexOf("?");
-  const paramsString =
-    hashIndex !== -1
-      ? url.slice(hashIndex + 1)
-      : queryIndex !== -1
-        ? url.slice(queryIndex + 1)
-        : "";
-  const params = new URLSearchParams(paramsString);
-  return {
-    access_token: params.get("access_token"),
-    refresh_token: params.get("refresh_token"),
-    type: params.get("type"),
-  };
-}
-
-function makePasswordSchema(t: (key: string) => string) {
+function makeResetSchema(t: (key: string) => string) {
   return z
     .object({
+      otp: z
+        .string()
+        .min(1, t("resetPassword.codeRequired"))
+        .regex(/^\d{6}$/, t("resetPassword.codeInvalid")),
       password: z
         .string()
         .min(1, t("resetPassword.passwordRequired"))
@@ -53,55 +39,39 @@ function makePasswordSchema(t: (key: string) => string) {
     });
 }
 
-type PasswordFields = z.infer<ReturnType<typeof makePasswordSchema>>;
-type FieldErrors = Partial<Record<keyof PasswordFields, string>>;
+type ResetFields = z.infer<ReturnType<typeof makeResetSchema>>;
+type FieldErrors = Partial<Record<keyof ResetFields, string>>;
 
 export default function ResetPasswordScreen() {
+  const { email } = useLocalSearchParams<{ email?: string }>();
   const {
-    verifyRecoverySession,
-    verifyRecoverySessionError,
-    verifyRecoverySessionSuccess,
+    verifyPasswordResetOtp,
+    verifyPasswordResetOtpPending,
     updatePassword,
     updatePasswordPending,
+    requestPasswordReset,
+    requestPasswordResetPending,
     logOut,
   } = useAuth();
   const { t } = useLanguage();
-  const url = Linking.useURL();
-  const passwordSchema = useMemo(() => makePasswordSchema(t), [t]);
+  const resetSchema = useMemo(() => makeResetSchema(t), [t]);
 
+  const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const recoveryTokens = useMemo(() => {
-    if (!url) return null;
-    const { access_token, refresh_token, type } = parseRecoveryTokens(url);
-    if (!access_token || !refresh_token || type !== "recovery") return null;
-    return { access_token, refresh_token };
-  }, [url]);
-  const tokensInvalid = !!url && !recoveryTokens;
-
-  useEffect(() => {
-    if (!recoveryTokens) return;
-    verifyRecoverySession(recoveryTokens);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recoveryTokens]);
-
-  const linkStatus: "pending" | "valid" | "invalid" =
-    tokensInvalid || !!verifyRecoverySessionError
-      ? "invalid"
-      : verifyRecoverySessionSuccess
-        ? "valid"
-        : "pending";
+  const submitPending = verifyPasswordResetOtpPending || updatePasswordPending;
 
   async function handleSubmit() {
-    const result = passwordSchema.safeParse({ password, confirmPassword });
+    if (!email) return;
+    const result = resetSchema.safeParse({ otp, password, confirmPassword });
     if (!result.success) {
       const fieldErrors: FieldErrors = {};
       for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof PasswordFields;
+        const key = issue.path[0] as keyof ResetFields;
         if (!fieldErrors[key]) fieldErrors[key] = issue.message;
       }
       setErrors(fieldErrors);
@@ -110,6 +80,7 @@ export default function ResetPasswordScreen() {
     setErrors({});
     setSubmitError(null);
     try {
+      await verifyPasswordResetOtp({ email, token: result.data.otp });
       await updatePassword(result.data.password);
       Alert.alert(
         t("resetPassword.successTitle"),
@@ -119,6 +90,11 @@ export default function ResetPasswordScreen() {
     } catch (err: any) {
       setSubmitError(err?.message ?? null);
     }
+  }
+
+  function handleResend() {
+    if (!email) return;
+    requestPasswordReset(email);
   }
 
   return (
@@ -137,13 +113,7 @@ export default function ResetPasswordScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.card}>
-              {linkStatus === "pending" && (
-                <View style={styles.centerWrap}>
-                  <ActivityIndicator color={color.deepBlue} size="large" />
-                </View>
-              )}
-
-              {linkStatus === "invalid" && (
+              {!email ? (
                 <View style={styles.centerWrap}>
                   <Ionicons
                     name="close-circle-outline"
@@ -151,28 +121,26 @@ export default function ResetPasswordScreen() {
                     color="#EF4444"
                   />
                   <Text style={styles.cardTitle}>
-                    {t("resetPassword.invalidLinkTitle")}
+                    {t("resetPassword.missingEmailTitle")}
                   </Text>
                   <Text style={styles.subtitle}>
-                    {t("resetPassword.invalidLinkBody")}
+                    {t("resetPassword.missingEmailBody")}
                   </Text>
                   <Link href="/forgot-password" asChild>
                     <Pressable style={styles.linkBtn}>
                       <Text style={styles.linkText}>
-                        {t("resetPassword.requestNewLink")}
+                        {t("resetPassword.requestNewCode")}
                       </Text>
                     </Pressable>
                   </Link>
                 </View>
-              )}
-
-              {linkStatus === "valid" && (
+              ) : (
                 <>
                   <Text style={styles.cardTitle}>
                     {t("resetPassword.title")}
                   </Text>
                   <Text style={styles.subtitle}>
-                    {t("resetPassword.subtitle")}
+                    {t("resetPassword.subtitle", { email })}
                   </Text>
 
                   {submitError && (
@@ -186,107 +154,155 @@ export default function ResetPasswordScreen() {
                     </View>
                   )}
 
-                    <View style={styles.field}>
-                      <Text style={styles.label}>
-                        {t("resetPassword.passwordLabel")}
-                      </Text>
-                      <View
-                        style={[
-                          styles.inputWrap,
-                          !!errors.password && styles.inputWrapError,
-                        ]}
-                      >
-                        <Ionicons
-                          name="lock-closed-outline"
-                          size={18}
-                          color={color.softGray}
-                          style={styles.inputIcon}
-                        />
-                        <TextInput
-                          style={styles.input}
-                          placeholder={t("resetPassword.passwordPlaceholder")}
-                          placeholderTextColor={color.softGray}
-                          value={password}
-                          onChangeText={(v) => {
-                            setPassword(v);
-                            setErrors((e) => ({ ...e, password: undefined }));
-                          }}
-                          secureTextEntry={!showPassword}
-                          returnKeyType="next"
-                        />
-                        <Pressable
-                          onPress={() => setShowPassword((v) => !v)}
-                          hitSlop={8}
-                          style={styles.eyeBtn}
-                        >
-                          <Ionicons
-                            name={showPassword ? "eye-off-outline" : "eye-outline"}
-                            size={18}
-                            color={color.softGray}
-                          />
-                        </Pressable>
-                      </View>
-                      {errors.password && (
-                        <Text style={styles.fieldError}>{errors.password}</Text>
-                      )}
-                    </View>
-
-                    <View style={styles.field}>
-                      <Text style={styles.label}>
-                        {t("resetPassword.confirmPasswordLabel")}
-                      </Text>
-                      <View
-                        style={[
-                          styles.inputWrap,
-                          !!errors.confirmPassword && styles.inputWrapError,
-                        ]}
-                      >
-                        <Ionicons
-                          name="lock-closed-outline"
-                          size={18}
-                          color={color.softGray}
-                          style={styles.inputIcon}
-                        />
-                        <TextInput
-                          style={styles.input}
-                          placeholder={t("resetPassword.passwordPlaceholder")}
-                          placeholderTextColor={color.softGray}
-                          value={confirmPassword}
-                          onChangeText={(v) => {
-                            setConfirmPassword(v);
-                            setErrors((e) => ({
-                              ...e,
-                              confirmPassword: undefined,
-                            }));
-                          }}
-                          secureTextEntry={!showPassword}
-                          returnKeyType="done"
-                          onSubmitEditing={handleSubmit}
-                        />
-                      </View>
-                      {errors.confirmPassword && (
-                        <Text style={styles.fieldError}>
-                          {errors.confirmPassword}
-                        </Text>
-                      )}
-                    </View>
-
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.btn,
-                        pressed && styles.btnPressed,
+                  <View style={styles.field}>
+                    <Text style={styles.label}>
+                      {t("resetPassword.codeLabel")}
+                    </Text>
+                    <View
+                      style={[
+                        styles.inputWrap,
+                        !!errors.otp && styles.inputWrapError,
                       ]}
-                      onPress={handleSubmit}
-                      disabled={updatePasswordPending}
                     >
-                      {updatePasswordPending ? (
-                        <ActivityIndicator color="#fff" size="small" />
+                      <Ionicons
+                        name="key-outline"
+                        size={18}
+                        color={color.softGray}
+                        style={styles.inputIcon}
+                      />
+                      <TextInput
+                        style={[styles.input, styles.otpInput]}
+                        placeholder={t("resetPassword.codePlaceholder")}
+                        placeholderTextColor={color.softGray}
+                        value={otp}
+                        onChangeText={(v) => {
+                          setOtp(v.replace(/[^0-9]/g, "").slice(0, 6));
+                          setErrors((e) => ({ ...e, otp: undefined }));
+                        }}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        returnKeyType="next"
+                      />
+                    </View>
+                    {errors.otp && (
+                      <Text style={styles.fieldError}>{errors.otp}</Text>
+                    )}
+                    <Pressable
+                      onPress={handleResend}
+                      disabled={requestPasswordResetPending}
+                      style={styles.resendBtn}
+                    >
+                      {requestPasswordResetPending ? (
+                        <ActivityIndicator color={color.deepBlue} size="small" />
                       ) : (
-                        <Text style={styles.btnText}>
-                          {t("resetPassword.submit")}
+                        <Text style={styles.resendText}>
+                          {t("resetPassword.resendCode")}
                         </Text>
                       )}
                     </Pressable>
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>
+                      {t("resetPassword.passwordLabel")}
+                    </Text>
+                    <View
+                      style={[
+                        styles.inputWrap,
+                        !!errors.password && styles.inputWrapError,
+                      ]}
+                    >
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={18}
+                        color={color.softGray}
+                        style={styles.inputIcon}
+                      />
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t("resetPassword.passwordPlaceholder")}
+                        placeholderTextColor={color.softGray}
+                        value={password}
+                        onChangeText={(v) => {
+                          setPassword(v);
+                          setErrors((e) => ({ ...e, password: undefined }));
+                        }}
+                        secureTextEntry={!showPassword}
+                        returnKeyType="next"
+                      />
+                      <Pressable
+                        onPress={() => setShowPassword((v) => !v)}
+                        hitSlop={8}
+                        style={styles.eyeBtn}
+                      >
+                        <Ionicons
+                          name={showPassword ? "eye-off-outline" : "eye-outline"}
+                          size={18}
+                          color={color.softGray}
+                        />
+                      </Pressable>
+                    </View>
+                    {errors.password && (
+                      <Text style={styles.fieldError}>{errors.password}</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.field}>
+                    <Text style={styles.label}>
+                      {t("resetPassword.confirmPasswordLabel")}
+                    </Text>
+                    <View
+                      style={[
+                        styles.inputWrap,
+                        !!errors.confirmPassword && styles.inputWrapError,
+                      ]}
+                    >
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={18}
+                        color={color.softGray}
+                        style={styles.inputIcon}
+                      />
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t("resetPassword.passwordPlaceholder")}
+                        placeholderTextColor={color.softGray}
+                        value={confirmPassword}
+                        onChangeText={(v) => {
+                          setConfirmPassword(v);
+                          setErrors((e) => ({
+                            ...e,
+                            confirmPassword: undefined,
+                          }));
+                        }}
+                        secureTextEntry={!showPassword}
+                        returnKeyType="done"
+                        onSubmitEditing={handleSubmit}
+                      />
+                    </View>
+                    {errors.confirmPassword && (
+                      <Text style={styles.fieldError}>
+                        {errors.confirmPassword}
+                      </Text>
+                    )}
+                  </View>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.btn,
+                      pressed && styles.btnPressed,
+                    ]}
+                    onPress={handleSubmit}
+                    disabled={submitPending}
+                  >
+                    {submitPending ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.btnText}>
+                        {t("resetPassword.submit")}
+                      </Text>
+                    )}
+                  </Pressable>
                 </>
               )}
             </View>
@@ -378,12 +394,22 @@ const styles = StyleSheet.create({
     color: color.deepBlue,
     height: "100%",
   },
+  otpInput: {
+    letterSpacing: 4,
+    fontWeight: "700",
+  },
   eyeBtn: { paddingLeft: 8 },
   fieldError: {
     fontSize: 12,
     color: "#EF4444",
     fontWeight: "500",
     marginLeft: 2,
+  },
+  resendBtn: { alignSelf: "flex-end", marginTop: 2 },
+  resendText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: color.deepBlue,
   },
 
   btn: {

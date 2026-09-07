@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Alert, Modal, ScrollView, StyleSheet } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CourseContext } from "@/contexts/courseContext";
 import { LessonContext } from "@/contexts/lessonContext";
@@ -144,7 +144,7 @@ export default function ModalView({
   function handleClose() { reset(); onClose(); }
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" statusBarTranslucent onRequestClose={handleClose}>
       <SafeAreaView style={styles.container}>
         <ModalHeader
           title={isEdit ? t("admin.modals.course.editTitle") : t("admin.modals.course.addTitle")}
@@ -156,6 +156,10 @@ export default function ModalView({
           onSubmit={handleSubmit}
         />
 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -181,6 +185,7 @@ export default function ModalView({
             onMoveDown={moveLessonDown}
           />
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

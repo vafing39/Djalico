@@ -1,5 +1,5 @@
 import { Picker } from "@react-native-picker/picker";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { color, pickerStyleDefs } from "@/config/adminTheme";
 
 type Item = { label: string; value: string };
@@ -26,7 +26,7 @@ export default function PickerField({
   hint,
   variant,
 }: Props) {
-  const itemColor = variant === "card" ? undefined : color.white;
+  const itemColor = variant === "card" || Platform.OS === "android" ? undefined : color.white;
 
   return (
     <View style={styles.field}>
@@ -38,6 +38,7 @@ export default function PickerField({
           onValueChange={(v) => onValueChange(v as string)}
           style={styles.picker}
           itemStyle={styles.item}
+          dropdownIconColor={color.white}
         >
           {placeholder && (
             <Picker.Item label={placeholder} value="" color={itemColor} />

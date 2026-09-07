@@ -8,7 +8,9 @@ import FormField from "@/components/admin/FormField";
 import PickerField from "@/components/admin/PickerField";
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -143,13 +145,28 @@ export default function ModalView({
   }
 
   async function pickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets[0]) return;
-    setImageUri(result.assets[0].uri);
-    setImageUrl("");
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          t("admin.modals.video.permissionDeniedTitle"),
+          t("admin.modals.video.permissionDeniedBody"),
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      setImageUri(result.assets[0].uri);
+      setImageUrl("");
+    } catch (err: unknown) {
+      Alert.alert(
+        t("common.error"),
+        err instanceof Error ? err.message : t("admin.modals.video.pickError"),
+      );
+    }
   }
 
   function handleSubmit() {
@@ -188,6 +205,7 @@ export default function ModalView({
       visible={visible}
       animationType="slide"
       presentationStyle="formSheet"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container}>
@@ -201,6 +219,10 @@ export default function ModalView({
           onSubmit={handleSubmit}
         />
 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -358,6 +380,7 @@ export default function ModalView({
 
           <View style={{ height: 40 }} />
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

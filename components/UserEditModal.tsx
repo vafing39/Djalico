@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import ModalHeader from "@/components/admin/ModalHeader";
 import FormField from "@/components/admin/FormField";
 import PickerField from "@/components/admin/PickerField";
@@ -105,6 +105,7 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
       visible={visible}
       animationType="slide"
       presentationStyle="formSheet"
+      statusBarTranslucent
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container}>
@@ -124,6 +125,10 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
           onSubmit={handleSubmit}
         />
 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -253,6 +258,7 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
             )}
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

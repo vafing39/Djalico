@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useContext, useEffect, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import ModalHeader from "@/components/admin/ModalHeader";
 import CategoryLevelPickers from "@/components/admin/CategoryLevelPickers";
 import CoverImagePicker from "@/components/admin/CoverImagePicker";
@@ -162,6 +162,7 @@ export default function ModalView({
       visible={visible}
       animationType="slide"
       presentationStyle="formSheet"
+      statusBarTranslucent
       onRequestClose={handleClose}
     >
       <SafeAreaView style={styles.container}>
@@ -175,6 +176,10 @@ export default function ModalView({
           onSubmit={handleSubmit}
         />
 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -270,6 +275,7 @@ export default function ModalView({
 
           <View style={{ height: 40 }} />
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );

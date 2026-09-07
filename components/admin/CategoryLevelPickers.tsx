@@ -1,5 +1,5 @@
 import { Picker } from "@react-native-picker/picker";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { color, LEVELS, pickerStyleDefs } from "@/config/adminTheme";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { Category, TagType } from "@/types";
@@ -31,10 +31,11 @@ export default function CategoryLevelPickers({
             onValueChange={(v) => setCategoryId(v as string)}
             style={styles.picker}
             itemStyle={styles.pickerItem}
+            dropdownIconColor={color.white}
           >
-            <Picker.Item label={t("admin.form.noneFem")} value="" color={color.white} />
+            <Picker.Item label={t("admin.form.noneFem")} value="" color={Platform.OS === "ios" ? color.white : undefined} />
             {categories.map((c) => (
-              <Picker.Item key={c.id} label={`${c.emoji} ${c.title}`} value={c.id} color={color.white} />
+              <Picker.Item key={c.id} label={`${c.emoji} ${c.title}`} value={c.id} color={Platform.OS === "ios" ? color.white : undefined} />
             ))}
           </Picker>
         </View>
@@ -48,9 +49,10 @@ export default function CategoryLevelPickers({
             onValueChange={(v) => setLevel(v as TagType)}
             style={styles.picker}
             itemStyle={styles.pickerItem}
+            dropdownIconColor={color.white}
           >
             {LEVELS.map((l) => (
-              <Picker.Item key={l.value} label={t(`common.level.${l.value}`)} value={l.value} color={color.white} />
+              <Picker.Item key={l.value} label={t(`common.level.${l.value}`)} value={l.value} color={Platform.OS === "ios" ? color.white : undefined} />
             ))}
           </Picker>
         </View>

@@ -522,7 +522,7 @@ export default function ProfileScreen() {
             }
           />
           <SettingItem
-            icon="cookie-outline"
+            icon="browsers-outline"
             iconBg="#FEF3C7"
             iconColor="#D97706"
             label={t("settings.cookies")}

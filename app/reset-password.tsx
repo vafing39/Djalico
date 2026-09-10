@@ -1,10 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link, useLocalSearchParams } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -20,58 +19,40 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/hooks/useLanguage";
 import { color } from "@/config/color";
 
-function makeResetSchema(t: (key: string) => string) {
-  return z
-    .object({
-      otp: z
-        .string()
-        .min(1, t("resetPassword.codeRequired"))
-        .regex(/^\d{6}$/, t("resetPassword.codeInvalid")),
-      password: z
-        .string()
-        .min(1, t("resetPassword.passwordRequired"))
-        .min(6, t("resetPassword.passwordMinLength")),
-      confirmPassword: z.string().min(1, t("resetPassword.passwordRequired")),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: t("resetPassword.passwordMismatch"),
-      path: ["confirmPassword"],
-    });
+function makeCodeSchema(t: (key: string) => string) {
+  return z.object({
+    otp: z
+      .string()
+      .min(1, t("resetPassword.codeRequired"))
+      .regex(/^\d{6}$/, t("resetPassword.codeInvalid")),
+  });
 }
 
-type ResetFields = z.infer<ReturnType<typeof makeResetSchema>>;
-type FieldErrors = Partial<Record<keyof ResetFields, string>>;
+type CodeFields = z.infer<ReturnType<typeof makeCodeSchema>>;
+type FieldErrors = Partial<Record<keyof CodeFields, string>>;
 
 export default function ResetPasswordScreen() {
   const { email } = useLocalSearchParams<{ email?: string }>();
   const {
     verifyPasswordResetOtp,
     verifyPasswordResetOtpPending,
-    updatePassword,
-    updatePasswordPending,
     requestPasswordReset,
     requestPasswordResetPending,
-    logOut,
   } = useAuth();
   const { t } = useLanguage();
-  const resetSchema = useMemo(() => makeResetSchema(t), [t]);
+  const codeSchema = useMemo(() => makeCodeSchema(t), [t]);
 
   const [otp, setOtp] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const submitPending = verifyPasswordResetOtpPending || updatePasswordPending;
-
   async function handleSubmit() {
     if (!email) return;
-    const result = resetSchema.safeParse({ otp, password, confirmPassword });
+    const result = codeSchema.safeParse({ otp });
     if (!result.success) {
       const fieldErrors: FieldErrors = {};
       for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof ResetFields;
+        const key = issue.path[0] as keyof CodeFields;
         if (!fieldErrors[key]) fieldErrors[key] = issue.message;
       }
       setErrors(fieldErrors);
@@ -81,12 +62,7 @@ export default function ResetPasswordScreen() {
     setSubmitError(null);
     try {
       await verifyPasswordResetOtp({ email, token: result.data.otp });
-      await updatePassword(result.data.password);
-      Alert.alert(
-        t("resetPassword.successTitle"),
-        t("resetPassword.successBody"),
-      );
-      logOut();
+      router.replace("/new-password");
     } catch (err: any) {
       setSubmitError(err?.message ?? null);
     }
@@ -181,7 +157,8 @@ export default function ResetPasswordScreen() {
                         }}
                         keyboardType="number-pad"
                         maxLength={6}
-                        returnKeyType="next"
+                        returnKeyType="done"
+                        onSubmitEditing={handleSubmit}
                       />
                     </View>
                     {errors.otp && (
@@ -202,100 +179,15 @@ export default function ResetPasswordScreen() {
                     </Pressable>
                   </View>
 
-                  <View style={styles.field}>
-                    <Text style={styles.label}>
-                      {t("resetPassword.passwordLabel")}
-                    </Text>
-                    <View
-                      style={[
-                        styles.inputWrap,
-                        !!errors.password && styles.inputWrapError,
-                      ]}
-                    >
-                      <Ionicons
-                        name="lock-closed-outline"
-                        size={18}
-                        color={color.softGray}
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={t("resetPassword.passwordPlaceholder")}
-                        placeholderTextColor={color.softGray}
-                        value={password}
-                        onChangeText={(v) => {
-                          setPassword(v);
-                          setErrors((e) => ({ ...e, password: undefined }));
-                        }}
-                        secureTextEntry={!showPassword}
-                        returnKeyType="next"
-                      />
-                      <Pressable
-                        onPress={() => setShowPassword((v) => !v)}
-                        hitSlop={8}
-                        style={styles.eyeBtn}
-                      >
-                        <Ionicons
-                          name={showPassword ? "eye-off-outline" : "eye-outline"}
-                          size={18}
-                          color={color.softGray}
-                        />
-                      </Pressable>
-                    </View>
-                    {errors.password && (
-                      <Text style={styles.fieldError}>{errors.password}</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.field}>
-                    <Text style={styles.label}>
-                      {t("resetPassword.confirmPasswordLabel")}
-                    </Text>
-                    <View
-                      style={[
-                        styles.inputWrap,
-                        !!errors.confirmPassword && styles.inputWrapError,
-                      ]}
-                    >
-                      <Ionicons
-                        name="lock-closed-outline"
-                        size={18}
-                        color={color.softGray}
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={t("resetPassword.passwordPlaceholder")}
-                        placeholderTextColor={color.softGray}
-                        value={confirmPassword}
-                        onChangeText={(v) => {
-                          setConfirmPassword(v);
-                          setErrors((e) => ({
-                            ...e,
-                            confirmPassword: undefined,
-                          }));
-                        }}
-                        secureTextEntry={!showPassword}
-                        returnKeyType="done"
-                        onSubmitEditing={handleSubmit}
-                      />
-                    </View>
-                    {errors.confirmPassword && (
-                      <Text style={styles.fieldError}>
-                        {errors.confirmPassword}
-                      </Text>
-                    )}
-                  </View>
-
                   <Pressable
                     style={({ pressed }) => [
                       styles.btn,
                       pressed && styles.btnPressed,
                     ]}
                     onPress={handleSubmit}
-                    disabled={submitPending}
+                    disabled={verifyPasswordResetOtpPending}
                   >
-                    {submitPending ? (
+                    {verifyPasswordResetOtpPending ? (
                       <ActivityIndicator color="#fff" size="small" />
                     ) : (
                       <Text style={styles.btnText}>
@@ -398,7 +290,6 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     fontWeight: "700",
   },
-  eyeBtn: { paddingLeft: 8 },
   fieldError: {
     fontSize: 12,
     color: "#EF4444",

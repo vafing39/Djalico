@@ -32,9 +32,10 @@ const C = {
 export default function LegalScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { type } = useLocalSearchParams<{ type: string }>();
-  const content = LEGAL_CONTENT[type ?? "mentions"] ?? LEGAL_CONTENT.mentions;
+  const locale = LEGAL_CONTENT[language] ?? LEGAL_CONTENT.fr;
+  const content = locale[type ?? "mentions"] ?? locale.mentions;
 
   return (
     <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>

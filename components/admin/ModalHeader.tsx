@@ -39,7 +39,11 @@ export default function ModalHeader({
 
   return (
     <View style={styles.header}>
-      <Pressable style={styles.closeBtn} onPress={onClose}>
+      <Pressable
+        style={[styles.closeBtn, isBusy && styles.closeBtnDisabled]}
+        onPress={onClose}
+        disabled={isBusy}
+      >
         <Ionicons name="close" size={20} color={color.red} />
       </Pressable>
 
@@ -89,6 +93,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: color.red,
   },
+  closeBtnDisabled: { opacity: 0.4 },
   center: { flex: 1, alignItems: "center" },
   title: {
     fontSize: 17,

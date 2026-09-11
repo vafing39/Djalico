@@ -37,8 +37,6 @@ type KpiItem = {
   icon: string;
   bg: string;
   iconColor: string;
-  trend: string;
-  trendUp: boolean;
 };
 
 type ActivityEvent = {
@@ -84,23 +82,6 @@ const StatCard = ({ item }: { item: KpiItem }) => (
         style={[styles.iconWrap, { backgroundColor: `${item.iconColor}22` }]}
       >
         <Ionicons name={item.icon as any} size={17} color={item.iconColor} />
-      </View>
-      <View
-        style={[
-          styles.trendBadge,
-          { backgroundColor: item.trendUp ? "#DCFCE7" : "#FFE7E7" },
-        ]}
-      >
-        <Ionicons
-          name={item.trendUp ? "arrow-up" : "arrow-down"}
-          size={10}
-          color={item.trendUp ? color.green : color.red}
-        />
-        <Text
-          style={[styles.trendText, { color: item.trendUp ? color.green : color.red }]}
-        >
-          {item.trend}
-        </Text>
       </View>
     </View>
     <Text style={styles.cardValue}>{item.value}</Text>
@@ -165,8 +146,6 @@ export default function Home() {
         icon: "people-outline",
         bg: "#E9F2FF",
         iconColor: "#1E88E5",
-        trend: `${users.length}`,
-        trendUp: true,
       },
       {
         id: "videos",
@@ -175,8 +154,6 @@ export default function Home() {
         icon: "videocam-outline",
         bg: "#FFF3CD",
         iconColor: "#F59E0B",
-        trend: `${publishedCount}`,
-        trendUp: true,
       },
       {
         id: "parcours",
@@ -185,8 +162,6 @@ export default function Home() {
         icon: "map-outline",
         bg: "#F3E8FF",
         iconColor: "#9333EA",
-        trend: `${parcours.length}`,
-        trendUp: true,
       },
       {
         id: "courses",
@@ -195,8 +170,6 @@ export default function Home() {
         icon: "book-outline",
         bg: "#DCFCE7",
         iconColor: "#22C55E",
-        trend: `${courses.length}`,
-        trendUp: true,
       },
       {
         id: "lessons",
@@ -205,8 +178,6 @@ export default function Home() {
         icon: "play-circle-outline",
         bg: "#FFF0E6",
         iconColor: "#FF7043",
-        trend: `${lessons.length}`,
-        trendUp: true,
       },
     ],
     [
@@ -248,23 +219,30 @@ export default function Home() {
       : { value: 0, text: "—" };
 
   const recentActivity: ActivityEvent[] = useMemo(() => {
-    const items: ActivityEvent[] = [
-      ...users.slice(0, 2).map((u) => ({
+    const items = [
+      ...users.slice(0, 4).map((u) => ({
         id: `user-${u.id}`,
         icon: "person-outline",
         color: "#1E88E5",
         text: `${u.name} ${t("admin.home.activity.joined")}`,
-        time: relativeTime(u.created_at, t),
+        createdAt: u.created_at,
       })),
-      ...videos.slice(0, 2).map((v) => ({
+      ...videos.slice(0, 4).map((v) => ({
         id: `video-${v.id}`,
         icon: "videocam-outline",
         color: "#FF7043",
         text: t("admin.home.activity.newVideo", { title: v.title }),
-        time: relativeTime(v.created_at, t),
+        createdAt: v.created_at,
       })),
     ];
-    return items;
+    // Both source lists are already created_at-desc, but merging them
+    // requires re-sorting by actual timestamp to stay chronological.
+    return items
+      .sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, 4)
+      .map(({ createdAt, ...item }) => ({ ...item, time: relativeTime(createdAt, t) }));
   }, [users, videos, t]);
 
   return (
@@ -510,15 +488,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  trendBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    paddingHorizontal: 5,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  trendText: { fontSize: 10, fontWeight: "700" },
   cardValue: {
     fontSize: 24,
     fontWeight: "800",

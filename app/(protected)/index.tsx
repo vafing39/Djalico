@@ -1,10 +1,9 @@
-import { AuthContext } from "@/contexts/authContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Redirect } from "expo-router";
-import { useContext } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function ProtectedIndex() {
-  const { isAdmin, isLoading } = useContext(AuthContext);
+  const { isAdmin, isLoading } = useAuth();
 
   if (isLoading) {
     return (

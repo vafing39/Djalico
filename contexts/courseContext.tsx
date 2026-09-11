@@ -1,7 +1,6 @@
 import { supabase } from "@/utils/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, PropsWithChildren, useContext } from "react";
-import { AuthContext } from "@/contexts/authContext";
+import { createContext, PropsWithChildren } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Course, CoursePayload, SaveCourseInput } from "@/types";
 
@@ -17,8 +16,8 @@ type CourseContextType = {
   isSaving: boolean;
 };
 
-export const CourseContext = createContext<CourseContextType>(
-  {} as CourseContextType,
+export const CourseContext = createContext<CourseContextType | undefined>(
+  undefined,
 );
 
 async function uploadToStorage(
@@ -72,13 +71,14 @@ export function CourseProvider({ children }: PropsWithChildren) {
       const cached = queryClient.getQueryData<Course[]>(["courses"]) ?? [];
       const course = cached.find((c) => c.id === id);
 
+      const { error } = await supabase.from("courses").delete().eq("id", id);
+      if (error) throw error;
+
       if (course?.image_url) {
         const path = extractStoragePath(course.image_url, "image");
         if (path) await supabase.storage.from("image").remove([path]);
       }
 
-      const { error } = await supabase.from("courses").delete().eq("id", id);
-      if (error) throw error;
       return id;
     },
     onSuccess: (id) => {

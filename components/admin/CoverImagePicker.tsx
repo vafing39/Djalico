@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { useRef } from "react";
 import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { color } from "@/config/adminTheme";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -11,23 +12,32 @@ type Props = {
 
 export default function CoverImagePicker({ coverImage, setCoverImage }: Props) {
   const { t } = useLanguage();
+  const isPickingRef = useRef(false);
 
   async function pickImage() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        t("admin.form.permissionRequiredTitle"),
-        t("admin.form.permissionRequiredBody"),
-      );
-      return;
+    if (isPickingRef.current) return;
+    isPickingRef.current = true;
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          t("admin.form.permissionRequiredTitle"),
+          t("admin.form.permissionRequiredBody"),
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setCoverImage(result.assets[0].uri);
+      }
+    } finally {
+      isPickingRef.current = false;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
-    });
-    if (!result.canceled) setCoverImage(result.assets[0].uri);
   }
 
   return (

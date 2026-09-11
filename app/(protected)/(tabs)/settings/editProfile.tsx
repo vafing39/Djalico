@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Camera, ChevronLeft, Mail, Save, User } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -53,26 +53,32 @@ export default function EditProfileScreen() {
     }
   }, [profile]);
 
+  const isPickingAvatarRef = useRef(false);
+
   async function pickAvatar() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        t("settings.alert.permissionDenied"),
-        t("settings.alert.galleryAccess"),
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets[0]) return;
+    if (isPickingAvatarRef.current) return;
+    isPickingAvatarRef.current = true;
     try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          t("settings.alert.permissionDenied"),
+          t("settings.alert.galleryAccess"),
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets[0]) return;
       await uploadAvatar(result.assets[0].uri);
     } catch (err: any) {
       Alert.alert(t("common.error"), err?.message ?? t("settings.alert.cannotUpdatePhoto"));
+    } finally {
+      isPickingAvatarRef.current = false;
     }
   }
 

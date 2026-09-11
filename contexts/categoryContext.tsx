@@ -11,16 +11,17 @@ type CategoryContextType = {
   categories: Category[];
   isLoading: boolean;
   error: Error | null;
+  refetch: () => void;
 };
 
-export const CategoryContext = createContext<CategoryContextType>(
-  {} as CategoryContextType,
+export const CategoryContext = createContext<CategoryContextType | undefined>(
+  undefined,
 );
 
 export function CategoryProvider({ children }: PropsWithChildren) {
   const { session } = useAuth();
 
-  const { data, isLoading, error } = useQuery<Category[]>({
+  const { data, isLoading, error, refetch } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -39,6 +40,7 @@ export function CategoryProvider({ children }: PropsWithChildren) {
         categories: data ?? [],
         isLoading,
         error: error as Error | null,
+        refetch,
       }}
     >
       {children}

@@ -1,12 +1,16 @@
 import { supabase } from "@/utils/supabase";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import type { AuditEntry } from "@/types";
 
 export type { AuditEntry };
 
 export function useAuditLog() {
+  const { session } = useAuth();
+
   return useQuery({
     queryKey: ["audit_log"],
+    enabled: !!session?.user?.id,
     queryFn: async () => {
       const [logsResult, usersResult] = await Promise.all([
         supabase

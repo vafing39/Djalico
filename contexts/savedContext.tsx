@@ -10,7 +10,7 @@ type SavedContextType = {
   isLoading: boolean;
 };
 
-export const SavedContext = createContext<SavedContextType>({} as SavedContextType);
+export const SavedContext = createContext<SavedContextType | undefined>(undefined);
 
 export function SavedProvider({ children }: PropsWithChildren) {
   const { session } = useAuth();
@@ -59,10 +59,16 @@ export function SavedProvider({ children }: PropsWithChildren) {
         currentlySaved ? [...old, videoId] : old.filter((id) => id !== videoId),
       );
     },
+    onSettled: () => {
+      // Reconcile with the DB in case a race between two rapid toggles left
+      // the optimistic cache and the server disagreeing.
+      queryClient.invalidateQueries({ queryKey: ["saved_videos", userId] });
+    },
   });
 
   const toggleVideoSave = useCallback(
     (videoId: string) => {
+      if (mutation.isPending) return;
       mutation.mutate({ videoId, currentlySaved: savedSet.has(videoId) });
     },
     [mutation, savedSet],

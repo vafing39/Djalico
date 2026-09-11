@@ -207,5 +207,3 @@ export type AuditEntry = {
 // ─── Progress / playback ──────────────────────────────────────────────────────
 
 export type LessonProgress = Record<string, { pct: number; time: number }>;
-
-export type SelectedLesson = { id: string; url: string; title: string };

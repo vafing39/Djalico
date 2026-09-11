@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ParcoursContext } from "@/contexts/parcoursContext";
+import { useParcours } from "@/hooks/useParcours";
 import type { Parcours } from "@/types";
 import AdminHeader from "@/components/AdminHeader";
 import AdminListCard from "@/components/AdminListCard";
@@ -34,7 +34,7 @@ const LEVELS = [
 type LevelKey = (typeof LEVELS)[number]["key"];
 
 export default function GestionParcours() {
-  const { parcours, isLoading, error, deleteParcours } = useContext(ParcoursContext);
+  const { parcours, isLoading, error, deleteParcours } = useParcours();
   const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingParcours, setEditingParcours] = useState<Parcours | null>(null);

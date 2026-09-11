@@ -15,8 +15,8 @@ type LessonContextType = {
   isSavingLessons: boolean;
 };
 
-export const LessonContext = createContext<LessonContextType>(
-  {} as LessonContextType,
+export const LessonContext = createContext<LessonContextType | undefined>(
+  undefined,
 );
 
 export function LessonProvider({ children }: PropsWithChildren) {

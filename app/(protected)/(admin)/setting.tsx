@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -277,29 +277,35 @@ export default function Setting() {
   const currentLang =
     LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
 
+  const isPickingAvatarRef = useRef(false);
+
   async function pickAvatar() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        t("settings.alert.permissionDenied"),
-        t("settings.alert.galleryAccess"),
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets[0]) return;
+    if (isPickingAvatarRef.current) return;
+    isPickingAvatarRef.current = true;
     try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          t("settings.alert.permissionDenied"),
+          t("settings.alert.galleryAccess"),
+        );
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets[0]) return;
       await uploadAvatar(result.assets[0].uri);
     } catch (err: any) {
       Alert.alert(
         t("common.error"),
         err?.message ?? t("settings.alert.cannotUpdatePhoto"),
       );
+    } finally {
+      isPickingAvatarRef.current = false;
     }
   }
 

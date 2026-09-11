@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { useQuery } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import DurationField from "@/components/admin/DurationField";
 import FormField from "@/components/admin/FormField";
 import PickerField from "@/components/admin/PickerField";
@@ -21,8 +21,8 @@ import {
 } from "react-native";
 import ModalHeader from "@/components/admin/ModalHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CourseContext } from "@/contexts/courseContext";
-import { VideoContext } from "@/contexts/videoContext";
+import { useCourses } from "@/hooks/useCourses";
+import { useVideos } from "@/hooks/useVideos";
 import { supabase } from "@/utils/supabase";
 import { useLanguage } from "@/hooks/useLanguage";
 import { color, LEVELS } from "@/config/adminTheme";
@@ -39,8 +39,8 @@ export default function ModalView({
   onClose: () => void;
   video?: Video | null;
 }) {
-  const { saveVideo, isSaving } = useContext(VideoContext);
-  const { courses } = useContext(CourseContext);
+  const { saveVideo, isSaving } = useVideos();
+  const { courses } = useCourses();
   const { t } = useLanguage();
   const isEdit = !!video;
 
@@ -275,7 +275,13 @@ export default function ModalView({
               value={videoUrl}
               onChangeText={(v) => {
                 setVideoUrl(v);
-                setVideoUri(null);
+                if (videoUri) {
+                  // Switching away from a picked file: its auto-detected
+                  // duration no longer applies to the pasted URL.
+                  setVideoUri(null);
+                  setDurationMin("0");
+                  setDurationSec("0");
+                }
               }}
               autoCapitalize="none"
               keyboardType="url"

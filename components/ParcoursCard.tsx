@@ -63,9 +63,6 @@ export default function ParcoursCard({
         <View style={styles.cardFooter}>
           <Text numberOfLines={2} style={styles.cardTitle}>{item.title}</Text>
           <Text numberOfLines={1} style={styles.cardSubtitle}>{item.subtitle}</Text>
-          <View style={styles.progressTrack}>
-            <View style={styles.progressFill} />
-          </View>
         </View>
       </Pressable>
     </Animated.View>
@@ -94,7 +91,4 @@ const styles = StyleSheet.create({
   cardFooter:   { paddingHorizontal: 12, paddingTop: 11, paddingBottom: 12, gap: 3 },
   cardTitle:    { fontSize: 13, fontWeight: "800", color: color.deepBlue, lineHeight: 18, letterSpacing: -0.2 },
   cardSubtitle: { fontSize: 11, color: color.softGray, fontWeight: "500" },
-
-  progressTrack: { height: 3, backgroundColor: "#EAF1F7", borderRadius: 4, marginTop: 8, overflow: "hidden" },
-  progressFill:  { height: "100%", width: "0%", backgroundColor: color.yellow, borderRadius: 4 },
 });

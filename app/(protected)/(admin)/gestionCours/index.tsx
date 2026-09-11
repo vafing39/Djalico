@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CourseContext } from "@/contexts/courseContext";
+import { useCourses } from "@/hooks/useCourses";
 import type { Course } from "@/types";
 import AdminHeader from "@/components/AdminHeader";
 import AdminListCard from "@/components/AdminListCard";
@@ -34,7 +34,7 @@ const LEVELS = [
 type LevelKey = (typeof LEVELS)[number]["key"];
 
 export default function GestionCours() {
-  const { courses, isLoading, error, deleteCourse } = useContext(CourseContext);
+  const { courses, isLoading, error, deleteCourse } = useCourses();
   const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);

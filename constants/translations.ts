@@ -21,6 +21,7 @@ export const translations = {
     // ── Common ────────────────────────────────────────────────────────────────
     "common.save": "Enregistrer",
     "common.cancel": "Annuler",
+    "common.retry": "Réessayer",
     "common.delete": "Supprimer",
     "common.edit": "Modifier",
     "common.add": "Ajouter",
@@ -122,11 +123,14 @@ export const translations = {
     "onboarding.birthDatePlaceholder": "JJ/MM/AAAA",
     "onboarding.birthDateRequired": "La date de naissance est requise",
     "onboarding.birthDateInvalid": "Format attendu : JJ/MM/AAAA",
+    "onboarding.birthDateImpossible": "Cette date n'existe pas ou n'est pas valide",
     "onboarding.phoneLabel": "Téléphone",
     "onboarding.phonePlaceholder": "06 12 34 56 78",
     "onboarding.phoneRequired": "Le téléphone est requis",
+    "onboarding.phoneInvalid": "Numéro de téléphone invalide",
     "onboarding.instrumentLabel": "Quels instruments souhaites-tu apprendre ?",
     "onboarding.instrumentRequired": "Choisis au moins un instrument",
+    "onboarding.instrumentLoadError": "Impossible de charger les instruments. Vérifie ta connexion.",
     "onboarding.goalLabel": "Quel est ton objectif ?",
     "onboarding.goalPlaceholder": "Ex : jouer mes premiers morceaux, me préparer à un concours...",
     "onboarding.goalRequired": "Cette information est requise",
@@ -259,7 +263,7 @@ export const translations = {
 
     // ── Legal screen (tabs/settings/legal.tsx) ────────────────────────────────
     "legal.footer": "Pour toute question, contactez-nous à",
-    "legal.footerEmail": "contact@djalico.com",
+    "legal.footerEmail": "direction@djalicosamb.fr",
 
     // ── Categorie — allParcoursScreen ─────────────────────────────────────────
     "categorie.library": "Bibliothèque",
@@ -356,6 +360,7 @@ export const translations = {
     "admin.videos.title": "Gestion des vidéos",
     "admin.videos.countLabel": "vidéos",
     "admin.videos.searchPlaceholder": "Rechercher une vidéo…",
+    "admin.videos.noSearchResults": "Aucune vidéo ne correspond à ta recherche",
     "admin.videos.filterAll": "Tous",
     "admin.videos.filterAllCategories": "Toutes catégories",
     "admin.videos.sectionTitle": "Mes vidéos",
@@ -468,6 +473,9 @@ export const translations = {
     "admin.modals.user.emailPlaceholder": "adresse@email.com",
     "admin.modals.user.password": "Mot de passe",
     "admin.modals.user.pendingNotice": "Ce compte attend une validation. Choisis un niveau puis valide pour lui donner accès à l'application.",
+    "admin.modals.user.reject": "Refuser",
+    "admin.modals.user.rejectConfirmTitle": "Refuser cette inscription ?",
+    "admin.modals.user.rejectConfirmBody": "Le compte sera définitivement supprimé. Cette action est irréversible.",
     "admin.modals.user.onboardingInfoTitle": "Informations d'inscription",
     "admin.modals.user.birthDate": "Date de naissance",
     "admin.modals.user.phone": "Téléphone",
@@ -479,6 +487,7 @@ export const translations = {
 
     // ── Video player (components/VideoModal.tsx) ──────────────────────────────
     "video.unsupportedFormat": "Format vidéo non supporté",
+    "video.playbackError": "Impossible de lire cette vidéo",
 
     // ── Not found screen (app/(protected)/+not-found.tsx) ─────────────────────
     "notFound.title": "Oups !",
@@ -503,6 +512,7 @@ export const translations = {
     // ── Common ────────────────────────────────────────────────────────────────
     "common.save": "Save",
     "common.cancel": "Cancel",
+    "common.retry": "Retry",
     "common.delete": "Delete",
     "common.edit": "Edit",
     "common.add": "Add",
@@ -604,11 +614,14 @@ export const translations = {
     "onboarding.birthDatePlaceholder": "DD/MM/YYYY",
     "onboarding.birthDateRequired": "Date of birth is required",
     "onboarding.birthDateInvalid": "Expected format: DD/MM/YYYY",
+    "onboarding.birthDateImpossible": "This date doesn't exist or isn't valid",
     "onboarding.phoneLabel": "Phone",
     "onboarding.phonePlaceholder": "06 12 34 56 78",
     "onboarding.phoneRequired": "Phone is required",
+    "onboarding.phoneInvalid": "Invalid phone number",
     "onboarding.instrumentLabel": "Which instruments do you want to learn?",
     "onboarding.instrumentRequired": "Choose at least one instrument",
+    "onboarding.instrumentLoadError": "Couldn't load instruments. Check your connection.",
     "onboarding.goalLabel": "What's your goal?",
     "onboarding.goalPlaceholder": "E.g. play my first songs, prepare for a contest...",
     "onboarding.goalRequired": "This information is required",
@@ -741,7 +754,7 @@ export const translations = {
 
     // ── Legal ─────────────────────────────────────────────────────────────────
     "legal.footer": "For any questions, contact us at",
-    "legal.footerEmail": "contact@djalico.com",
+    "legal.footerEmail": "direction@djalicosamb.fr",
 
     // ── Categorie ─────────────────────────────────────────────────────────────
     "categorie.library": "Library",
@@ -833,6 +846,7 @@ export const translations = {
     "admin.videos.title": "Video management",
     "admin.videos.countLabel": "videos",
     "admin.videos.searchPlaceholder": "Search a video…",
+    "admin.videos.noSearchResults": "No videos match your search",
     "admin.videos.filterAll": "All",
     "admin.videos.filterAllCategories": "All categories",
     "admin.videos.sectionTitle": "My videos",
@@ -945,6 +959,9 @@ export const translations = {
     "admin.modals.user.emailPlaceholder": "address@email.com",
     "admin.modals.user.password": "Password",
     "admin.modals.user.pendingNotice": "This account is awaiting review. Pick a level and validate to grant app access.",
+    "admin.modals.user.reject": "Reject",
+    "admin.modals.user.rejectConfirmTitle": "Reject this signup?",
+    "admin.modals.user.rejectConfirmBody": "The account will be permanently deleted. This action cannot be undone.",
     "admin.modals.user.onboardingInfoTitle": "Sign-up information",
     "admin.modals.user.birthDate": "Date of birth",
     "admin.modals.user.phone": "Phone",
@@ -956,6 +973,7 @@ export const translations = {
 
     // ── Video player ───────────────────────────────────────────────────────────
     "video.unsupportedFormat": "Unsupported video format",
+    "video.playbackError": "This video can't be played",
 
     // ── Not found screen ───────────────────────────────────────────────────────
     "notFound.title": "Oops!",

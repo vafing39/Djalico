@@ -1,6 +1,6 @@
 import { Picker } from "@react-native-picker/picker";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import { color, pickerStyleDefs } from "@/config/adminTheme";
+import { color, pickerStyleDefs, pickerStyleDefsCard } from "@/config/adminTheme";
 
 type Item = { label: string; value: string };
 
@@ -26,19 +26,25 @@ export default function PickerField({
   hint,
   variant,
 }: Props) {
-  const itemColor = variant === "card" || Platform.OS === "android" ? undefined : color.white;
+  const isCard = variant === "card";
+  const itemColor = isCard
+    ? color.textPrimary
+    : Platform.OS === "android"
+      ? undefined
+      : color.white;
+  const defs = isCard ? pickerStyleDefsCard : pickerStyleDefs;
 
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       {hint && <Text style={styles.hint}>{hint}</Text>}
-      <View style={styles.wrap}>
+      <View style={defs.wrap}>
         <Picker
           selectedValue={selectedValue}
           onValueChange={(v) => onValueChange(v as string)}
-          style={styles.picker}
-          itemStyle={styles.item}
-          dropdownIconColor={color.white}
+          style={defs.picker}
+          itemStyle={defs.item}
+          dropdownIconColor={isCard ? color.textPrimary : color.white}
         >
           {placeholder && (
             <Picker.Item label={placeholder} value="" color={itemColor} />
@@ -56,7 +62,4 @@ const styles = StyleSheet.create({
   field: { gap: 7 },
   label: { fontSize: 13, fontWeight: "700", color: color.textPrimary },
   hint: { fontSize: 11, color: color.textMuted, marginTop: -2 },
-  wrap: pickerStyleDefs.wrap,
-  picker: pickerStyleDefs.picker,
-  item: pickerStyleDefs.item,
 });

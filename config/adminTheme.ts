@@ -52,3 +52,16 @@ export const pickerStyleDefs = {
   picker: { color: color.white },
   item: { color: color.white, backgroundColor: color.deepBlue, fontSize: 14 as const },
 };
+
+/** "card" variant: light background matching white-card modals, dark text. */
+export const pickerStyleDefsCard = {
+  wrap: {
+    backgroundColor: color.card,
+    borderRadius: 12,
+    borderWidth: 1 as const,
+    borderColor: color.border,
+    overflow: "hidden" as const,
+  },
+  picker: { color: color.textPrimary },
+  item: { color: color.textPrimary, backgroundColor: color.card, fontSize: 14 as const },
+};

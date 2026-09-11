@@ -8,6 +8,22 @@ import type { UserProfile, UpdateProfileInput, OnboardingInput } from "@/types";
 
 export type { UserProfile, UpdateProfileInput };
 
+const IMAGE_CONTENT_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  heic: "image/heic",
+  heif: "image/heif",
+  gif: "image/gif",
+};
+
+function guessImageFile(uri: string): { ext: string; contentType: string } {
+  const raw = (uri.split(".").pop() ?? "").split("?")[0].toLowerCase();
+  const contentType = IMAGE_CONTENT_TYPES[raw];
+  return contentType ? { ext: raw, contentType } : { ext: "jpg", contentType: "image/jpeg" };
+}
+
 type AuthType = {
   session: Session | null;
   profile: UserProfile | null;
@@ -43,7 +59,7 @@ type AuthType = {
   uploadAvatarPending: boolean;
 };
 
-export const AuthContext = createContext<AuthType>({} as AuthType);
+export const AuthContext = createContext<AuthType | undefined>(undefined);
 
 const profileQueryOptions = (userId: string) => ({
   queryKey: ["profile", userId],
@@ -64,19 +80,27 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setSessionLoading(false);
-    });
-
+    // onAuthStateChange fires an INITIAL_SESSION event exactly once on
+    // subscribe with the persisted session (or null), so a separate
+    // getSession() call is redundant and was racing this listener —
+    // whichever resolved last would silently overwrite the other's session.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      setSessionLoading(false);
+      if (event === "USER_UPDATED" && session?.user?.id) {
+        // Re-fetch the profile once a pending email/attribute change is
+        // confirmed, so `profile.email` doesn't silently drift from the
+        // auth email.
+        queryClient.invalidateQueries({
+          queryKey: ["profile", session.user.id],
+        });
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     ...profileQueryOptions(session?.user?.id ?? ""),
@@ -105,15 +129,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
         password,
       });
       if (error) throw error;
-      return data;
-    },
-    onSuccess: async (data) => {
-      setSession(data.session);
-      const fetched = await queryClient.fetchQuery(
+      // Fetched here so a failure surfaces as a login error instead of
+      // leaving the user stuck post-signIn with no session and no feedback.
+      const profile = await queryClient.fetchQuery(
         profileQueryOptions(data.user.id),
       );
+      return { session: data.session, profile };
+    },
+    onSuccess: ({ session, profile }) => {
+      setSession(session);
       router.replace(
-        fetched?.role === "admin"
+        profile?.role === "admin"
           ? "/(protected)/(admin)/home"
           : "/(protected)/(tabs)",
       );
@@ -143,16 +169,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
         options: { data: { name } },
       });
       if (error) throw error;
-      return data;
-    },
-    onSuccess: async (data) => {
-      if (!data.session) return;
-      setSession(data.session);
-      const fetched = await queryClient.fetchQuery(
+      if (!data.session) return { session: null, profile: null };
+      // Fetched here so a failure surfaces as a register error instead of
+      // leaving the user stuck post-signUp with no session and no feedback.
+      const profile = await queryClient.fetchQuery(
         profileQueryOptions(data.user!.id),
       );
+      return { session: data.session, profile };
+    },
+    onSuccess: ({ session, profile }) => {
+      if (!session) return;
+      setSession(session);
       router.replace(
-        fetched?.role === "admin"
+        profile?.role === "admin"
           ? "/(protected)/(admin)/home"
           : "/(protected)/(tabs)",
       );
@@ -195,6 +224,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         type: "recovery",
       });
       if (error) throw error;
+      if (!data.session) {
+        throw new Error("Session de récupération introuvable.");
+      }
       setSession(data.session);
     },
   });
@@ -212,6 +244,29 @@ export function AuthProvider({ children }: PropsWithChildren) {
   } = useMutation({
     mutationFn: async (input: OnboardingInput) => {
       if (!session?.user?.id) throw new Error("Non connecté.");
+
+      // Instruments are written first, and the status flip to
+      // "pending_review" happens last, so a failure never leaves the
+      // profile silently stuck in review with no instruments and no way
+      // back to /onboarding. Delete-then-insert (matching
+      // userContext.tsx's updateUserInstruments) keeps this idempotent so
+      // a retry after a partial failure doesn't hit a duplicate-key error.
+      const { error: deleteError } = await supabase
+        .from("user_instruments")
+        .delete()
+        .eq("user_id", session.user.id);
+      if (deleteError) throw deleteError;
+
+      const { error: instrumentsError } = await supabase
+        .from("user_instruments")
+        .insert(
+          input.instrumentCategoryIds.map((categoryId) => ({
+            user_id: session.user.id,
+            category_id: categoryId,
+          })),
+        );
+      if (instrumentsError) throw instrumentsError;
+
       const { error } = await supabase
         .from("users")
         .update({
@@ -223,16 +278,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
         })
         .eq("id", session.user.id);
       if (error) throw error;
-
-      const { error: instrumentsError } = await supabase
-        .from("user_instruments")
-        .insert(
-          input.instrumentCategoryIds.map((categoryId) => ({
-            user_id: session.user.id,
-            category_id: categoryId,
-          })),
-        );
-      if (instrumentsError) throw instrumentsError;
     },
     onSuccess: refreshProfile,
   });
@@ -269,10 +314,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       mutationFn: async (localUri: string) => {
         if (!session?.user?.id) throw new Error("Non connecté.");
         const arrayBuffer = await new File(localUri).arrayBuffer();
-        const path = `avatars/${session.user.id}.jpg`;
+        const { ext, contentType } = guessImageFile(localUri);
+        const path = `avatars/${session.user.id}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("image")
-          .upload(path, arrayBuffer, { upsert: true, contentType: "image/jpeg" });
+          .upload(path, arrayBuffer, { upsert: true, contentType });
         if (uploadError) throw uploadError;
         const {
           data: { publicUrl },
@@ -314,7 +360,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     },
     onSuccess: () => {
       setSession(null);
-      queryClient.removeQueries({ queryKey: ["profile"] });
+      // Wipe the whole cache, not just ["profile"] — courses/videos/parcours/
+      // users/lessons/categories aren't user-scoped keys and would otherwise
+      // keep serving the previous account's data to whoever logs in next on
+      // a shared device.
+      queryClient.clear();
       router.replace("/login");
     },
   });

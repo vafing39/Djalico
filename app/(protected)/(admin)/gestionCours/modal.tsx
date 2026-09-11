@@ -1,9 +1,9 @@
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CourseContext } from "@/contexts/courseContext";
-import { LessonContext } from "@/contexts/lessonContext";
-import { VideoContext } from "@/contexts/videoContext";
+import { useCourses } from "@/hooks/useCourses";
+import { useLessons } from "@/hooks/useLessons";
+import { useVideos } from "@/hooks/useVideos";
 import { color, LEVELS } from "@/config/adminTheme";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { Course, TagType, LessonDraft, Video } from "@/types";
@@ -20,9 +20,9 @@ export default function ModalView({
   onClose: () => void;
   course?: Course | null;
 }) {
-  const { saveCourse, isSaving } = useContext(CourseContext);
-  const { lessons: allLessons, saveLessons, isSavingLessons } = useContext(LessonContext);
-  const { videos: rawVideos } = useContext(VideoContext);
+  const { saveCourse, isSaving } = useCourses();
+  const { lessons: allLessons, saveLessons, isSavingLessons } = useLessons();
+  const { videos: rawVideos } = useVideos();
   const { t } = useLanguage();
   const videos = [...rawVideos].sort((a, b) =>
     a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),

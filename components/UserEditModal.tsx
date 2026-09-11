@@ -1,10 +1,10 @@
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import ModalHeader from "@/components/admin/ModalHeader";
 import FormField from "@/components/admin/FormField";
 import PickerField from "@/components/admin/PickerField";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { UserContext } from "@/contexts/userContext";
+import { useUsers } from "@/hooks/useUsers";
 import { useCategories } from "@/hooks/useCategories";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { User } from "@/types";
@@ -23,15 +23,17 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
     createUser,
     updateUser,
     updateUserInstruments,
+    deleteUser,
     isCreating,
     isUpdating,
     isUpdatingInstruments,
-  } = useContext(UserContext);
+    isDeleting,
+  } = useUsers();
   const { categories } = useCategories();
   const { t } = useLanguage();
   const isEdit = !!user;
   const isPendingReview = user?.status === "pending_review";
-  const isBusy = isCreating || isUpdating || isUpdatingInstruments;
+  const isBusy = isCreating || isUpdating || isUpdatingInstruments || isDeleting;
   const roles = ROLE_VALUES.map((value) => ({ label: t(`settings.role.${value}`), value }));
   const levels = LEVELS.map((l) => ({ label: t(`common.level.${l.value}`), value: l.value }));
 
@@ -100,6 +102,29 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
     }
   }
 
+  function handleReject() {
+    if (!user) return;
+    Alert.alert(
+      t("admin.modals.user.rejectConfirmTitle"),
+      t("admin.modals.user.rejectConfirmBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("admin.modals.user.reject"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteUser(user.id);
+              onClose();
+            } catch (err: any) {
+              Alert.alert(t("common.error"), err.message);
+            }
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <Modal
       visible={visible}
@@ -140,6 +165,18 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
                   {t("admin.modals.user.pendingNotice")}
                 </Text>
               </View>
+            )}
+
+            {isPendingReview && (
+              <Pressable
+                style={styles.rejectBtn}
+                onPress={handleReject}
+                disabled={isBusy}
+              >
+                <Text style={styles.rejectBtnText}>
+                  {t("admin.modals.user.reject")}
+                </Text>
+              </Pressable>
             )}
 
             {isPendingReview && (
@@ -280,6 +317,19 @@ const styles = StyleSheet.create({
     color: "#92610A",
     fontWeight: "500",
     lineHeight: 18,
+  },
+  rejectBtn: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#EF4444",
+  },
+  rejectBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#EF4444",
   },
   onboardingInfo: {
     backgroundColor: color.card,

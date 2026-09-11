@@ -36,13 +36,36 @@ function toIsoDate(ddmmyyyy: string) {
   return `${year}-${month}-${day}`;
 }
 
+function isValidCalendarDate(ddmmyyyy: string): boolean {
+  const [day, month, year] = ddmmyyyy.split("/").map(Number);
+  if (!day || !month || !year) return false;
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day &&
+    date.getTime() < Date.now()
+  );
+}
+
+const PHONE_REGEX = /^\+?[\d\s().-]{6,20}$/;
+
+function isValidPhone(value: string): boolean {
+  const digitCount = value.replace(/[^\d]/g, "").length;
+  return PHONE_REGEX.test(value) && digitCount >= 6 && digitCount <= 15;
+}
+
 function makeOnboardingSchema(t: (key: string) => string) {
   return z.object({
     birthDate: z
       .string()
       .min(1, t("onboarding.birthDateRequired"))
-      .regex(DATE_REGEX, t("onboarding.birthDateInvalid")),
-    phone: z.string().min(1, t("onboarding.phoneRequired")),
+      .regex(DATE_REGEX, t("onboarding.birthDateInvalid"))
+      .refine(isValidCalendarDate, t("onboarding.birthDateImpossible")),
+    phone: z
+      .string()
+      .min(1, t("onboarding.phoneRequired"))
+      .refine(isValidPhone, t("onboarding.phoneInvalid")),
     instrumentCategoryIds: z
       .array(z.string())
       .min(1, t("onboarding.instrumentRequired")),
@@ -58,7 +81,12 @@ type FieldErrors = Partial<Record<keyof OnboardingFields, string>>;
 
 export default function OnboardingScreen() {
   const { completeOnboarding, completeOnboardingPending, logOut } = useAuth();
-  const { categories } = useCategories();
+  const {
+    categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    refetch: refetchCategories,
+  } = useCategories();
   const { t } = useLanguage();
   const onboardingSchema = useMemo(() => makeOnboardingSchema(t), [t]);
 
@@ -228,6 +256,9 @@ export default function OnboardingScreen() {
                         {item === "instrument" && (
                           <InstrumentStep
                             categories={categories}
+                            isLoading={categoriesLoading}
+                            loadError={!!categoriesError}
+                            onRetry={refetchCategories}
                             value={instrumentCategoryIds}
                             onChange={(v) => {
                               setInstrumentCategoryIds(v);
@@ -282,6 +313,7 @@ export default function OnboardingScreen() {
                     pressed && styles.btnPressed,
                   ]}
                   onPress={handleBack}
+                  disabled={completeOnboardingPending}
                 >
                   <Ionicons
                     name="arrow-back"

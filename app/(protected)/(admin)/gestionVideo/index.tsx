@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { VideoContext } from "@/contexts/videoContext";
+import { useVideos } from "@/hooks/useVideos";
 import type { Video } from "@/types";
 import AdminHeader from "@/components/AdminHeader";
 import VideoModal from "@/components/VideoModal";
@@ -27,7 +27,7 @@ const LEVELS = [
 type LevelKey = (typeof LEVELS)[number]["key"];
 
 export default function GestionVideo() {
-  const { videos, isLoading, error, deleteVideo } = useContext(VideoContext);
+  const { videos, isLoading, error, deleteVideo } = useVideos();
   const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);

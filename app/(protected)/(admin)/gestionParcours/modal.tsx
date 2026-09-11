@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import ModalHeader from "@/components/admin/ModalHeader";
 import CategoryLevelPickers from "@/components/admin/CategoryLevelPickers";
@@ -10,8 +10,8 @@ import PickerField from "@/components/admin/PickerField";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabase";
-import { ParcoursContext } from "@/contexts/parcoursContext";
-import { CourseContext } from "@/contexts/courseContext";
+import { useParcours } from "@/hooks/useParcours";
+import { useCourses } from "@/hooks/useCourses";
 import { color, LEVELS } from "@/config/adminTheme";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { Parcours, Category, TagType } from "@/types";
@@ -27,8 +27,8 @@ export default function ModalView({
   onClose: () => void;
   parcours?: Parcours | null;
 }) {
-  const { saveParcours, isSaving } = useContext(ParcoursContext);
-  const { courses } = useContext(CourseContext);
+  const { saveParcours, isSaving } = useParcours();
+  const { courses } = useCourses();
   const { t } = useLanguage();
   const isEdit = !!parcours;
 

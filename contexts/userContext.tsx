@@ -1,8 +1,7 @@
 import { supabase } from "@/utils/supabase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@supabase/supabase-js";
-import { createContext, PropsWithChildren, useContext } from "react";
-import { AuthContext } from "@/contexts/authContext";
+import { createContext, PropsWithChildren } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 import type { User, UserPayload, CreateUserInput } from "@/types";
@@ -21,10 +20,11 @@ type UserContextType = {
   isCreating: boolean;
   isUpdating: boolean;
   isUpdatingInstruments: boolean;
+  isDeleting: boolean;
 };
 
-export const UserContext = createContext<UserContextType>(
-  {} as UserContextType,
+export const UserContext = createContext<UserContextType | undefined>(
+  undefined,
 );
 
 // Isolated client so signUp never overwrites the admin's session
@@ -74,7 +74,12 @@ export function UserProvider({ children }: PropsWithChildren) {
         .eq("id", userId)
         .select("*, user_instruments(category:categories(id, title, emoji))")
         .single();
-      if (updateError) throw updateError;
+      if (updateError) {
+        // Roll back the orphaned auth account so retrying with the same
+        // email doesn't fail with "already registered".
+        await supabase.functions.invoke("delete-user", { body: { id: userId } });
+        throw updateError;
+      }
       return updated as User;
     },
     onSuccess: (newUser) => {
@@ -169,6 +174,7 @@ export function UserProvider({ children }: PropsWithChildren) {
         isCreating: createMutation.isPending,
         isUpdating: updateMutation.isPending,
         isUpdatingInstruments: updateInstrumentsMutation.isPending,
+        isDeleting: deleteMutation.isPending,
       }}
     >
       {children}

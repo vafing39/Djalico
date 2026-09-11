@@ -5,8 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { createContext, PropsWithChildren, useContext } from "react";
-import { AuthContext } from "@/contexts/authContext";
+import { createContext, PropsWithChildren } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Video, VideoPayload, SaveVideoInput } from "@/types";
 
@@ -35,8 +34,8 @@ type VideoContextType = {
   saveProgress: (videoId: string, pct: number, time: number) => void;
 };
 
-export const VideoContext = createContext<VideoContextType>(
-  {} as VideoContextType,
+export const VideoContext = createContext<VideoContextType | undefined>(
+  undefined,
 );
 
 async function uploadToStorage(
@@ -124,7 +123,7 @@ export function VideoProvider({ children }: PropsWithChildren) {
       pct: number;
       time: number;
     }) => {
-      if (!userId) return;
+      if (!userId) throw new Error("Non connecté.");
       const { error } = await supabase.from("user_video_progress").upsert(
         {
           user_id: userId,
@@ -138,6 +137,7 @@ export function VideoProvider({ children }: PropsWithChildren) {
       if (error) throw error;
     },
     onMutate: ({ videoId, pct, time }) => {
+      if (!userId) return;
       queryClient.setQueryData<VideoProgressStore>(
         ["video-progress", userId],
         (prev) => ({
@@ -183,6 +183,9 @@ export function VideoProvider({ children }: PropsWithChildren) {
       const cached = queryClient.getQueryData<Video[]>(["videos"]) ?? [];
       const video = cached.find((v) => v.id === id);
 
+      const { error } = await supabase.from("videos").delete().eq("id", id);
+      if (error) throw error;
+
       const storagePaths: string[] = [];
       if (video?.url) {
         const p = extractStoragePath(video.url, "videos");
@@ -196,8 +199,6 @@ export function VideoProvider({ children }: PropsWithChildren) {
         await supabase.storage.from("videos").remove(storagePaths);
       }
 
-      const { error } = await supabase.from("videos").delete().eq("id", id);
-      if (error) throw error;
       return id;
     },
     onSuccess: (id) => {
@@ -257,21 +258,25 @@ export function VideoProvider({ children }: PropsWithChildren) {
           .single();
         if (error) throw error;
         if (input.courseId) {
-          const { data: lastLesson } = await supabase
+          const { data: lastLesson, error: lastLessonError } = await supabase
             .from("course_videos")
             .select("index")
             .eq("course_id", input.courseId)
             .order("index", { ascending: false })
             .limit(1);
+          if (lastLessonError) throw lastLessonError;
           const nextIndex =
-            lastLesson?.[0] != null ? lastLesson[0].index + 1 : 0;
-          await supabase.from("course_videos").insert({
-            course_id: input.courseId,
-            title: inserted.title,
-            url: inserted.url,
-            duration_seconds: input.durationSeconds,
-            index: nextIndex,
-          });
+            lastLesson?.[0] != null ? lastLesson[0].index + 1 : 1;
+          const { error: linkError } = await supabase
+            .from("course_videos")
+            .insert({
+              course_id: input.courseId,
+              title: inserted.title,
+              url: inserted.url,
+              duration_seconds: input.durationSeconds,
+              index: nextIndex,
+            });
+          if (linkError) throw linkError;
         }
         return inserted as Video;
       }

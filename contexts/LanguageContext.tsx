@@ -16,25 +16,25 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>("fr");
 
   useEffect(() => {
-    const loadLanguage = async () => {
-      try {
-        const savedLanguage = await AsyncStorage.getItem("app_language");
+    AsyncStorage.getItem("app_language")
+      .then((savedLanguage) => {
         if (savedLanguage && translations[savedLanguage as Language]) {
           setLanguageState(savedLanguage as Language);
         }
-      } catch (error) {
-        throw error;
-      }
-    };
-    loadLanguage();
+      })
+      .catch(() => {
+        // Keep the default "fr" state if AsyncStorage can't be read.
+      });
   }, []);
 
   const setLanguage = async (lang: Language) => {
     try {
       await AsyncStorage.setItem("app_language", lang);
+    } catch {
+      // Best-effort persistence — still reflect the choice in-session even
+      // if it couldn't be saved to disk.
+    } finally {
       setLanguageState(lang);
-    } catch (error) {
-      throw error;
     }
   };
 

@@ -1,11 +1,11 @@
-import { AuthContext } from "@/contexts/authContext";
-import { Redirect, Stack, usePathname } from "expo-router";
-import { useContext } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Redirect, Stack, usePathname, useSegments } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 
 export default function ProtectedLayout() {
-  const { session, isLoading, isAdmin, profile } = useContext(AuthContext);
+  const { session, isLoading, isAdmin, profile } = useAuth();
   const pathname = usePathname();
+  const segments = useSegments();
 
   if (isLoading) {
     return (
@@ -16,6 +16,12 @@ export default function ProtectedLayout() {
   }
 
   if (!session) return <Redirect href="/login" />;
+
+  // Non-admins must never reach the (admin) route group, no matter how they
+  // got there (deep link, guessed URL, stale navigation state).
+  if (!isAdmin && (segments as string[]).includes("(admin)")) {
+    return <Redirect href="/(protected)/(tabs)" />;
+  }
 
   // Self-registered students must finish onboarding and be validated by an
   // admin before reaching the app; admins bypass this gate entirely.

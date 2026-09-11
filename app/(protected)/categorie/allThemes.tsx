@@ -89,7 +89,12 @@ export default function AllThemesScreen() {
         renderItem={({ item }) => (
           <ThemeCard
             item={item}
-            onPress={() => router.navigate("/categorie/allParcoursScreen")}
+            onPress={() =>
+              router.navigate({
+                pathname: "/categorie/allParcoursScreen",
+                params: { categoryId: item.id, categoryTitle: item.title },
+              })
+            }
           />
         )}
         ListFooterComponent={<View style={{ height: 110 }} />}

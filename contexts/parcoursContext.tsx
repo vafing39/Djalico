@@ -23,8 +23,8 @@ type ParcoursContextType = {
   isSaving: boolean;
 };
 
-export const ParcoursContext = createContext<ParcoursContextType>(
-  {} as ParcoursContextType,
+export const ParcoursContext = createContext<ParcoursContextType | undefined>(
+  undefined,
 );
 
 async function uploadToStorage(
@@ -93,15 +93,20 @@ export function ParcoursProvider({ children }: PropsWithChildren) {
       const cached = queryClient.getQueryData<Parcours[]>(["parcours"]) ?? [];
       const p = cached.find((p) => p.id === id);
 
+      const { error: junctionError } = await supabase
+        .from("parcours_courses")
+        .delete()
+        .eq("parcours_id", id);
+      if (junctionError) throw junctionError;
+
+      const { error } = await supabase.from("parcours").delete().eq("id", id);
+      if (error) throw error;
+
       if (p?.cover_image_url) {
         const path = extractStoragePath(p.cover_image_url, "image");
         if (path) await supabase.storage.from("image").remove([path]);
       }
 
-      await supabase.from("parcours_courses").delete().eq("parcours_id", id);
-
-      const { error } = await supabase.from("parcours").delete().eq("id", id);
-      if (error) throw error;
       return id;
     },
     onSuccess: (id) => {
@@ -148,10 +153,11 @@ export function ParcoursProvider({ children }: PropsWithChildren) {
         if (error) throw error;
         result = updated as Parcours;
 
-        await supabase
+        const { error: deleteJunctionError } = await supabase
           .from("parcours_courses")
           .delete()
           .eq("parcours_id", input.editId);
+        if (deleteJunctionError) throw deleteJunctionError;
       } else {
         const { data: inserted, error } = await supabase
           .from("parcours")

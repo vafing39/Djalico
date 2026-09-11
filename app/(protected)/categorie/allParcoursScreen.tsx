@@ -1,7 +1,7 @@
 import { color } from "@/config/color";
 import ParcoursCard, { type ParcoursCardItem } from "@/components/ParcoursCard";
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Screen from "@/components/Screen";
@@ -35,7 +35,7 @@ function toCardItem(p: Parcours, t: (key: string) => string): ParcoursCardItem {
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
-function Header({ count }: { count: number }) {
+function Header({ count, title }: { count: number; title?: string }) {
   const { t } = useLanguage();
   return (
     <View>
@@ -45,7 +45,7 @@ function Header({ count }: { count: number }) {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerEyebrow}>{t("categorie.library")}</Text>
-          <Text style={styles.headerTitle}>{t("categorie.allParcours")}</Text>
+          <Text style={styles.headerTitle}>{title ?? t("categorie.allParcours")}</Text>
         </View>
         <View style={styles.headerCount}>
           <Text style={styles.headerCountText}>{count}</Text>
@@ -58,6 +58,10 @@ function Header({ count }: { count: number }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function AllParcoursScreen() {
+  const { categoryId, categoryTitle } = useLocalSearchParams<{
+    categoryId?: string;
+    categoryTitle?: string;
+  }>();
   const { parcours } = useParcours();
   const { t } = useLanguage();
   const userLevel = useUserLevel();
@@ -66,8 +70,9 @@ export default function AllParcoursScreen() {
     () =>
       parcours
         .filter((p) => isLevelAccessible(p.tag_type, userLevel))
+        .filter((p) => !categoryId || p.category?.id === categoryId)
         .map((p) => toCardItem(p, t)),
-    [parcours, t, userLevel],
+    [parcours, t, userLevel, categoryId],
   );
 
   return (
@@ -79,7 +84,7 @@ export default function AllParcoursScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={styles.columnWrapper}
-        ListHeaderComponent={<Header count={items.length} />}
+        ListHeaderComponent={<Header count={items.length} title={categoryTitle} />}
         renderItem={({ item, index }) => (
           <ParcoursCard item={item} index={index} />
         )}

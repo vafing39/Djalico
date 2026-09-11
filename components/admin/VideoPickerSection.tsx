@@ -61,6 +61,11 @@ export default function VideoPickerSection({
           <Ionicons name="film-outline" size={32} color={color.textMuted} />
           <Text style={styles.emptyText}>{t("admin.modals.course.noVideosAvailable")}</Text>
         </View>
+      ) : filtered.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="search-outline" size={32} color={color.textMuted} />
+          <Text style={styles.emptyText}>{t("admin.videos.noSearchResults")}</Text>
+        </View>
       ) : (
         <ScrollView
           style={styles.list}

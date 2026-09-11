@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { UserContext } from "@/contexts/userContext";
+import { useUsers } from "@/hooks/useUsers";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { User } from "@/types";
 import AdminHeader from "@/components/AdminHeader";
@@ -18,7 +18,7 @@ import UserEditModal from "@/components/UserEditModal";
 import { color } from "@/config/adminTheme";
 
 export default function GestionUser() {
-  const { users, isLoading, error, deleteUser } = useContext(UserContext);
+  const { users, isLoading, error, deleteUser } = useUsers();
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);

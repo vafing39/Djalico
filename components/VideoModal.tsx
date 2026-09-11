@@ -31,8 +31,10 @@ interface VideoModalProps {
 function getYouTubeId(url: string): string | null {
   const patterns = [
     /[?&]v=([^&#]+)/,
-    /youtu\.be\/([^?&#]+)/,
-    /\/embed\/([^?&#]+)/,
+    /youtu\.be\/([^/?&#]+)/,
+    /\/embed\/([^/?&#]+)/,
+    /\/shorts\/([^/?&#]+)/,
+    /\/live\/([^/?&#]+)/,
   ];
   for (const pattern of patterns) {
     const match = url.match(pattern);
@@ -42,7 +44,13 @@ function getYouTubeId(url: string): string | null {
 }
 
 function isYouTubeUrl(url: string): boolean {
-  return /youtube\.com|youtu\.be/.test(url);
+  return /^(?:https?:\/\/)?(?:[\w-]+\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\//i.test(
+    url,
+  );
+}
+
+function isDirectVideoUrl(url: string): boolean {
+  return /\.(mp4|m3u8|mov|webm|mkv|avi)(\?.*)?$/i.test(url);
 }
 
 // ─── Native player (mp4, m3u8…) ──────────────────────────────────────────────
@@ -60,18 +68,27 @@ function NativePlayer({
   videoWidth: number;
   videoHeight: number;
 }) {
+  const { t } = useLanguage();
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "readyToPlay" | "error"
+  >("idle");
+
   const player = useVideoPlayer(url, (p) => {
     p.loop = false;
     p.timeUpdateEventInterval = 3; // fire every 3 s
+    if (initialTime && initialTime > 0) {
+      p.currentTime = initialTime;
+    }
     p.play();
   });
 
-  // Resume position once mounted
+  // Surface load failures instead of leaving a stuck black player.
   useEffect(() => {
-    if (initialTime && initialTime > 0) {
-      player.currentTime = initialTime;
-    }
-  }, []);
+    const sub = player.addListener("statusChange", ({ status }) => {
+      setStatus(status);
+    });
+    return () => sub.remove();
+  }, [player]);
 
   // Report progress every 3 s via timeUpdate
   useEffect(() => {
@@ -84,13 +101,25 @@ function NativePlayer({
   }, [onProgress]);
 
   return (
-    <VideoView
-      player={player}
-      style={{ width: videoWidth, height: videoHeight, backgroundColor: "#000" }}
-      allowsFullscreen
-      allowsPictureInPicture
-      contentFit="contain"
-    />
+    <View style={{ width: videoWidth, height: videoHeight, backgroundColor: "#000" }}>
+      <VideoView
+        player={player}
+        style={{ width: videoWidth, height: videoHeight, backgroundColor: "#000" }}
+        fullscreenOptions={{ enable: true }}
+        allowsPictureInPicture
+        contentFit="contain"
+      />
+      {status === "loading" && (
+        <View style={styles.loader}>
+          <ActivityIndicator color="#fff" size="large" />
+        </View>
+      )}
+      {status === "error" && (
+        <View style={[styles.errorContainer, StyleSheet.absoluteFill]}>
+          <Text style={styles.errorText}>{t("video.playbackError")}</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -176,7 +205,8 @@ export default function VideoModal({
     videoUrl && isYouTubeUrl(videoUrl) ? getYouTubeId(videoUrl) : null;
 
   const isYouTube = youtubeId !== null;
-  const isNative = videoUrl !== null && !isYouTube;
+  const isNative = videoUrl !== null && !isYouTube && isDirectVideoUrl(videoUrl);
+  const isUnsupported = videoUrl !== null && !isYouTube && !isNative;
 
   return (
     <Modal
@@ -232,7 +262,7 @@ export default function VideoModal({
             />
           )}
 
-          {!isYouTube && !isNative && videoUrl && (
+          {isUnsupported && (
             <View style={[styles.errorContainer, { width: videoWidth, height: videoHeight }]}>
               <Text style={styles.errorText}>{t("video.unsupportedFormat")}</Text>
             </View>
@@ -296,7 +326,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   loader: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#000",

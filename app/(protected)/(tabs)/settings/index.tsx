@@ -1,22 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -134,111 +127,9 @@ export default function ProfileScreen() {
     profile,
     logOut,
     logoutPending,
-    updateEmail,
-    updateEmailPending,
-    updatePassword,
-    updatePasswordPending,
-    uploadAvatar,
-    uploadAvatarPending,
   } = useAuth();
 
-  const [emailModalVisible, setEmailModalVisible] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
-
-  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  function closeEmailModal() {
-    setEmailModalVisible(false);
-    setNewEmail("");
-  }
-
-  function closePasswordModal() {
-    setPasswordModalVisible(false);
-    setNewPassword("");
-    setConfirmPassword("");
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-  }
-
   const currentLang = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
-
-  const isPickingAvatarRef = useRef(false);
-
-  async function pickAvatar() {
-    if (isPickingAvatarRef.current) return;
-    isPickingAvatarRef.current = true;
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          t("settings.alert.permissionDenied"),
-          t("settings.alert.galleryAccess"),
-        );
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (result.canceled || !result.assets[0]) return;
-      await uploadAvatar(result.assets[0].uri);
-    } catch (err: any) {
-      Alert.alert(t("common.error"), err?.message ?? t("settings.alert.cannotUpdatePhoto"));
-    } finally {
-      isPickingAvatarRef.current = false;
-    }
-  }
-
-  async function handleChangeEmail() {
-    const trimmed = newEmail.trim().toLowerCase();
-    if (!trimmed) {
-      Alert.alert(t("settings.alert.requiredField"), t("settings.alert.enterEmail"));
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmed)) {
-      Alert.alert(t("settings.alert.invalidAddress"), t("settings.alert.enterValidEmail"));
-      return;
-    }
-    if (trimmed === profile?.email) {
-      Alert.alert(t("settings.alert.sameEmail"), t("settings.alert.alreadyCurrentEmail"));
-      return;
-    }
-    try {
-      await updateEmail(trimmed);
-      closeEmailModal();
-      Alert.alert(
-        t("settings.alert.emailSentTitle"),
-        t("settings.alert.emailSentBody", { email: trimmed }),
-      );
-    } catch (err: any) {
-      Alert.alert(t("common.error"), err?.message ?? t("settings.alert.cannotChangeEmail"));
-    }
-  }
-
-  async function handleChangePassword() {
-    if (newPassword.length < 6) {
-      Alert.alert(t("settings.alert.passwordTooShort"), t("settings.alert.passwordMinLength"));
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      Alert.alert(t("common.error"), t("settings.alert.passwordMismatch"));
-      return;
-    }
-    try {
-      await updatePassword(newPassword);
-      closePasswordModal();
-      Alert.alert(t("settings.alert.passwordChangedTitle"), t("settings.alert.passwordChangedBody"));
-    } catch (err: any) {
-      Alert.alert(t("common.error"), err?.message ?? t("settings.alert.cannotUpdatePassword"));
-    }
-  }
 
   return (
     <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
@@ -270,17 +161,6 @@ export default function ProfileScreen() {
             </Text>
             <Text style={styles.profileEmail}>{profile?.email ?? "—"}</Text>
           </View>
-          <Pressable
-            style={[styles.editAvatarBtn, uploadAvatarPending && { opacity: 0.5 }]}
-            onPress={pickAvatar}
-            disabled={uploadAvatarPending}
-          >
-            {uploadAvatarPending ? (
-              <ActivityIndicator size="small" color={C.navy} />
-            ) : (
-              <Ionicons name="camera-outline" size={16} color={C.navy} />
-            )}
-          </Pressable>
         </View>
       </LinearGradient>
 
@@ -298,19 +178,11 @@ export default function ProfileScreen() {
             onPress={() => router.push("/(protected)/(tabs)/settings/editProfile")}
           />
           <SettingItem
-            icon="mail-outline"
-            iconBg="#FFF3CD"
-            iconColor="#F59E0B"
-            label={t("settings.changeEmail")}
-            sublabel={profile?.email}
-            onPress={() => setEmailModalVisible(true)}
-          />
-          <SettingItem
             icon="lock-closed-outline"
             iconBg="#F3E8FF"
             iconColor="#9333EA"
             label={t("settings.changePassword")}
-            onPress={() => setPasswordModalVisible(true)}
+            onPress={() => router.push("/(protected)/changePassword")}
             isLast
           />
         </Section>
@@ -327,167 +199,6 @@ export default function ProfileScreen() {
             isLast
           />
         </Section>
-
-        {/* ── Email modal ── */}
-        <Modal
-          visible={emailModalVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={closeEmailModal}
-        >
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-          >
-            <Pressable
-              style={styles.modalOverlay}
-              onPress={closeEmailModal}
-            >
-              <Pressable style={styles.modalSheet} onPress={() => {}}>
-                <View style={styles.modalHandle} />
-                <Text style={styles.modalTitle}>{t("settings.emailModal.title")}</Text>
-
-                <View style={styles.modalField}>
-                  <Text style={styles.modalFieldLabel}>{t("settings.emailModal.currentLabel")}</Text>
-                  <View style={[styles.modalInputRow, styles.modalInputRowDisabled]}>
-                    <Ionicons name="mail-outline" size={16} color={C.softGray} />
-                    <Text style={styles.modalInputDisabled}>{profile?.email ?? "—"}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.modalField}>
-                  <Text style={styles.modalFieldLabel}>{t("settings.emailModal.newLabel")}</Text>
-                  <View style={styles.modalInputRow}>
-                    <Ionicons name="mail-outline" size={16} color={C.textMuted} />
-                    <TextInput
-                      style={styles.modalInput}
-                      value={newEmail}
-                      onChangeText={setNewEmail}
-                      placeholder={t("settings.emailModal.newPlaceholder")}
-                      placeholderTextColor={C.textMuted}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoFocus
-                    />
-                  </View>
-                  <Text style={styles.modalHint}>
-                    {t("settings.emailModal.hint")}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.modalSaveBtn, updateEmailPending && { opacity: 0.6 }]}
-                  onPress={handleChangeEmail}
-                  disabled={updateEmailPending}
-                >
-                  {updateEmailPending ? (
-                    <ActivityIndicator size="small" color={C.navy} />
-                  ) : (
-                    <>
-                      <Ionicons name="send-outline" size={16} color={C.navy} />
-                      <Text style={styles.modalSaveBtnText}>{t("settings.emailModal.submit")}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </Pressable>
-            </Pressable>
-          </KeyboardAvoidingView>
-        </Modal>
-
-        {/* ── Password modal ── */}
-        <Modal
-          visible={passwordModalVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={closePasswordModal}
-        >
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-          >
-            <Pressable
-              style={styles.modalOverlay}
-              onPress={closePasswordModal}
-            >
-              <Pressable style={styles.modalSheet} onPress={() => {}}>
-                <View style={styles.modalHandle} />
-                <Text style={styles.modalTitle}>{t("settings.passwordModal.title")}</Text>
-
-                <View style={styles.modalField}>
-                  <Text style={styles.modalFieldLabel}>{t("settings.passwordModal.newLabel")}</Text>
-                  <View style={styles.modalInputRow}>
-                    <Ionicons name="lock-closed-outline" size={16} color={C.textMuted} />
-                    <TextInput
-                      style={styles.modalInput}
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      placeholder={t("settings.passwordModal.newPlaceholder")}
-                      placeholderTextColor={C.textMuted}
-                      secureTextEntry={!showNewPassword}
-                      autoFocus
-                    />
-                    <Pressable onPress={() => setShowNewPassword((v) => !v)}>
-                      <Ionicons
-                        name={showNewPassword ? "eye-off-outline" : "eye-outline"}
-                        size={18}
-                        color={C.textMuted}
-                      />
-                    </Pressable>
-                  </View>
-                </View>
-
-                <View style={styles.modalField}>
-                  <Text style={styles.modalFieldLabel}>{t("settings.passwordModal.confirmLabel")}</Text>
-                  <View
-                    style={[
-                      styles.modalInputRow,
-                      confirmPassword.length > 0 &&
-                        newPassword !== confirmPassword &&
-                        styles.modalInputRowError,
-                    ]}
-                  >
-                    <Ionicons name="lock-closed-outline" size={16} color={C.textMuted} />
-                    <TextInput
-                      style={styles.modalInput}
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      placeholder={t("settings.passwordModal.confirmPlaceholder")}
-                      placeholderTextColor={C.textMuted}
-                      secureTextEntry={!showConfirmPassword}
-                    />
-                    <Pressable onPress={() => setShowConfirmPassword((v) => !v)}>
-                      <Ionicons
-                        name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                        size={18}
-                        color={C.textMuted}
-                      />
-                    </Pressable>
-                  </View>
-                  {confirmPassword.length > 0 && newPassword !== confirmPassword && (
-                    <Text style={styles.modalError}>
-                      {t("settings.passwordModal.mismatch")}
-                    </Text>
-                  )}
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.modalSaveBtn, updatePasswordPending && { opacity: 0.6 }]}
-                  onPress={handleChangePassword}
-                  disabled={updatePasswordPending}
-                >
-                  {updatePasswordPending ? (
-                    <ActivityIndicator size="small" color={C.navy} />
-                  ) : (
-                    <>
-                      <Ionicons name="checkmark-circle-outline" size={16} color={C.navy} />
-                      <Text style={styles.modalSaveBtnText}>{t("settings.passwordModal.submit")}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </Pressable>
-            </Pressable>
-          </KeyboardAvoidingView>
-        </Modal>
 
         {/* ── Légal ── */}
         <Section title={t("settings.sectionLegal")}>
@@ -612,14 +323,6 @@ const styles = StyleSheet.create({
   profileName: { fontSize: 16, fontWeight: "800", color: C.white },
   profileRole: { fontSize: 12, color: C.yellow, fontWeight: "600" },
   profileEmail: { fontSize: 11, color: "rgba(255,255,255,0.5)" },
-  editAvatarBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: C.yellow,
-    justifyContent: "center",
-    alignItems: "center",
-  },
 
   scrollContent: { paddingTop: 24, paddingHorizontal: 20 },
 
@@ -664,70 +367,4 @@ const styles = StyleSheet.create({
   settingLabel: { fontSize: 15, fontWeight: "500", color: C.textPrimary },
   settingLabelDestructive: { color: C.red, fontWeight: "600" },
   settingSublabel: { fontSize: 12, color: C.textMuted, marginTop: 1 },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end",
-  },
-  modalSheet: {
-    backgroundColor: C.card,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    paddingTop: 12,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: C.border,
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: C.textPrimary,
-    marginBottom: 16,
-    letterSpacing: -0.3,
-  },
-  modalField: { marginBottom: 16 },
-  modalFieldLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: C.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginBottom: 8,
-  },
-  modalInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: C.bg,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    gap: 10,
-  },
-  modalInputRowDisabled: { backgroundColor: "#F3F4F6" },
-  modalInputRowError: { borderColor: C.red },
-  modalInput: { flex: 1, fontSize: 15, color: C.textPrimary },
-  modalInputDisabled: { flex: 1, fontSize: 15, color: C.softGray },
-  modalHint: { fontSize: 11, color: C.textMuted, marginTop: 5 },
-  modalError: { fontSize: 11, color: C.red, marginTop: 5 },
-  modalSaveBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: C.yellow,
-    borderRadius: 14,
-    paddingVertical: 14,
-    gap: 8,
-    marginTop: 4,
-  },
-  modalSaveBtnText: { fontSize: 15, fontWeight: "700", color: C.navy },
 });

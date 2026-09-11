@@ -49,6 +49,7 @@ export default function ProtectedLayout() {
       <Stack.Screen name="(admin)"        options={{ headerShown: false, animation: "none" }} />
       <Stack.Screen name="categorie"      options={{ headerShown: false, animation: "none" }} />
       <Stack.Screen name="legal"          options={{ headerShown: false, animation: "none" }} />
+      <Stack.Screen name="changePassword" options={{ headerShown: false, animation: "none" }} />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

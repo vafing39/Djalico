@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ActivityIndicator,
   Image,
@@ -36,7 +38,6 @@ function makeLoginSchema(t: (key: string) => string) {
 }
 
 type LoginFields = z.infer<ReturnType<typeof makeLoginSchema>>;
-type FieldErrors = Partial<Record<keyof LoginFields, string>>;
 
 // ─── Decorative background notes ────────────────────────────────────────────────
 // A hand-tuned constellation of musical glyphs scattered behind the form. Each
@@ -282,27 +283,20 @@ export default function LoginScreen() {
   const { t } = useLanguage();
   const loginSchema = useMemo(() => makeLoginSchema(t), [t]);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<FieldErrors>({});
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
-  function handleSubmit() {
-    const result = loginSchema.safeParse({ email, password });
-    if (!result.success) {
-      const fieldErrors: FieldErrors = {};
-      for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof LoginFields;
-        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-    setErrors({});
-    login(result.data);
-  }
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFields>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  const onSubmit = handleSubmit((data) => login(data));
 
   return (
     <LinearGradient
@@ -389,25 +383,31 @@ export default function LoginScreen() {
                     color={emailFocused ? color.yellowDark : color.softGray}
                     style={styles.inputIcon}
                   />
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t("login.emailPlaceholder")}
-                    placeholderTextColor={color.softGray}
-                    value={email}
-                    onChangeText={(v) => {
-                      setEmail(v);
-                      setErrors((e) => ({ ...e, email: undefined }));
-                    }}
-                    onFocus={() => setEmailFocused(true)}
-                    onBlur={() => setEmailFocused(false)}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="next"
+                  <Controller
+                    control={control}
+                    name="email"
+                    render={({ field: { value, onChange, onBlur } }) => (
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t("login.emailPlaceholder")}
+                        placeholderTextColor={color.softGray}
+                        value={value}
+                        onChangeText={onChange}
+                        onFocus={() => setEmailFocused(true)}
+                        onBlur={() => {
+                          onBlur();
+                          setEmailFocused(false);
+                        }}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        returnKeyType="next"
+                      />
+                    )}
                   />
                 </View>
                 {errors.email && (
-                  <Text style={styles.fieldError}>{errors.email}</Text>
+                  <Text style={styles.fieldError}>{errors.email.message}</Text>
                 )}
               </View>
 
@@ -427,20 +427,26 @@ export default function LoginScreen() {
                     color={passwordFocused ? color.yellowDark : color.softGray}
                     style={styles.inputIcon}
                   />
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t("login.passwordPlaceholder")}
-                    placeholderTextColor={color.softGray}
-                    value={password}
-                    onChangeText={(v) => {
-                      setPassword(v);
-                      setErrors((e) => ({ ...e, password: undefined }));
-                    }}
-                    onFocus={() => setPasswordFocused(true)}
-                    onBlur={() => setPasswordFocused(false)}
-                    secureTextEntry={!showPassword}
-                    returnKeyType="done"
-                    onSubmitEditing={handleSubmit}
+                  <Controller
+                    control={control}
+                    name="password"
+                    render={({ field: { value, onChange, onBlur } }) => (
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t("login.passwordPlaceholder")}
+                        placeholderTextColor={color.softGray}
+                        value={value}
+                        onChangeText={onChange}
+                        onFocus={() => setPasswordFocused(true)}
+                        onBlur={() => {
+                          onBlur();
+                          setPasswordFocused(false);
+                        }}
+                        secureTextEntry={!showPassword}
+                        returnKeyType="done"
+                        onSubmitEditing={onSubmit}
+                      />
+                    )}
                   />
                   <Pressable
                     onPress={() => setShowPassword((v) => !v)}
@@ -455,7 +461,7 @@ export default function LoginScreen() {
                   </Pressable>
                 </View>
                 {errors.password && (
-                  <Text style={styles.fieldError}>{errors.password}</Text>
+                  <Text style={styles.fieldError}>{errors.password.message}</Text>
                 )}
               </View>
 
@@ -474,7 +480,7 @@ export default function LoginScreen() {
                   styles.btn,
                   pressed && styles.btnPressed,
                 ]}
-                onPress={handleSubmit}
+                onPress={onSubmit}
                 disabled={loginPending}
               >
                 {loginPending ? (

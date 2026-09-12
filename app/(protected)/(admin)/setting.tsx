@@ -2,7 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useController, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   ActivityIndicator,
   Alert,
@@ -26,6 +29,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { color } from "@/config/adminTheme";
 import { useAuditLog, AuditEntry } from "@/hooks/useAuditLog";
 import * as ImagePicker from "expo-image-picker";
+
+function makeAdminProfileSchema(t: (key: string) => string) {
+  return z.object({
+    name: z.string().trim().min(1, t("admin.settings.profileModal.requiredName")),
+  });
+}
+
+type AdminProfileFields = z.infer<ReturnType<typeof makeAdminProfileSchema>>;
 
 // ─── Audit helpers ────────────────────────────────────────────────────────────
 
@@ -228,7 +239,6 @@ export default function Setting() {
   const [notifications, setNotifications] = useState(true);
   const [langModalVisible, setLangModalVisible] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [editName, setEditName] = useState("");
   const [auditModalVisible, setAuditModalVisible] = useState(false);
   const {
     data: auditEntries = [],
@@ -246,9 +256,20 @@ export default function Setting() {
     uploadAvatarPending,
   } = useAuth();
 
+  const adminProfileSchema = useMemo(() => makeAdminProfileSchema(t), [t]);
+  const {
+    control: profileControl,
+    handleSubmit: handleProfileFormSubmit,
+    reset: resetProfileForm,
+  } = useForm<AdminProfileFields>({
+    resolver: zodResolver(adminProfileSchema),
+    defaultValues: { name: "" },
+  });
+  const nameField = useController({ control: profileControl, name: "name" });
+
   useEffect(() => {
-    if (profileModalVisible) setEditName(profile?.name ?? "");
-  }, [profileModalVisible]);
+    if (profileModalVisible) resetProfileForm({ name: profile?.name ?? "" });
+  }, [profileModalVisible, profile, resetProfileForm]);
 
   const currentLang =
     LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
@@ -285,22 +306,25 @@ export default function Setting() {
     }
   }
 
-  async function handleSaveProfile() {
-    const trimmed = editName.trim();
-    if (!trimmed) {
-      Alert.alert(t("settings.alert.requiredField"), t("admin.settings.profileModal.requiredName"));
-      return;
-    }
-    try {
-      await updateProfile({ name: trimmed });
-      setProfileModalVisible(false);
-    } catch (err: any) {
-      Alert.alert(
-        t("common.error"),
-        err?.message ?? t("admin.settings.profileModal.cannotUpdate"),
-      );
-    }
-  }
+  const handleSaveProfile = handleProfileFormSubmit(
+    async (data) => {
+      try {
+        await updateProfile({ name: data.name });
+        setProfileModalVisible(false);
+      } catch (err: any) {
+        Alert.alert(
+          t("common.error"),
+          err?.message ?? t("admin.settings.profileModal.cannotUpdate"),
+        );
+      }
+    },
+    (formErrors) => {
+      const firstError = Object.values(formErrors)[0];
+      if (firstError?.message) {
+        Alert.alert(t("settings.alert.requiredField"), firstError.message);
+      }
+    },
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
@@ -588,7 +612,7 @@ export default function Setting() {
                       style={[styles.modalAvatar, styles.modalAvatarPlaceholder]}
                     >
                       <Text style={styles.modalAvatarInitial}>
-                        {editName?.[0]?.toUpperCase() ?? "?"}
+                        {nameField.field.value?.[0]?.toUpperCase() ?? "?"}
                       </Text>
                     </View>
                   )}
@@ -622,8 +646,8 @@ export default function Setting() {
                   />
                   <TextInput
                     style={styles.modalInput}
-                    value={editName}
-                    onChangeText={setEditName}
+                    value={nameField.field.value}
+                    onChangeText={nameField.field.onChange}
                     placeholder={t("admin.settings.profileModal.namePlaceholder")}
                     placeholderTextColor={color.textMuted}
                     autoCapitalize="words"

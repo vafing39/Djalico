@@ -3,7 +3,9 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Eye, EyeOff, Lock } from "lucide-react-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +17,24 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { z } from "zod";
+
+function makeChangePasswordSchema(t: (key: string) => string) {
+  return z
+    .object({
+      newPassword: z
+        .string()
+        .min(1, t("newPassword.passwordRequired"))
+        .min(6, t("settings.alert.passwordMinLength")),
+      confirmPassword: z.string().min(1, t("newPassword.passwordRequired")),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: t("settings.passwordModal.mismatch"),
+      path: ["confirmPassword"],
+    });
+}
+
+type ChangePasswordFields = z.infer<ReturnType<typeof makeChangePasswordSchema>>;
 
 const COLORS = {
   deepBlue: "#0E2B45",
@@ -33,26 +53,23 @@ export default function ChangePasswordScreen() {
   const insets = useSafeAreaInsets();
   const { updatePassword, updatePasswordPending } = useAuth();
   const { t } = useLanguage();
+  const changePasswordSchema = useMemo(() => makeChangePasswordSchema(t), [t]);
 
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  async function handleSave() {
-    if (newPassword.length < 6) {
-      Alert.alert(
-        t("settings.alert.passwordTooShort"),
-        t("settings.alert.passwordMinLength"),
-      );
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      Alert.alert(t("common.error"), t("settings.alert.passwordMismatch"));
-      return;
-    }
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ChangePasswordFields>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: { newPassword: "", confirmPassword: "" },
+  });
+
+  const onSubmit = handleSubmit(async (data) => {
     try {
-      await updatePassword(newPassword);
+      await updatePassword(data.newPassword);
       Alert.alert(
         t("settings.alert.passwordChangedTitle"),
         t("settings.alert.passwordChangedBody"),
@@ -61,7 +78,7 @@ export default function ChangePasswordScreen() {
     } catch (err: any) {
       Alert.alert(t("common.error"), err?.message ?? t("settings.alert.cannotUpdatePassword"));
     }
-  }
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
@@ -73,7 +90,7 @@ export default function ChangePasswordScreen() {
         <Text style={styles.headerTitle}>{t("settings.passwordModal.title")}</Text>
         <TouchableOpacity
           style={[styles.saveBtn, updatePasswordPending && styles.saveBtnDisabled]}
-          onPress={handleSave}
+          onPress={onSubmit}
           disabled={updatePasswordPending}
         >
           {updatePasswordPending ? (
@@ -88,16 +105,23 @@ export default function ChangePasswordScreen() {
         <View style={styles.form}>
           <View style={styles.field}>
             <Text style={styles.label}>{t("settings.passwordModal.newLabel")}</Text>
-            <View style={styles.inputRow}>
+            <View style={[styles.inputRow, errors.newPassword && styles.inputRowError]}>
               <Lock size={16} color={COLORS.softGray} />
-              <TextInput
-                style={styles.input}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                placeholder={t("settings.passwordModal.newPlaceholder")}
-                placeholderTextColor={COLORS.softGray}
-                secureTextEntry={!showNewPassword}
-                autoFocus
+              <Controller
+                control={control}
+                name="newPassword"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <TextInput
+                    style={styles.input}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder={t("settings.passwordModal.newPlaceholder")}
+                    placeholderTextColor={COLORS.softGray}
+                    secureTextEntry={!showNewPassword}
+                    autoFocus
+                  />
+                )}
               />
               <TouchableOpacity onPress={() => setShowNewPassword((v) => !v)}>
                 {showNewPassword ? (
@@ -107,27 +131,32 @@ export default function ChangePasswordScreen() {
                 )}
               </TouchableOpacity>
             </View>
+            {errors.newPassword && (
+              <Text style={styles.fieldError}>{errors.newPassword.message}</Text>
+            )}
           </View>
 
           <View style={styles.field}>
             <Text style={styles.label}>{t("settings.passwordModal.confirmLabel")}</Text>
             <View
-              style={[
-                styles.inputRow,
-                confirmPassword.length > 0 &&
-                  newPassword !== confirmPassword &&
-                  styles.inputRowError,
-              ]}
+              style={[styles.inputRow, errors.confirmPassword && styles.inputRowError]}
             >
               <Lock size={16} color={COLORS.softGray} />
-              <TextInput
-                style={styles.input}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder={t("settings.passwordModal.confirmPlaceholder")}
-                placeholderTextColor={COLORS.softGray}
-                secureTextEntry={!showConfirmPassword}
-                onSubmitEditing={handleSave}
+              <Controller
+                control={control}
+                name="confirmPassword"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <TextInput
+                    style={styles.input}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder={t("settings.passwordModal.confirmPlaceholder")}
+                    placeholderTextColor={COLORS.softGray}
+                    secureTextEntry={!showConfirmPassword}
+                    onSubmitEditing={onSubmit}
+                  />
+                )}
               />
               <TouchableOpacity onPress={() => setShowConfirmPassword((v) => !v)}>
                 {showConfirmPassword ? (
@@ -137,8 +166,8 @@ export default function ChangePasswordScreen() {
                 )}
               </TouchableOpacity>
             </View>
-            {confirmPassword.length > 0 && newPassword !== confirmPassword && (
-              <Text style={styles.fieldError}>{t("settings.passwordModal.mismatch")}</Text>
+            {errors.confirmPassword && (
+              <Text style={styles.fieldError}>{errors.confirmPassword.message}</Text>
             )}
           </View>
         </View>

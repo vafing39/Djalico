@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMemo, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ActivityIndicator,
   FlatList,
@@ -77,7 +79,14 @@ function makeOnboardingSchema(t: (key: string) => string) {
 }
 
 type OnboardingFields = z.infer<ReturnType<typeof makeOnboardingSchema>>;
-type FieldErrors = Partial<Record<keyof OnboardingFields, string>>;
+
+const FIELD_BY_STEP: Record<StepKey, keyof OnboardingFields> = {
+  birthDate: "birthDate",
+  phone: "phone",
+  instrument: "instrumentCategoryIds",
+  level: "requestedLevel",
+  goal: "learningGoal",
+};
 
 export default function OnboardingScreen() {
   const { completeOnboarding, completeOnboardingPending, logOut } = useAuth();
@@ -90,18 +99,26 @@ export default function OnboardingScreen() {
   const { t } = useLanguage();
   const onboardingSchema = useMemo(() => makeOnboardingSchema(t), [t]);
 
-  const [birthDate, setBirthDate] = useState("");
-  const [phone, setPhone] = useState("");
-  const [instrumentCategoryIds, setInstrumentCategoryIds] = useState<string[]>(
-    [],
-  );
-  const [requestedLevel, setRequestedLevel] = useState<TagType | "">("");
-  const [learningGoal, setLearningGoal] = useState("");
-  const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [pageWidth, setPageWidth] = useState(0);
   const [maxStepHeight, setMaxStepHeight] = useState(190);
+
+  const {
+    control,
+    trigger,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<OnboardingFields>({
+    resolver: zodResolver(onboardingSchema),
+    defaultValues: {
+      birthDate: "",
+      phone: "",
+      instrumentCategoryIds: [],
+      requestedLevel: "" as unknown as TagType,
+      learningGoal: "",
+    },
+  });
 
   const listRef = useRef<FlatList<StepKey>>(null);
   const isLastStep = stepIndex === STEP_KEYS.length - 1;
@@ -120,61 +137,32 @@ export default function OnboardingScreen() {
     listRef.current?.scrollToIndex({ index, animated: true });
   }
 
-  function validateStep(step: StepKey): boolean {
-    const values = {
-      birthDate,
-      phone,
-      instrumentCategoryIds,
-      requestedLevel,
-      learningGoal,
-    };
-    const fieldByStep: Record<StepKey, keyof OnboardingFields> = {
-      birthDate: "birthDate",
-      phone: "phone",
-      instrument: "instrumentCategoryIds",
-      level: "requestedLevel",
-      goal: "learningGoal",
-    };
-    const field = fieldByStep[step];
-    const result = onboardingSchema.shape[field].safeParse(values[field]);
-    if (!result.success) {
-      setErrors((e) => ({ ...e, [field]: result.error.issues[0]?.message }));
-      return false;
+  const onSubmit = handleSubmit(async (data) => {
+    setSubmitError(null);
+    try {
+      await completeOnboarding({
+        birthDate: toIsoDate(data.birthDate),
+        phone: data.phone,
+        instrumentCategoryIds: data.instrumentCategoryIds,
+        requestedLevel: data.requestedLevel,
+        learningGoal: data.learningGoal,
+      });
+    } catch (err: any) {
+      setSubmitError(err?.message ?? null);
     }
-    setErrors((e) => ({ ...e, [field]: undefined }));
-    return true;
-  }
+  });
 
   async function handleNext() {
     const step = STEP_KEYS[stepIndex];
-    if (!validateStep(step)) return;
+    const valid = await trigger(FIELD_BY_STEP[step]);
+    if (!valid) return;
 
     if (!isLastStep) {
       goToStep(stepIndex + 1);
       return;
     }
 
-    const result = onboardingSchema.safeParse({
-      birthDate,
-      phone,
-      instrumentCategoryIds,
-      requestedLevel,
-      learningGoal,
-    });
-    if (!result.success) return;
-
-    setSubmitError(null);
-    try {
-      await completeOnboarding({
-        birthDate: toIsoDate(result.data.birthDate),
-        phone: result.data.phone,
-        instrumentCategoryIds: result.data.instrumentCategoryIds,
-        requestedLevel: result.data.requestedLevel,
-        learningGoal: result.data.learningGoal,
-      });
-    } catch (err: any) {
-      setSubmitError(err?.message ?? null);
-    }
+    onSubmit();
   }
 
   function handleBack() {
@@ -234,66 +222,72 @@ export default function OnboardingScreen() {
                     renderItem={({ item }) => (
                       <View style={{ width: pageWidth }} onLayout={onStepLayout}>
                         {item === "birthDate" && (
-                          <BirthDateStep
-                            value={birthDate}
-                            onChange={(v) => {
-                              setBirthDate(v);
-                              setErrors((e) => ({ ...e, birthDate: undefined }));
-                            }}
-                            error={errors.birthDate}
+                          <Controller
+                            control={control}
+                            name="birthDate"
+                            render={({ field: { value, onChange } }) => (
+                              <BirthDateStep
+                                value={value}
+                                onChange={onChange}
+                                error={errors.birthDate?.message}
+                              />
+                            )}
                           />
                         )}
                         {item === "phone" && (
-                          <PhoneStep
-                            value={phone}
-                            onChange={(v) => {
-                              setPhone(v);
-                              setErrors((e) => ({ ...e, phone: undefined }));
-                            }}
-                            error={errors.phone}
+                          <Controller
+                            control={control}
+                            name="phone"
+                            render={({ field: { value, onChange } }) => (
+                              <PhoneStep
+                                value={value}
+                                onChange={onChange}
+                                error={errors.phone?.message}
+                              />
+                            )}
                           />
                         )}
                         {item === "instrument" && (
-                          <InstrumentStep
-                            categories={categories}
-                            isLoading={categoriesLoading}
-                            loadError={!!categoriesError}
-                            onRetry={refetchCategories}
-                            value={instrumentCategoryIds}
-                            onChange={(v) => {
-                              setInstrumentCategoryIds(v);
-                              setErrors((e) => ({
-                                ...e,
-                                instrumentCategoryIds: undefined,
-                              }));
-                            }}
-                            error={errors.instrumentCategoryIds}
+                          <Controller
+                            control={control}
+                            name="instrumentCategoryIds"
+                            render={({ field: { value, onChange } }) => (
+                              <InstrumentStep
+                                categories={categories}
+                                isLoading={categoriesLoading}
+                                loadError={!!categoriesError}
+                                onRetry={refetchCategories}
+                                value={value}
+                                onChange={onChange}
+                                error={errors.instrumentCategoryIds?.message}
+                              />
+                            )}
                           />
                         )}
                         {item === "level" && (
-                          <LevelStep
-                            value={requestedLevel}
-                            onChange={(v) => {
-                              setRequestedLevel(v);
-                              setErrors((e) => ({
-                                ...e,
-                                requestedLevel: undefined,
-                              }));
-                            }}
-                            error={errors.requestedLevel}
+                          <Controller
+                            control={control}
+                            name="requestedLevel"
+                            render={({ field: { value, onChange } }) => (
+                              <LevelStep
+                                value={value}
+                                onChange={onChange}
+                                error={errors.requestedLevel?.message}
+                              />
+                            )}
                           />
                         )}
                         {item === "goal" && (
-                          <GoalStep
-                            value={learningGoal}
-                            onChange={(v) => {
-                              setLearningGoal(v);
-                              setErrors((e) => ({
-                                ...e,
-                                learningGoal: undefined,
-                              }));
-                            }}
-                            error={errors.learningGoal}
+                          <Controller
+                            control={control}
+                            name="learningGoal"
+                            render={({ field: { value, onChange } }) => (
+                              <GoalStep
+                                value={value}
+                                onChange={onChange}
+                                error={errors.learningGoal?.message}
+                              />
+                            )}
                           />
                         )}
                       </View>

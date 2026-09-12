@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ActivityIndicator,
   Alert,
@@ -36,34 +38,28 @@ function makeNewPasswordSchema(t: (key: string) => string) {
 }
 
 type NewPasswordFields = z.infer<ReturnType<typeof makeNewPasswordSchema>>;
-type FieldErrors = Partial<Record<keyof NewPasswordFields, string>>;
 
 export default function NewPasswordScreen() {
   const { session, updatePassword, updatePasswordPending, logOut } = useAuth();
   const { t } = useLanguage();
   const newPasswordSchema = useMemo(() => makeNewPasswordSchema(t), [t]);
 
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  async function handleSubmit() {
-    const result = newPasswordSchema.safeParse({ password, confirmPassword });
-    if (!result.success) {
-      const fieldErrors: FieldErrors = {};
-      for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof NewPasswordFields;
-        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-    setErrors({});
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<NewPasswordFields>({
+    resolver: zodResolver(newPasswordSchema),
+    defaultValues: { password: "", confirmPassword: "" },
+  });
+
+  const onSubmit = handleSubmit(async (data) => {
     setSubmitError(null);
     try {
-      await updatePassword(result.data.password);
+      await updatePassword(data.password);
       Alert.alert(
         t("newPassword.successTitle"),
         t("newPassword.successBody"),
@@ -72,7 +68,7 @@ export default function NewPasswordScreen() {
     } catch (err: any) {
       setSubmitError(err?.message ?? null);
     }
-  }
+  });
 
   return (
     <LinearGradient
@@ -147,17 +143,21 @@ export default function NewPasswordScreen() {
                         color={color.softGray}
                         style={styles.inputIcon}
                       />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={t("newPassword.passwordPlaceholder")}
-                        placeholderTextColor={color.softGray}
-                        value={password}
-                        onChangeText={(v) => {
-                          setPassword(v);
-                          setErrors((e) => ({ ...e, password: undefined }));
-                        }}
-                        secureTextEntry={!showPassword}
-                        returnKeyType="next"
+                      <Controller
+                        control={control}
+                        name="password"
+                        render={({ field: { value, onChange, onBlur } }) => (
+                          <TextInput
+                            style={styles.input}
+                            placeholder={t("newPassword.passwordPlaceholder")}
+                            placeholderTextColor={color.softGray}
+                            value={value}
+                            onChangeText={onChange}
+                            onBlur={onBlur}
+                            secureTextEntry={!showPassword}
+                            returnKeyType="next"
+                          />
+                        )}
                       />
                       <Pressable
                         onPress={() => setShowPassword((v) => !v)}
@@ -172,7 +172,7 @@ export default function NewPasswordScreen() {
                       </Pressable>
                     </View>
                     {errors.password && (
-                      <Text style={styles.fieldError}>{errors.password}</Text>
+                      <Text style={styles.fieldError}>{errors.password.message}</Text>
                     )}
                   </View>
 
@@ -192,26 +192,27 @@ export default function NewPasswordScreen() {
                         color={color.softGray}
                         style={styles.inputIcon}
                       />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={t("newPassword.passwordPlaceholder")}
-                        placeholderTextColor={color.softGray}
-                        value={confirmPassword}
-                        onChangeText={(v) => {
-                          setConfirmPassword(v);
-                          setErrors((e) => ({
-                            ...e,
-                            confirmPassword: undefined,
-                          }));
-                        }}
-                        secureTextEntry={!showPassword}
-                        returnKeyType="done"
-                        onSubmitEditing={handleSubmit}
+                      <Controller
+                        control={control}
+                        name="confirmPassword"
+                        render={({ field: { value, onChange, onBlur } }) => (
+                          <TextInput
+                            style={styles.input}
+                            placeholder={t("newPassword.passwordPlaceholder")}
+                            placeholderTextColor={color.softGray}
+                            value={value}
+                            onChangeText={onChange}
+                            onBlur={onBlur}
+                            secureTextEntry={!showPassword}
+                            returnKeyType="done"
+                            onSubmitEditing={onSubmit}
+                          />
+                        )}
                       />
                     </View>
                     {errors.confirmPassword && (
                       <Text style={styles.fieldError}>
-                        {errors.confirmPassword}
+                        {errors.confirmPassword.message}
                       </Text>
                     )}
                   </View>
@@ -221,7 +222,7 @@ export default function NewPasswordScreen() {
                       styles.btn,
                       pressed && styles.btnPressed,
                     ]}
-                    onPress={handleSubmit}
+                    onPress={onSubmit}
                     disabled={updatePasswordPending}
                   >
                     {updatePasswordPending ? (

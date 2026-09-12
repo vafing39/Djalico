@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { z } from "zod";
 import ModalHeader from "@/components/admin/ModalHeader";
 import FormField from "@/components/admin/FormField";
 import PickerField from "@/components/admin/PickerField";
@@ -11,6 +14,21 @@ import type { User } from "@/types";
 import { color, LEVELS } from "@/config/adminTheme";
 
 const ROLE_VALUES: User["role"][] = ["eleve", "professeur", "admin"];
+
+function makeUserSchema(t: (key: string) => string, isEdit: boolean) {
+  return z.object({
+    name: z.string().trim().min(1, t("admin.modals.user.nameRequired")),
+    email: z.string().trim().min(1, t("admin.modals.user.emailRequired")),
+    password: isEdit
+      ? z.string()
+      : z.string().min(6, t("settings.alert.passwordMinLength")),
+    role: z.string(),
+    level: z.string(),
+    instrumentIds: z.array(z.string()),
+  });
+}
+
+type UserFormFields = z.infer<ReturnType<typeof makeUserSchema>>;
 
 type Props = {
   user: User | null;
@@ -37,70 +55,82 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
   const roles = ROLE_VALUES.map((value) => ({ label: t(`settings.role.${value}`), value }));
   const levels = LEVELS.map((l) => ({ label: t(`common.level.${l.value}`), value: l.value }));
 
-  const [name,     setName]     = useState("");
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [role,     setRole]     = useState<User["role"]>("eleve");
-  const [level,    setLevel]    = useState<User["level"]>("beginner");
-  const [instrumentIds, setInstrumentIds] = useState<string[]>([]);
+  const userSchema = useMemo(() => makeUserSchema(t, isEdit), [t, isEdit]);
+
+  const {
+    control,
+    handleSubmit: handleFormSubmit,
+    reset,
+  } = useForm<UserFormFields>({
+    resolver: zodResolver(userSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      role: "eleve",
+      level: "beginner",
+      instrumentIds: [],
+    },
+  });
 
   useEffect(() => {
     if (!visible) return;
     if (user) {
-      setName(user.name);
-      setEmail(user.email);
-      setRole(user.role);
-      setLevel(
-        user.status === "pending_review" && user.requested_level
-          ? user.requested_level
-          : user.level,
-      );
-      setInstrumentIds(user.user_instruments.map((ui) => ui.category.id));
+      reset({
+        name: user.name,
+        email: user.email,
+        password: "",
+        role: user.role,
+        level:
+          user.status === "pending_review" && user.requested_level
+            ? user.requested_level
+            : user.level,
+        instrumentIds: user.user_instruments.map((ui) => ui.category.id),
+      });
     } else {
-      setName(""); setEmail(""); setPassword("");
-      setRole("eleve"); setLevel("beginner"); setInstrumentIds([]);
+      reset({
+        name: "",
+        email: "",
+        password: "",
+        role: "eleve",
+        level: "beginner",
+        instrumentIds: [],
+      });
     }
-  }, [visible, user]);
+  }, [visible, user, reset]);
 
-  function toggleInstrument(categoryId: string) {
-    setInstrumentIds((ids) =>
-      ids.includes(categoryId)
-        ? ids.filter((id) => id !== categoryId)
-        : [...ids, categoryId],
-    );
-  }
-
-  async function handleSubmit() {
-    if (!name.trim()) {
-      Alert.alert(t("settings.alert.requiredField"), t("admin.modals.user.nameRequired"));
-      return;
-    }
-    if (!email.trim()) {
-      Alert.alert(t("settings.alert.requiredField"), t("admin.modals.user.emailRequired"));
-      return;
-    }
-    if (!isEdit && password.length < 6) {
-      Alert.alert(t("settings.alert.passwordTooShort"), t("settings.alert.passwordMinLength"));
-      return;
-    }
-
-    try {
-      if (isEdit) {
-        await updateUser(user!.id, {
-          name: name.trim(),
-          role,
-          level,
-          ...(isPendingReview && { status: "active" }),
-        });
-        await updateUserInstruments(user!.id, instrumentIds);
-      } else {
-        await createUser({ name: name.trim(), email: email.trim(), password, role, level });
+  const handleSubmit = handleFormSubmit(
+    async (data) => {
+      try {
+        if (isEdit) {
+          await updateUser(user!.id, {
+            name: data.name,
+            role: data.role as User["role"],
+            level: data.level as User["level"],
+            ...(isPendingReview && { status: "active" }),
+          });
+          await updateUserInstruments(user!.id, data.instrumentIds);
+        } else {
+          await createUser({
+            name: data.name,
+            email: data.email,
+            password: data.password,
+            role: data.role as User["role"],
+            level: data.level as User["level"],
+          });
+        }
+        onClose();
+      } catch (err: any) {
+        Alert.alert(t("common.error"), err.message);
       }
-      onClose();
-    } catch (err: any) {
-      Alert.alert(t("common.error"), err.message);
-    }
-  }
+    },
+    (formErrors) => {
+      const firstError = Object.values(formErrors)[0];
+      if (firstError?.message) {
+        Alert.alert(t("settings.alert.requiredField"), firstError.message);
+      }
+    },
+  );
 
   function handleReject() {
     if (!user) return;
@@ -221,77 +251,119 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
               </View>
             )}
 
-            <FormField
-              label={t("admin.modals.user.name")}
-              required
-              value={name}
-              onChangeText={setName}
-              placeholder={t("admin.modals.user.namePlaceholder")}
+            <Controller
+              control={control}
+              name="name"
+              render={({ field: { value, onChange } }) => (
+                <FormField
+                  label={t("admin.modals.user.name")}
+                  required
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={t("admin.modals.user.namePlaceholder")}
+                />
+              )}
             />
 
-            <FormField
-              label={t("admin.modals.user.email")}
-              value={email}
-              onChangeText={setEmail}
-              placeholder={t("admin.modals.user.emailPlaceholder")}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!isEdit}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { value, onChange } }) => (
+                <FormField
+                  label={t("admin.modals.user.email")}
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={t("admin.modals.user.emailPlaceholder")}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!isEdit}
+                />
+              )}
             />
 
             {!isEdit && (
-              <FormField
-                label={t("admin.modals.user.password")}
-                required
-                value={password}
-                onChangeText={setPassword}
-                placeholder={t("settings.passwordModal.newPlaceholder")}
-                secureTextEntry
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { value, onChange } }) => (
+                  <FormField
+                    label={t("admin.modals.user.password")}
+                    required
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder={t("settings.passwordModal.newPlaceholder")}
+                    secureTextEntry
+                  />
+                )}
               />
             )}
 
-            <PickerField
-              label={t("admin.form.role")}
-              selectedValue={role}
-              onValueChange={(v) => setRole(v as User["role"])}
-              items={roles}
+            <Controller
+              control={control}
+              name="role"
+              render={({ field: { value, onChange } }) => (
+                <PickerField
+                  label={t("admin.form.role")}
+                  selectedValue={value}
+                  onValueChange={onChange}
+                  items={roles}
+                />
+              )}
             />
 
-            <PickerField
-              label={t("admin.form.level")}
-              selectedValue={level}
-              onValueChange={(v) => setLevel(v as User["level"])}
-              items={levels}
+            <Controller
+              control={control}
+              name="level"
+              render={({ field: { value, onChange } }) => (
+                <PickerField
+                  label={t("admin.form.level")}
+                  selectedValue={value}
+                  onValueChange={onChange}
+                  items={levels}
+                />
+              )}
             />
 
             {isEdit && (
-              <View style={styles.instrumentsField}>
-                <Text style={styles.instrumentsLabel}>
-                  {t("admin.modals.user.instrument")}
-                </Text>
-                <View style={styles.chipGrid}>
-                  {categories.map((cat) => {
-                    const selected = instrumentIds.includes(cat.id);
-                    return (
-                      <Pressable
-                        key={cat.id}
-                        style={[styles.chip, selected && styles.chipSelected]}
-                        onPress={() => toggleInstrument(cat.id)}
-                      >
-                        <Text style={styles.chipEmoji}>{cat.emoji}</Text>
-                        <Text
-                          style={[
-                            styles.chipText,
-                            selected && styles.chipTextSelected,
-                          ]}
-                        >
-                          {cat.title}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
+              <Controller
+                control={control}
+                name="instrumentIds"
+                render={({ field: { value, onChange } }) => (
+                  <View style={styles.instrumentsField}>
+                    <Text style={styles.instrumentsLabel}>
+                      {t("admin.modals.user.instrument")}
+                    </Text>
+                    <View style={styles.chipGrid}>
+                      {categories.map((cat) => {
+                        const selected = value.includes(cat.id);
+                        return (
+                          <Pressable
+                            key={cat.id}
+                            style={[styles.chip, selected && styles.chipSelected]}
+                            onPress={() =>
+                              onChange(
+                                selected
+                                  ? value.filter((id) => id !== cat.id)
+                                  : [...value, cat.id],
+                              )
+                            }
+                          >
+                            <Text style={styles.chipEmoji}>{cat.emoji}</Text>
+                            <Text
+                              style={[
+                                styles.chipText,
+                                selected && styles.chipTextSelected,
+                              ]}
+                            >
+                              {cat.title}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+              />
             )}
           </View>
         </ScrollView>

@@ -1,6 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { Controller, useController, useForm, type Control } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { z } from "zod";
 import ModalHeader from "@/components/admin/ModalHeader";
 import CategoryLevelPickers from "@/components/admin/CategoryLevelPickers";
 import CoverImagePicker from "@/components/admin/CoverImagePicker";
@@ -18,6 +21,71 @@ import type { Parcours, Category, TagType } from "@/types";
 
 type Instructor = { id: string; name: string };
 
+function makeParcoursSchema(t: (key: string) => string) {
+  return z.object({
+    title: z.string().trim().min(1, t("admin.form.titleRequired")),
+    description: z.string(),
+    categoryId: z.string(),
+    instructorId: z.string(),
+    level: z.string(),
+    durationHours: z.string(),
+    durationMin: z.string(),
+    coverImage: z.string().nullable(),
+    courseIds: z.array(z.string()),
+  });
+}
+
+type ParcoursFormFields = z.infer<ReturnType<typeof makeParcoursSchema>>;
+
+function defaultParcoursValues(): ParcoursFormFields {
+  return {
+    title: "",
+    description: "",
+    categoryId: "",
+    instructorId: "",
+    level: LEVELS[0].value,
+    durationHours: "0",
+    durationMin: "0",
+    coverImage: null,
+    courseIds: [],
+  };
+}
+
+// Bridges to shared components that take several independent value/setter
+// pairs at once, where a single Controller render-prop can't cover all of them.
+function CategoryLevelPickerFields({
+  control,
+  categories,
+}: {
+  control: Control<ParcoursFormFields>;
+  categories: Category[];
+}) {
+  const categoryField = useController({ control, name: "categoryId" });
+  const levelField = useController({ control, name: "level" });
+  return (
+    <CategoryLevelPickers
+      categoryId={categoryField.field.value}
+      setCategoryId={categoryField.field.onChange}
+      categories={categories}
+      level={levelField.field.value as TagType}
+      setLevel={levelField.field.onChange}
+    />
+  );
+}
+
+function DurationFields({ control }: { control: Control<ParcoursFormFields> }) {
+  const hoursField = useController({ control, name: "durationHours" });
+  const minField = useController({ control, name: "durationMin" });
+  return (
+    <DurationField
+      fields={[
+        { value: hoursField.field.value, onChange: hoursField.field.onChange, unit: "h" },
+        { value: minField.field.value, onChange: minField.field.onChange, unit: "min" },
+      ]}
+    />
+  );
+}
+
 export default function ModalView({
   visible,
   onClose,
@@ -32,15 +100,17 @@ export default function ModalView({
   const { t } = useLanguage();
   const isEdit = !!parcours;
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [instructorId, setInstructorId] = useState("");
-  const [level, setLevel] = useState<TagType>(LEVELS[0].value);
-  const [durationHours, setDurationHours] = useState("0");
-  const [durationMin, setDurationMin] = useState("0");
-  const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
+  const parcoursSchema = useMemo(() => makeParcoursSchema(t), [t]);
+
+  const {
+    control,
+    handleSubmit: handleFormSubmit,
+    reset,
+    setValue,
+  } = useForm<ParcoursFormFields>({
+    resolver: zodResolver(parcoursSchema),
+    defaultValues: defaultParcoursValues(),
+  });
 
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
@@ -84,76 +154,63 @@ export default function ModalView({
   useEffect(() => {
     if (!visible) return;
     if (parcours) {
-      setTitle(parcours.title);
-      setDescription(parcours.description ?? "");
-      setCategoryId(parcours.category?.id ?? "");
-      setInstructorId(parcours.instructor?.id ?? "");
-      setLevel(parcours.tag_type);
-      setCoverImage(null);
       const totalSec = parcours.total_duration_seconds;
-      setDurationHours(String(Math.floor(totalSec / 3600)));
-      setDurationMin(String(Math.floor((totalSec % 3600) / 60)));
+      reset({
+        title: parcours.title,
+        description: parcours.description ?? "",
+        categoryId: parcours.category?.id ?? "",
+        instructorId: parcours.instructor?.id ?? "",
+        level: parcours.tag_type,
+        durationHours: String(Math.floor(totalSec / 3600)),
+        durationMin: String(Math.floor((totalSec % 3600) / 60)),
+        coverImage: null,
+        courseIds: [],
+      });
     } else {
-      reset();
+      reset(defaultParcoursValues());
     }
-  }, [visible, parcours]);
+  }, [visible, parcours, reset]);
 
   useEffect(() => {
     if (isEdit && linkedCourseIds.length > 0) {
-      setSelectedCourseIds(linkedCourseIds);
+      setValue("courseIds", linkedCourseIds);
     }
-  }, [linkedCourseIds, isEdit]);
+  }, [linkedCourseIds, isEdit, setValue]);
 
-  function toggleCourse(id: string) {
-    setSelectedCourseIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
-    );
-  }
+  const handleSubmit = handleFormSubmit(
+    (data) => {
+      const totalDurationSeconds =
+        (parseInt(data.durationHours) || 0) * 3600 +
+        (parseInt(data.durationMin) || 0) * 60;
 
-
-
-  function handleSubmit() {
-    if (!title.trim()) {
-      Alert.alert(t("settings.alert.requiredField"), t("admin.form.titleRequired"));
-      return;
-    }
-    const totalDurationSeconds =
-      (parseInt(durationHours) || 0) * 3600 +
-      (parseInt(durationMin) || 0) * 60;
-
-    saveParcours({
-      editId: isEdit ? parcours!.id : null,
-      coverImageUri: coverImage,
-      coverImageUrl: isEdit ? (parcours!.cover_image_url ?? "") : "",
-      title,
-      description,
-      categoryId,
-      instructorId,
-      tagType: level,
-      totalDurationSeconds,
-      courseIds: selectedCourseIds,
-    })
-      .then(() => {
-        reset();
-        onClose();
+      saveParcours({
+        editId: isEdit ? parcours!.id : null,
+        coverImageUri: data.coverImage,
+        coverImageUrl: isEdit ? (parcours!.cover_image_url ?? "") : "",
+        title: data.title,
+        description: data.description,
+        categoryId: data.categoryId,
+        instructorId: data.instructorId,
+        tagType: data.level as TagType,
+        totalDurationSeconds,
+        courseIds: data.courseIds,
       })
-      .catch((err: Error) => Alert.alert(t("common.error"), err.message));
-  }
-
-  function reset() {
-    setTitle("");
-    setDescription("");
-    setCategoryId("");
-    setInstructorId("");
-    setLevel(LEVELS[0].value);
-    setDurationHours("0");
-    setDurationMin("0");
-    setCoverImage(null);
-    setSelectedCourseIds([]);
-  }
+        .then(() => {
+          reset(defaultParcoursValues());
+          onClose();
+        })
+        .catch((err: Error) => Alert.alert(t("common.error"), err.message));
+    },
+    (formErrors) => {
+      const firstError = Object.values(formErrors)[0];
+      if (firstError?.message) {
+        Alert.alert(t("settings.alert.requiredField"), firstError.message);
+      }
+    },
+  );
 
   function handleClose() {
-    reset();
+    reset(defaultParcoursValues());
     onClose();
   }
 
@@ -186,91 +243,116 @@ export default function ModalView({
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.form}>
-            <FormField
-              label={t("admin.form.title")}
-              required
-              value={title}
-              onChangeText={setTitle}
-              placeholder={t("admin.modals.parcours.titlePlaceholder")}
+            <Controller
+              control={control}
+              name="title"
+              render={({ field: { value, onChange } }) => (
+                <FormField
+                  label={t("admin.form.title")}
+                  required
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={t("admin.modals.parcours.titlePlaceholder")}
+                />
+              )}
             />
 
-            <FormField
-              label={t("admin.modals.parcours.description")}
-              value={description}
-              onChangeText={setDescription}
-              placeholder={t("admin.modals.parcours.descriptionPlaceholder")}
-              multiline
+            <Controller
+              control={control}
+              name="description"
+              render={({ field: { value, onChange } }) => (
+                <FormField
+                  label={t("admin.modals.parcours.description")}
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={t("admin.modals.parcours.descriptionPlaceholder")}
+                  multiline
+                />
+              )}
             />
 
-            <CategoryLevelPickers
-              categoryId={categoryId}
-              setCategoryId={setCategoryId}
-              categories={categories}
-              level={level}
-              setLevel={setLevel}
+            <CategoryLevelPickerFields control={control} categories={categories} />
+
+            <Controller
+              control={control}
+              name="instructorId"
+              render={({ field: { value, onChange } }) => (
+                <PickerField
+                  label={t("admin.modals.course.instructor")}
+                  selectedValue={value}
+                  onValueChange={onChange}
+                  placeholder={t("admin.form.none")}
+                  items={instructors.map((u) => ({ label: u.name, value: u.id }))}
+                />
+              )}
             />
 
-            <PickerField
-              label={t("admin.modals.course.instructor")}
-              selectedValue={instructorId}
-              onValueChange={setInstructorId}
-              placeholder={t("admin.form.none")}
-              items={instructors.map((u) => ({ label: u.name, value: u.id }))}
+            <DurationFields control={control} />
+
+            <Controller
+              control={control}
+              name="coverImage"
+              render={({ field: { value, onChange } }) => (
+                <CoverImagePicker coverImage={value} setCoverImage={onChange} />
+              )}
             />
 
-            <DurationField
-              fields={[
-                { value: durationHours, onChange: setDurationHours, unit: "h" },
-                { value: durationMin, onChange: setDurationMin, unit: "min" },
-              ]}
-            />
-
-            <CoverImagePicker coverImage={coverImage} setCoverImage={setCoverImage} />
-
-            <View style={styles.field}>
-              <Text style={styles.sectionLabel}>{t("admin.modals.parcours.coursesIncluded")}</Text>
-              <Text style={styles.fieldHint}>
-                {t(
-                  selectedCourseIds.length === 1
-                    ? "admin.modals.parcours.courseSelected"
-                    : "admin.modals.parcours.courseSelectedPlural",
-                  { n: selectedCourseIds.length },
-                )}
-              </Text>
-              <View style={styles.courseList}>
-                {courses.map((course) => {
-                  const selected = selectedCourseIds.includes(course.id);
-                  return (
-                    <Pressable
-                      key={course.id}
-                      style={[styles.courseRow, selected && styles.courseRowSelected]}
-                      onPress={() => toggleCourse(course.id)}
-                    >
-                      <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
-                        {selected && (
-                          <Ionicons name="checkmark" size={12} color={color.white} />
-                        )}
-                      </View>
-                      <View style={styles.courseRowInfo}>
-                        <Text
-                          style={[styles.courseRowTitle, selected && styles.courseRowTitleSelected]}
-                          numberOfLines={1}
+            <Controller
+              control={control}
+              name="courseIds"
+              render={({ field: { value, onChange } }) => (
+                <View style={styles.field}>
+                  <Text style={styles.sectionLabel}>{t("admin.modals.parcours.coursesIncluded")}</Text>
+                  <Text style={styles.fieldHint}>
+                    {t(
+                      value.length === 1
+                        ? "admin.modals.parcours.courseSelected"
+                        : "admin.modals.parcours.courseSelectedPlural",
+                      { n: value.length },
+                    )}
+                  </Text>
+                  <View style={styles.courseList}>
+                    {courses.map((course) => {
+                      const selected = value.includes(course.id);
+                      return (
+                        <Pressable
+                          key={course.id}
+                          style={[styles.courseRow, selected && styles.courseRowSelected]}
+                          onPress={() =>
+                            onChange(
+                              selected
+                                ? value.filter((c) => c !== course.id)
+                                : [...value, course.id],
+                            )
+                          }
                         >
-                          {course.title}
-                        </Text>
-                        <Text style={styles.courseRowMeta}>
-                          {course.category
-                            ? `${course.category.emoji} ${course.category.title}`
-                            : "—"}
-                          {" · "}
-                          {course.instructor}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
+                          <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                            {selected && (
+                              <Ionicons name="checkmark" size={12} color={color.white} />
+                            )}
+                          </View>
+                          <View style={styles.courseRowInfo}>
+                            <Text
+                              style={[styles.courseRowTitle, selected && styles.courseRowTitleSelected]}
+                              numberOfLines={1}
+                            >
+                              {course.title}
+                            </Text>
+                            <Text style={styles.courseRowMeta}>
+                              {course.category
+                                ? `${course.category.emoji} ${course.category.title}`
+                                : "—"}
+                              {" · "}
+                              {course.instructor}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            />
           </View>
 
           <View style={{ height: 40 }} />

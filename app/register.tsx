@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -40,7 +42,6 @@ function makeRegisterSchema(t: (key: string) => string) {
 }
 
 type RegisterFields = z.infer<ReturnType<typeof makeRegisterSchema>>;
-type FieldErrors = Partial<Record<keyof RegisterFields, string>>;
 
 export default function RegisterScreen() {
   const {
@@ -53,12 +54,18 @@ export default function RegisterScreen() {
   const { t } = useLanguage();
   const registerSchema = useMemo(() => makeRegisterSchema(t), [t]);
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<FieldErrors>({});
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFields>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
+  });
+
+  const onSubmit = handleSubmit((data) => register(data));
 
   // La mutation vit dans AuthProvider (au-dessus du Stack) : sans ce reset,
   // revenir sur cet écran après une inscription réussie réaffiche l'état de succès.
@@ -66,26 +73,6 @@ export default function RegisterScreen() {
     return () => resetRegister();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function handleSubmit() {
-    const result = registerSchema.safeParse({
-      name,
-      email,
-      password,
-      confirmPassword,
-    });
-    if (!result.success) {
-      const fieldErrors: FieldErrors = {};
-      for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof RegisterFields;
-        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-    setErrors({});
-    register(result.data);
-  }
 
   return (
     <LinearGradient
@@ -164,21 +151,25 @@ export default function RegisterScreen() {
                         color={color.softGray}
                         style={styles.inputIcon}
                       />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={t("register.namePlaceholder")}
-                        placeholderTextColor={color.softGray}
-                        value={name}
-                        onChangeText={(v) => {
-                          setName(v);
-                          setErrors((e) => ({ ...e, name: undefined }));
-                        }}
-                        autoCapitalize="words"
-                        returnKeyType="next"
+                      <Controller
+                        control={control}
+                        name="name"
+                        render={({ field: { value, onChange, onBlur } }) => (
+                          <TextInput
+                            style={styles.input}
+                            placeholder={t("register.namePlaceholder")}
+                            placeholderTextColor={color.softGray}
+                            value={value}
+                            onChangeText={onChange}
+                            onBlur={onBlur}
+                            autoCapitalize="words"
+                            returnKeyType="next"
+                          />
+                        )}
                       />
                     </View>
                     {errors.name && (
-                      <Text style={styles.fieldError}>{errors.name}</Text>
+                      <Text style={styles.fieldError}>{errors.name.message}</Text>
                     )}
                   </View>
 
@@ -198,23 +189,27 @@ export default function RegisterScreen() {
                         color={color.softGray}
                         style={styles.inputIcon}
                       />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={t("register.emailPlaceholder")}
-                        placeholderTextColor={color.softGray}
-                        value={email}
-                        onChangeText={(v) => {
-                          setEmail(v);
-                          setErrors((e) => ({ ...e, email: undefined }));
-                        }}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        returnKeyType="next"
+                      <Controller
+                        control={control}
+                        name="email"
+                        render={({ field: { value, onChange, onBlur } }) => (
+                          <TextInput
+                            style={styles.input}
+                            placeholder={t("register.emailPlaceholder")}
+                            placeholderTextColor={color.softGray}
+                            value={value}
+                            onChangeText={onChange}
+                            onBlur={onBlur}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            returnKeyType="next"
+                          />
+                        )}
                       />
                     </View>
                     {errors.email && (
-                      <Text style={styles.fieldError}>{errors.email}</Text>
+                      <Text style={styles.fieldError}>{errors.email.message}</Text>
                     )}
                   </View>
 
@@ -234,17 +229,21 @@ export default function RegisterScreen() {
                         color={color.softGray}
                         style={styles.inputIcon}
                       />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={t("register.passwordPlaceholder")}
-                        placeholderTextColor={color.softGray}
-                        value={password}
-                        onChangeText={(v) => {
-                          setPassword(v);
-                          setErrors((e) => ({ ...e, password: undefined }));
-                        }}
-                        secureTextEntry={!showPassword}
-                        returnKeyType="next"
+                      <Controller
+                        control={control}
+                        name="password"
+                        render={({ field: { value, onChange, onBlur } }) => (
+                          <TextInput
+                            style={styles.input}
+                            placeholder={t("register.passwordPlaceholder")}
+                            placeholderTextColor={color.softGray}
+                            value={value}
+                            onChangeText={onChange}
+                            onBlur={onBlur}
+                            secureTextEntry={!showPassword}
+                            returnKeyType="next"
+                          />
+                        )}
                       />
                       <Pressable
                         onPress={() => setShowPassword((v) => !v)}
@@ -259,7 +258,7 @@ export default function RegisterScreen() {
                       </Pressable>
                     </View>
                     {errors.password && (
-                      <Text style={styles.fieldError}>{errors.password}</Text>
+                      <Text style={styles.fieldError}>{errors.password.message}</Text>
                     )}
                   </View>
 
@@ -279,26 +278,27 @@ export default function RegisterScreen() {
                         color={color.softGray}
                         style={styles.inputIcon}
                       />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={t("register.passwordPlaceholder")}
-                        placeholderTextColor={color.softGray}
-                        value={confirmPassword}
-                        onChangeText={(v) => {
-                          setConfirmPassword(v);
-                          setErrors((e) => ({
-                            ...e,
-                            confirmPassword: undefined,
-                          }));
-                        }}
-                        secureTextEntry={!showPassword}
-                        returnKeyType="done"
-                        onSubmitEditing={handleSubmit}
+                      <Controller
+                        control={control}
+                        name="confirmPassword"
+                        render={({ field: { value, onChange, onBlur } }) => (
+                          <TextInput
+                            style={styles.input}
+                            placeholder={t("register.passwordPlaceholder")}
+                            placeholderTextColor={color.softGray}
+                            value={value}
+                            onChangeText={onChange}
+                            onBlur={onBlur}
+                            secureTextEntry={!showPassword}
+                            returnKeyType="done"
+                            onSubmitEditing={onSubmit}
+                          />
+                        )}
                       />
                     </View>
                     {errors.confirmPassword && (
                       <Text style={styles.fieldError}>
-                        {errors.confirmPassword}
+                        {errors.confirmPassword.message}
                       </Text>
                     )}
                   </View>
@@ -308,7 +308,7 @@ export default function RegisterScreen() {
                       styles.btn,
                       pressed && styles.btnPressed,
                     ]}
-                    onPress={handleSubmit}
+                    onPress={onSubmit}
                     disabled={registerPending}
                   >
                     {registerPending ? (

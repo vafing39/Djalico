@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -29,7 +31,6 @@ function makeCodeSchema(t: (key: string) => string) {
 }
 
 type CodeFields = z.infer<ReturnType<typeof makeCodeSchema>>;
-type FieldErrors = Partial<Record<keyof CodeFields, string>>;
 
 export default function ResetPasswordScreen() {
   const { email } = useLocalSearchParams<{ email?: string }>();
@@ -42,31 +43,27 @@ export default function ResetPasswordScreen() {
   const { t } = useLanguage();
   const codeSchema = useMemo(() => makeCodeSchema(t), [t]);
 
-  const [otp, setOtp] = useState("");
-  const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  async function handleSubmit() {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CodeFields>({
+    resolver: zodResolver(codeSchema),
+    defaultValues: { otp: "" },
+  });
+
+  const onSubmit = handleSubmit(async (data) => {
     if (!email) return;
-    const result = codeSchema.safeParse({ otp });
-    if (!result.success) {
-      const fieldErrors: FieldErrors = {};
-      for (const issue of result.error.issues) {
-        const key = issue.path[0] as keyof CodeFields;
-        if (!fieldErrors[key]) fieldErrors[key] = issue.message;
-      }
-      setErrors(fieldErrors);
-      return;
-    }
-    setErrors({});
     setSubmitError(null);
     try {
-      await verifyPasswordResetOtp({ email, token: result.data.otp });
+      await verifyPasswordResetOtp({ email, token: data.otp });
       router.replace("/new-password");
     } catch (err: any) {
       setSubmitError(err?.message ?? null);
     }
-  }
+  });
 
   function handleResend() {
     if (!email) return;
@@ -146,23 +143,29 @@ export default function ResetPasswordScreen() {
                         color={color.softGray}
                         style={styles.inputIcon}
                       />
-                      <TextInput
-                        style={[styles.input, styles.otpInput]}
-                        placeholder={t("resetPassword.codePlaceholder")}
-                        placeholderTextColor={color.softGray}
-                        value={otp}
-                        onChangeText={(v) => {
-                          setOtp(v.replace(/[^0-9]/g, "").slice(0, 6));
-                          setErrors((e) => ({ ...e, otp: undefined }));
-                        }}
-                        keyboardType="number-pad"
-                        maxLength={6}
-                        returnKeyType="done"
-                        onSubmitEditing={handleSubmit}
+                      <Controller
+                        control={control}
+                        name="otp"
+                        render={({ field: { value, onChange, onBlur } }) => (
+                          <TextInput
+                            style={[styles.input, styles.otpInput]}
+                            placeholder={t("resetPassword.codePlaceholder")}
+                            placeholderTextColor={color.softGray}
+                            value={value}
+                            onChangeText={(v) =>
+                              onChange(v.replace(/[^0-9]/g, "").slice(0, 6))
+                            }
+                            onBlur={onBlur}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            returnKeyType="done"
+                            onSubmitEditing={onSubmit}
+                          />
+                        )}
                       />
                     </View>
                     {errors.otp && (
-                      <Text style={styles.fieldError}>{errors.otp}</Text>
+                      <Text style={styles.fieldError}>{errors.otp.message}</Text>
                     )}
                     <Pressable
                       onPress={handleResend}
@@ -184,7 +187,7 @@ export default function ResetPasswordScreen() {
                       styles.btn,
                       pressed && styles.btnPressed,
                     ]}
-                    onPress={handleSubmit}
+                    onPress={onSubmit}
                     disabled={verifyPasswordResetOtpPending}
                   >
                     {verifyPasswordResetOtpPending ? (

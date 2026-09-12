@@ -4,7 +4,9 @@ import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { Camera, ChevronLeft, Mail, Save, User } from "lucide-react-native";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +19,15 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { z } from "zod";
+
+function makeProfileSchema(t: (key: string) => string) {
+  return z.object({
+    name: z.string().trim().min(1, t("admin.settings.profileModal.requiredName")),
+  });
+}
+
+type ProfileFields = z.infer<ReturnType<typeof makeProfileSchema>>;
 
 const COLORS = {
   deepBlue: "#0E2B45",
@@ -44,14 +55,23 @@ export default function EditProfileScreen() {
     uploadAvatarPending,
   } = useAuth();
   const { t } = useLanguage();
+  const profileSchema = useMemo(() => makeProfileSchema(t), [t]);
 
-  const [name, setName] = useState("");
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ProfileFields>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { name: "" },
+  });
 
   useEffect(() => {
     if (profile) {
-      setName(profile.name ?? "");
+      reset({ name: profile.name ?? "" });
     }
-  }, [profile]);
+  }, [profile, reset]);
 
   const isPickingAvatarRef = useRef(false);
 
@@ -82,19 +102,14 @@ export default function EditProfileScreen() {
     }
   }
 
-  async function handleSave() {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      Alert.alert(t("settings.alert.requiredField"), t("admin.settings.profileModal.requiredName"));
-      return;
-    }
+  const onSubmit = handleSubmit(async (data) => {
     try {
-      await updateProfile({ name: trimmed });
+      await updateProfile({ name: data.name });
       router.back();
     } catch (err: any) {
       Alert.alert(t("common.error"), err?.message ?? t("admin.settings.profileModal.cannotUpdate"));
     }
-  }
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
@@ -107,7 +122,7 @@ export default function EditProfileScreen() {
         <Text style={styles.headerTitle}>{t("admin.settings.profileModal.title")}</Text>
         <TouchableOpacity
           style={[styles.saveBtn, updateProfilePending && styles.saveBtnDisabled]}
-          onPress={handleSave}
+          onPress={onSubmit}
           disabled={updateProfilePending}
         >
           {updateProfilePending ? (
@@ -166,17 +181,27 @@ export default function EditProfileScreen() {
         <View style={styles.form}>
           <View style={styles.field}>
             <Text style={styles.label}>{t("admin.settings.profileModal.fullName")}</Text>
-            <View style={styles.inputRow}>
+            <View style={[styles.inputRow, errors.name && styles.inputRowError]}>
               <User size={16} color={COLORS.textMuted} />
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder={t("admin.settings.profileModal.namePlaceholder")}
-                placeholderTextColor={COLORS.textMuted}
-                autoCapitalize="words"
+              <Controller
+                control={control}
+                name="name"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <TextInput
+                    style={styles.input}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder={t("admin.settings.profileModal.namePlaceholder")}
+                    placeholderTextColor={COLORS.textMuted}
+                    autoCapitalize="words"
+                  />
+                )}
               />
             </View>
+            {errors.name && (
+              <Text style={styles.fieldError}>{errors.name.message}</Text>
+            )}
           </View>
 
           <View style={styles.field}>
@@ -332,6 +357,9 @@ const styles = StyleSheet.create({
   inputRowDisabled: {
     backgroundColor: COLORS.inputBg,
   },
+  inputRowError: {
+    borderColor: COLORS.red,
+  },
   input: {
     flex: 1,
     fontSize: 15,
@@ -346,5 +374,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textMuted,
     marginTop: 2,
+  },
+  fieldError: {
+    fontSize: 12,
+    color: COLORS.red,
+    fontWeight: "500",
   },
 });

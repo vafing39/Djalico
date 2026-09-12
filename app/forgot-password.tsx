@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -28,6 +30,8 @@ function makeEmailSchema(t: (key: string) => string) {
   });
 }
 
+type EmailFields = z.infer<ReturnType<typeof makeEmailSchema>>;
+
 export default function ForgotPasswordScreen() {
   const {
     requestPasswordReset,
@@ -38,9 +42,18 @@ export default function ForgotPasswordScreen() {
   const { t } = useLanguage();
   const emailSchema = useMemo(() => makeEmailSchema(t), [t]);
 
-  const [email, setEmail] = useState("");
   const [emailFocused, setEmailFocused] = useState(false);
-  const [fieldError, setFieldError] = useState<string | null>(null);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<EmailFields>({
+    resolver: zodResolver(emailSchema),
+    defaultValues: { email: "" },
+  });
+
+  const onSubmit = handleSubmit((data) => requestPasswordReset(data.email));
 
   // La mutation vit dans AuthProvider (au-dessus du Stack) : sans ce reset,
   // revenir sur cet écran après un envoi réussi réaffiche l'état de succès.
@@ -48,16 +61,6 @@ export default function ForgotPasswordScreen() {
     return () => resetRequestPasswordReset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function handleSubmit() {
-    const result = emailSchema.safeParse({ email });
-    if (!result.success) {
-      setFieldError(result.error.issues[0]?.message ?? null);
-      return;
-    }
-    setFieldError(null);
-    requestPasswordReset(result.data.email);
-  }
 
   return (
     <LinearGradient
@@ -111,7 +114,7 @@ export default function ForgotPasswordScreen() {
                   style={[
                     styles.inputWrap,
                     emailFocused && styles.inputWrapFocused,
-                    !!fieldError && styles.inputWrapError,
+                    !!errors.email && styles.inputWrapError,
                   ]}
                 >
                   <Ionicons
@@ -120,26 +123,32 @@ export default function ForgotPasswordScreen() {
                     color={emailFocused ? color.yellowDark : color.softGray}
                     style={styles.inputIcon}
                   />
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t("forgotPassword.emailPlaceholder")}
-                    placeholderTextColor={color.softGray}
-                    value={email}
-                    onChangeText={(v) => {
-                      setEmail(v);
-                      setFieldError(null);
-                    }}
-                    onFocus={() => setEmailFocused(true)}
-                    onBlur={() => setEmailFocused(false)}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="done"
-                    onSubmitEditing={handleSubmit}
+                  <Controller
+                    control={control}
+                    name="email"
+                    render={({ field: { value, onChange, onBlur } }) => (
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t("forgotPassword.emailPlaceholder")}
+                        placeholderTextColor={color.softGray}
+                        value={value}
+                        onChangeText={onChange}
+                        onFocus={() => setEmailFocused(true)}
+                        onBlur={() => {
+                          onBlur();
+                          setEmailFocused(false);
+                        }}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        returnKeyType="done"
+                        onSubmitEditing={onSubmit}
+                      />
+                    )}
                   />
                 </View>
-                {fieldError && (
-                  <Text style={styles.fieldError}>{fieldError}</Text>
+                {errors.email && (
+                  <Text style={styles.fieldError}>{errors.email.message}</Text>
                 )}
               </View>
 
@@ -148,7 +157,7 @@ export default function ForgotPasswordScreen() {
                   styles.btn,
                   pressed && styles.btnPressed,
                 ]}
-                onPress={handleSubmit}
+                onPress={onSubmit}
                 disabled={requestPasswordResetPending}
               >
                 {requestPasswordResetPending ? (

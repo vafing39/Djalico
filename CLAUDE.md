@@ -47,6 +47,18 @@ Use `config/color.tsx` (named export `color`) for all brand colors in user-facin
 - **YouTube URLs** — detected by regex, rendered with `react-native-youtube-iframe`
 - **Direct URLs** (mp4, m3u8…) — rendered with `expo-video`'s `VideoView`
 
+### Forms
+
+All forms in the app use **react-hook-form** (`useForm`) paired with **zod** via `@hookform/resolvers/zod` — never hand-rolled `useState` per field + manual `schema.safeParse()` on submit. The established pattern:
+
+- Define the schema with a `makeXSchema(t)` factory (as before) so validation messages stay reactive to language changes, and derive the field type with `z.infer<...>`.
+- `useForm<Fields>({ resolver: zodResolver(schema), defaultValues })`, submit via `handleSubmit(onValid, onInvalid)`.
+- Wire each input with `<Controller control={control} name="..." render={({ field }) => <Input value={field.value} onChangeText={field.onChange} .../>} />`.
+- For a shared component that takes several independent value/setter props at once (e.g. `CategoryLevelPickers`, `DurationField`, `CourseForm`), bridge it with `useController` per field instead of nesting `Controller`s — see the `CategoryLevelPickerFields`/`DurationFields`/`CourseFormFields` helpers in the admin modals for the pattern.
+- For array fields used as a selection list (e.g. instrument chips, linked-courses checklist), wrap the whole list in one `Controller` and drive `selected`/toggle logic off `field.value`/`field.onChange` — don't use RHF's `watch()` for this (it trips the `react-hooks/incompatible-library` lint rule); prefer `Controller`/`useController` reads over `watch()` throughout.
+- Async default values (e.g. editing an existing record) are populated via `reset(values)` in a `useEffect`, not `useState` initializers.
+- When a manual per-field error UI isn't already wired up (older admin modals), fall back to showing the first `handleSubmit` invalid-callback error via `Alert.alert` rather than adding new inline error UI.
+
 ### Components/Archives
 
 `components/Archives/` holds old default Expo template components. They are kept for reference but should not be used in new screens. The exception is `HapticTab`, which is still imported by both tab `_layout.tsx` files.
@@ -61,3 +73,4 @@ Use `config/color.tsx` (named export `color`) for all brand colors in user-facin
 
 - Always ask for validation before implementation
 - Always use Tanstack query for interaction that necessite awit and promises. They should always be in the approprieted context
+- Always use react-hook-form (+ `@hookform/resolvers/zod`) for forms — see "Forms" under Architecture

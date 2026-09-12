@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
 import { useQuery } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { Controller, useController, useForm, type Control } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import DurationField from "@/components/admin/DurationField";
 import FormField from "@/components/admin/FormField";
 import PickerField from "@/components/admin/PickerField";
@@ -28,6 +30,65 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { color, LEVELS } from "@/config/adminTheme";
 import type { Video, Category, TagType } from "@/types";
 
+// ─── Validation ───────────────────────────────────────────────────────────────
+
+function makeVideoSchema(t: (key: string) => string) {
+  return z
+    .object({
+      title: z.string().trim().min(1, t("admin.form.titleRequired")),
+      subtitle: z.string(),
+      categoryId: z.string(),
+      tagType: z.string(),
+      videoUri: z.string().nullable(),
+      videoUrl: z.string(),
+      imageUri: z.string().nullable(),
+      imageUrl: z.string(),
+      courseId: z.string(),
+      published: z.boolean(),
+      durationMin: z.string(),
+      durationSec: z.string(),
+    })
+    .refine((data) => !!data.videoUri || data.videoUrl.trim().length > 0, {
+      message: t("admin.modals.video.fileRequired"),
+      path: ["videoUrl"],
+    });
+}
+
+type VideoFormFields = z.infer<ReturnType<typeof makeVideoSchema>>;
+
+function defaultVideoValues(): VideoFormFields {
+  return {
+    title: "",
+    subtitle: "",
+    categoryId: "",
+    tagType: "beginner",
+    videoUri: null,
+    videoUrl: "",
+    imageUri: null,
+    imageUrl: "",
+    courseId: "",
+    published: false,
+    durationMin: "0",
+    durationSec: "0",
+  };
+}
+
+// Bridges DurationField's two independent value/setter pairs to the form.
+function DurationFields({ control, label }: { control: Control<VideoFormFields>; label: string }) {
+  const minField = useController({ control, name: "durationMin" });
+  const secField = useController({ control, name: "durationSec" });
+  return (
+    <DurationField
+      label={label}
+      variant="card"
+      fields={[
+        { value: minField.field.value, onChange: minField.field.onChange, unit: "min", placeholder: "mm" },
+        { value: secField.field.value, onChange: secField.field.onChange, unit: "sec", placeholder: "ss" },
+      ]}
+    />
+  );
+}
+
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
 export default function ModalView({
@@ -44,49 +105,39 @@ export default function ModalView({
   const { t } = useLanguage();
   const isEdit = !!video;
 
-  const [title, setTitle] = useState("");
-  const [subtitle, setSubtitle] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [tagType, setTagType] = useState<TagType>("beginner");
-  const [videoUri, setVideoUri] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState("");
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState("");
-  const [courseId, setCourseId] = useState("");
-  const [published, setPublished] = useState(false);
-  const [durationMin, setDurationMin] = useState("0");
-  const [durationSec, setDurationSec] = useState("0");
+  const videoSchema = useMemo(() => makeVideoSchema(t), [t]);
+
+  const {
+    control,
+    handleSubmit: handleFormSubmit,
+    reset,
+    setValue,
+  } = useForm<VideoFormFields>({
+    resolver: zodResolver(videoSchema),
+    defaultValues: defaultVideoValues(),
+  });
 
   useEffect(() => {
     if (!visible) return;
     if (video) {
-      setTitle(video.title);
-      setSubtitle(video.subtitle ?? "");
-      setCategoryId(video.category?.id ?? "");
-      setTagType(video.tag_type);
-      setVideoUrl(video.url);
-      setVideoUri(null);
-      setImageUrl(video.image_url ?? "");
-      setImageUri(null);
-      setPublished(video.published);
-      setDurationMin(String(Math.floor(video.duration_seconds / 60)));
-      setDurationSec(String(video.duration_seconds % 60));
-      setCourseId("");
+      reset({
+        title: video.title,
+        subtitle: video.subtitle ?? "",
+        categoryId: video.category?.id ?? "",
+        tagType: video.tag_type,
+        videoUri: null,
+        videoUrl: video.url,
+        imageUri: null,
+        imageUrl: video.image_url ?? "",
+        courseId: "",
+        published: video.published,
+        durationMin: String(Math.floor(video.duration_seconds / 60)),
+        durationSec: String(video.duration_seconds % 60),
+      });
     } else {
-      setTitle("");
-      setSubtitle("");
-      setCategoryId("");
-      setTagType("beginner");
-      setVideoUri(null);
-      setVideoUrl("");
-      setImageUri(null);
-      setImageUrl("");
-      setCourseId("");
-      setPublished(false);
-      setDurationMin("0");
-      setDurationSec("0");
+      reset(defaultVideoValues());
     }
-  }, [visible, video]);
+  }, [visible, video, reset]);
 
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
@@ -129,12 +180,12 @@ export default function ModalView({
         );
         return;
       }
-      setVideoUri(asset.uri);
-      setVideoUrl("");
+      setValue("videoUri", asset.uri);
+      setValue("videoUrl", "");
       if (asset.duration) {
         const totalSec = Math.round(asset.duration / 1000);
-        setDurationMin(String(Math.floor(totalSec / 60)));
-        setDurationSec(String(totalSec % 60));
+        setValue("durationMin", String(Math.floor(totalSec / 60)));
+        setValue("durationSec", String(totalSec % 60));
       }
     } catch (err: unknown) {
       Alert.alert(
@@ -159,8 +210,8 @@ export default function ModalView({
         quality: 0.8,
       });
       if (result.canceled || !result.assets[0]) return;
-      setImageUri(result.assets[0].uri);
-      setImageUrl("");
+      setValue("imageUri", result.assets[0].uri);
+      setValue("imageUrl", "");
     } catch (err: unknown) {
       Alert.alert(
         t("common.error"),
@@ -169,36 +220,33 @@ export default function ModalView({
     }
   }
 
-  function handleSubmit() {
-    if (!title.trim()) {
-      Alert.alert(t("settings.alert.requiredField"), t("admin.form.titleRequired"));
-      return;
-    }
-    if (!videoUri && !videoUrl.trim()) {
-      Alert.alert(
-        t("settings.alert.requiredField"),
-        t("admin.modals.video.fileRequired"),
-      );
-      return;
-    }
-    saveVideo({
-      editId: isEdit ? video!.id : null,
-      videoUri,
-      videoUrl,
-      imageUri,
-      imageUrl,
-      title,
-      subtitle,
-      categoryId,
-      tagType,
-      durationSeconds:
-        (parseInt(durationMin) || 0) * 60 + (parseInt(durationSec) || 0),
-      published,
-      courseId,
-    })
-      .then(onClose)
-      .catch((err: Error) => Alert.alert(t("common.error"), err.message));
-  }
+  const handleSubmit = handleFormSubmit(
+    (data) => {
+      saveVideo({
+        editId: isEdit ? video!.id : null,
+        videoUri: data.videoUri,
+        videoUrl: data.videoUrl,
+        imageUri: data.imageUri,
+        imageUrl: data.imageUrl,
+        title: data.title,
+        subtitle: data.subtitle,
+        categoryId: data.categoryId,
+        tagType: data.tagType as TagType,
+        durationSeconds:
+          (parseInt(data.durationMin) || 0) * 60 + (parseInt(data.durationSec) || 0),
+        published: data.published,
+        courseId: data.courseId,
+      })
+        .then(onClose)
+        .catch((err: Error) => Alert.alert(t("common.error"), err.message));
+    },
+    (formErrors) => {
+      const firstError = Object.values(formErrors)[0];
+      if (firstError?.message) {
+        Alert.alert(t("settings.alert.requiredField"), firstError.message);
+      }
+    },
+  );
 
   return (
     <Modal
@@ -229,91 +277,119 @@ export default function ModalView({
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Niveau ── */}
-          <View style={styles.levelRow}>
-            {LEVELS.map((l) => (
-              <Pressable
-                key={l.value}
-                style={[
-                  styles.levelChip,
-                  tagType === l.value && styles.levelChipActive,
-                ]}
-                onPress={() => setTagType(l.value)}
-              >
-                <Text
-                  style={[
-                    styles.levelText,
-                    tagType === l.value && styles.levelTextActive,
-                  ]}
-                >
-                  {t(`common.level.${l.value}`)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <Controller
+            control={control}
+            name="tagType"
+            render={({ field: { value, onChange } }) => (
+              <View style={styles.levelRow}>
+                {LEVELS.map((l) => (
+                  <Pressable
+                    key={l.value}
+                    style={[
+                      styles.levelChip,
+                      value === l.value && styles.levelChipActive,
+                    ]}
+                    onPress={() => onChange(l.value)}
+                  >
+                    <Text
+                      style={[
+                        styles.levelText,
+                        value === l.value && styles.levelTextActive,
+                      ]}
+                    >
+                      {t(`common.level.${l.value}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          />
 
           {/* ── Video ── */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>
               {t("admin.modals.video.section")} <Text style={{ color: color.red }}>*</Text>
             </Text>
-            <Pressable style={styles.uploadZone} onPress={pickVideo}>
-              <Ionicons
-                name={videoUri ? "checkmark-circle" : "cloud-upload-outline"}
-                size={28}
-                color={videoUri ? color.green : color.white}
-              />
-              <Text style={styles.uploadTitle}>
-                {videoUri ? t("admin.modals.video.selected") : t("admin.modals.video.import")}
-              </Text>
-              <Text style={styles.uploadSub}>{t("admin.modals.video.formatHint")}</Text>
-            </Pressable>
+            <Controller
+              control={control}
+              name="videoUri"
+              render={({ field: { value: videoUri } }) => (
+                <Pressable style={styles.uploadZone} onPress={pickVideo}>
+                  <Ionicons
+                    name={videoUri ? "checkmark-circle" : "cloud-upload-outline"}
+                    size={28}
+                    color={videoUri ? color.green : color.white}
+                  />
+                  <Text style={styles.uploadTitle}>
+                    {videoUri ? t("admin.modals.video.selected") : t("admin.modals.video.import")}
+                  </Text>
+                  <Text style={styles.uploadSub}>{t("admin.modals.video.formatHint")}</Text>
+                </Pressable>
+              )}
+            />
             <Text style={styles.divider}>{t("admin.modals.video.orUrl")}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder={t("admin.modals.video.urlPlaceholder")}
-              placeholderTextColor={color.textMuted}
-              value={videoUrl}
-              onChangeText={(v) => {
-                setVideoUrl(v);
-                if (videoUri) {
-                  // Switching away from a picked file: its auto-detected
-                  // duration no longer applies to the pasted URL.
-                  setVideoUri(null);
-                  setDurationMin("0");
-                  setDurationSec("0");
-                }
-              }}
-              autoCapitalize="none"
-              keyboardType="url"
+            <Controller
+              control={control}
+              name="videoUrl"
+              render={({ field: { value, onChange } }) => (
+                <TextInput
+                  style={styles.input}
+                  placeholder={t("admin.modals.video.urlPlaceholder")}
+                  placeholderTextColor={color.textMuted}
+                  value={value}
+                  onChangeText={(v) => {
+                    onChange(v);
+                    // Switching away from a picked file: its auto-detected
+                    // duration no longer applies to the pasted URL.
+                    setValue("videoUri", null);
+                    setValue("durationMin", "0");
+                    setValue("durationSec", "0");
+                  }}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                />
+              )}
             />
           </View>
 
           {/* ── Thumbnail ── */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t("admin.modals.video.thumbnail")}</Text>
-            <Pressable style={styles.uploadZone} onPress={pickImage}>
-              <Ionicons
-                name={imageUri ? "checkmark-circle" : "image-outline"}
-                size={28}
-                color={imageUri ? color.green : color.white}
-              />
-              <Text style={styles.uploadTitle}>
-                {imageUri ? t("admin.modals.video.imageSelected") : t("admin.form.chooseImage")}
-              </Text>
-              <Text style={styles.uploadSub}>{t("admin.modals.video.imageFormatHint")}</Text>
-            </Pressable>
+            <Controller
+              control={control}
+              name="imageUri"
+              render={({ field: { value: imageUri } }) => (
+                <Pressable style={styles.uploadZone} onPress={pickImage}>
+                  <Ionicons
+                    name={imageUri ? "checkmark-circle" : "image-outline"}
+                    size={28}
+                    color={imageUri ? color.green : color.white}
+                  />
+                  <Text style={styles.uploadTitle}>
+                    {imageUri ? t("admin.modals.video.imageSelected") : t("admin.form.chooseImage")}
+                  </Text>
+                  <Text style={styles.uploadSub}>{t("admin.modals.video.imageFormatHint")}</Text>
+                </Pressable>
+              )}
+            />
             <Text style={styles.divider}>{t("admin.modals.video.orUrl")}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder={t("admin.modals.video.imageUrlPlaceholder")}
-              placeholderTextColor={color.textMuted}
-              value={imageUrl}
-              onChangeText={(v) => {
-                setImageUrl(v);
-                setImageUri(null);
-              }}
-              autoCapitalize="none"
-              keyboardType="url"
+            <Controller
+              control={control}
+              name="imageUrl"
+              render={({ field: { value, onChange } }) => (
+                <TextInput
+                  style={styles.input}
+                  placeholder={t("admin.modals.video.imageUrlPlaceholder")}
+                  placeholderTextColor={color.textMuted}
+                  value={value}
+                  onChangeText={(v) => {
+                    onChange(v);
+                    setValue("imageUri", null);
+                  }}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                />
+              )}
             />
           </View>
 
@@ -321,67 +397,90 @@ export default function ModalView({
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t("admin.modals.video.information")}</Text>
 
-            <FormField
-              label={t("admin.form.title")}
-              required
-              value={title}
-              onChangeText={setTitle}
-              placeholder={t("admin.modals.video.titlePlaceholder")}
-              variant="card"
+            <Controller
+              control={control}
+              name="title"
+              render={({ field: { value, onChange } }) => (
+                <FormField
+                  label={t("admin.form.title")}
+                  required
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={t("admin.modals.video.titlePlaceholder")}
+                  variant="card"
+                />
+              )}
             />
 
-            <FormField
-              label={t("admin.modals.video.subtitle")}
-              value={subtitle}
-              onChangeText={setSubtitle}
-              placeholder={t("admin.form.optional")}
-              variant="card"
+            <Controller
+              control={control}
+              name="subtitle"
+              render={({ field: { value, onChange } }) => (
+                <FormField
+                  label={t("admin.modals.video.subtitle")}
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={t("admin.form.optional")}
+                  variant="card"
+                />
+              )}
             />
 
-            <DurationField
-              label={t("admin.modals.video.duration")}
-              variant="card"
-              fields={[
-                { value: durationMin, onChange: setDurationMin, unit: "min", placeholder: "mm" },
-                { value: durationSec, onChange: setDurationSec, unit: "sec", placeholder: "ss" },
-              ]}
-            />
+            <DurationFields control={control} label={t("admin.modals.video.duration")} />
           </View>
 
           {/* ── Classification ── */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t("admin.modals.video.classification")}</Text>
 
-            <PickerField
-              label={t("admin.form.category")}
-              variant="card"
-              selectedValue={categoryId}
-              onValueChange={setCategoryId}
-              placeholder={t("admin.modals.video.noCategoryPlaceholder")}
-              items={categories.map((c) => ({ label: `${c.emoji} ${c.title}`, value: c.id }))}
+            <Controller
+              control={control}
+              name="categoryId"
+              render={({ field: { value, onChange } }) => (
+                <PickerField
+                  label={t("admin.form.category")}
+                  variant="card"
+                  selectedValue={value}
+                  onValueChange={onChange}
+                  placeholder={t("admin.modals.video.noCategoryPlaceholder")}
+                  items={categories.map((c) => ({ label: `${c.emoji} ${c.title}`, value: c.id }))}
+                />
+              )}
             />
 
             {!isEdit && (
-              <PickerField
-                label={t("admin.modals.video.linkedCourse")}
-                variant="card"
-                selectedValue={courseId}
-                onValueChange={setCourseId}
-                placeholder={t("admin.form.none")}
-                hint={t("admin.modals.video.linkedCourseHint")}
-                items={courses.map((c) => ({ label: c.title, value: c.id }))}
+              <Controller
+                control={control}
+                name="courseId"
+                render={({ field: { value, onChange } }) => (
+                  <PickerField
+                    label={t("admin.modals.video.linkedCourse")}
+                    variant="card"
+                    selectedValue={value}
+                    onValueChange={onChange}
+                    placeholder={t("admin.form.none")}
+                    hint={t("admin.modals.video.linkedCourseHint")}
+                    items={courses.map((c) => ({ label: c.title, value: c.id }))}
+                  />
+                )}
               />
             )}
 
-            <View style={styles.publishRow}>
-              <Text style={styles.label}>{t("admin.modals.video.published")}</Text>
-              <Switch
-                value={published}
-                onValueChange={setPublished}
-                trackColor={{ false: color.border, true: color.navy }}
-                thumbColor={color.white}
-              />
-            </View>
+            <Controller
+              control={control}
+              name="published"
+              render={({ field: { value, onChange } }) => (
+                <View style={styles.publishRow}>
+                  <Text style={styles.label}>{t("admin.modals.video.published")}</Text>
+                  <Switch
+                    value={value}
+                    onValueChange={onChange}
+                    trackColor={{ false: color.border, true: color.navy }}
+                    thumbColor={color.white}
+                  />
+                </View>
+              )}
+            />
           </View>
 
           <View style={{ height: 40 }} />

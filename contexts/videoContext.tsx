@@ -8,6 +8,7 @@ import {
 import { createContext, PropsWithChildren } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Video, VideoPayload, SaveVideoInput } from "@/types";
+import { guessImageFile, guessVideoFile } from "@/utils/fileTypes";
 
 export type { Video, VideoPayload, SaveVideoInput };
 
@@ -212,23 +213,23 @@ export function VideoProvider({ children }: PropsWithChildren) {
     mutationFn: async (input: SaveVideoInput): Promise<Video | null> => {
       let finalVideoUrl = input.videoUrl.trim();
       if (input.videoUri) {
-        const ext = input.videoUri.split(".").pop() ?? "mp4";
+        const { ext, contentType } = guessVideoFile(input.videoUri);
         finalVideoUrl = await uploadToStorage(
           input.videoUri,
           "videos",
           `private/${randomSuffix()}.${ext}`,
-          `video/${ext}`,
+          contentType,
         );
       }
 
       let finalImageUrl: string | null = input.imageUrl.trim() || null;
       if (input.imageUri) {
-        const ext = input.imageUri.split(".").pop() ?? "jpg";
+        const { ext, contentType } = guessImageFile(input.imageUri);
         finalImageUrl = await uploadToStorage(
           input.imageUri,
           "videos",
           `private/thumbnails/${randomSuffix()}.${ext}`,
-          `image/${ext}`,
+          contentType,
         );
       }
 

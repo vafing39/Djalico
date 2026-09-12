@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, PropsWithChildren } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Parcours, ParcoursPayload, SaveParcoursInput } from "@/types";
+import { guessImageFile } from "@/utils/fileTypes";
 
 export type { Parcours, ParcoursPayload, SaveParcoursInput };
 
@@ -18,8 +19,8 @@ type ParcoursContextType = {
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
-  saveParcours: (input: SaveParcoursInput) => Promise<void>;
-  deleteParcours: (id: string) => Promise<void>;
+  saveParcours: (input: SaveParcoursInput) => Promise<Parcours>;
+  deleteParcours: (id: string) => Promise<string>;
   isSaving: boolean;
 };
 
@@ -120,12 +121,12 @@ export function ParcoursProvider({ children }: PropsWithChildren) {
     mutationFn: async (input: SaveParcoursInput): Promise<Parcours> => {
       let finalImageUrl: string | null = input.coverImageUrl.trim() || null;
       if (input.coverImageUri) {
-        const ext = input.coverImageUri.split(".").pop() ?? "jpg";
+        const { ext, contentType } = guessImageFile(input.coverImageUri);
         finalImageUrl = await uploadToStorage(
           input.coverImageUri,
           "image",
           `private/parcours/${randomSuffix()}.${ext}`,
-          `image/${ext}`,
+          contentType,
         );
       }
 

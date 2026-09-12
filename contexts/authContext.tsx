@@ -5,24 +5,9 @@ import { File } from "expo-file-system";
 import { router } from "expo-router";
 import { createContext, PropsWithChildren, useEffect, useState } from "react";
 import type { UserProfile, UpdateProfileInput, OnboardingInput } from "@/types";
+import { guessImageFile } from "@/utils/fileTypes";
 
 export type { UserProfile, UpdateProfileInput };
-
-const IMAGE_CONTENT_TYPES: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  heic: "image/heic",
-  heif: "image/heif",
-  gif: "image/gif",
-};
-
-function guessImageFile(uri: string): { ext: string; contentType: string } {
-  const raw = (uri.split(".").pop() ?? "").split("?")[0].toLowerCase();
-  const contentType = IMAGE_CONTENT_TYPES[raw];
-  return contentType ? { ext: raw, contentType } : { ext: "jpg", contentType: "image/jpeg" };
-}
 
 type AuthType = {
   session: Session | null;

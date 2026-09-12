@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, PropsWithChildren } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Course, CoursePayload, SaveCourseInput } from "@/types";
+import { guessImageFile } from "@/utils/fileTypes";
 
 export type { Course, CoursePayload, SaveCourseInput };
 
@@ -92,12 +93,12 @@ export function CourseProvider({ children }: PropsWithChildren) {
     mutationFn: async (input: SaveCourseInput): Promise<Course> => {
       let finalImageUrl: string | null = input.imageUrl.trim() || null;
       if (input.imageUri) {
-        const ext = input.imageUri.split(".").pop() ?? "jpg";
+        const { ext, contentType } = guessImageFile(input.imageUri);
         finalImageUrl = await uploadToStorage(
           input.imageUri,
           "image",
           `private/covers/${randomSuffix()}.${ext}`,
-          `image/${ext}`,
+          contentType,
         );
       }
 

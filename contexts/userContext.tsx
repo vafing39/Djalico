@@ -13,10 +13,10 @@ type UserContextType = {
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
-  createUser: (input: CreateUserInput) => Promise<void>;
-  updateUser: (id: string, payload: UserPayload) => Promise<void>;
+  createUser: (input: CreateUserInput) => Promise<User>;
+  updateUser: (id: string, payload: UserPayload) => Promise<User>;
   updateUserInstruments: (id: string, categoryIds: string[]) => Promise<void>;
-  deleteUser: (id: string) => Promise<void>;
+  deleteUser: (id: string) => Promise<string>;
   isCreating: boolean;
   isUpdating: boolean;
   isUpdatingInstruments: boolean;

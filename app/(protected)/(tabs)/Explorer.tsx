@@ -522,12 +522,12 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 14, color: color.deepBlue },
 
   // Tabs
-  tabsScroll: { flexGrow: 0 },
+  tabsScroll: { flexGrow: 0, height: 44 },
   tabsRow: {
     paddingHorizontal: 24,
     gap: 0,
     marginBottom: 0,
-    alignItems: "flex-start",
+    alignItems: "center",
     borderBottomWidth: 1.5,
     borderBottomColor: "rgba(14,43,69,0.07)",
   },

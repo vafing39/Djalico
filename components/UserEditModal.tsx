@@ -12,6 +12,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { User } from "@/types";
 import { color, LEVELS } from "@/config/adminTheme";
+import { isStrongPassword } from "@/utils/passwordRules";
 
 const ROLE_VALUES: User["role"][] = ["eleve", "professeur", "admin"];
 
@@ -21,7 +22,10 @@ function makeUserSchema(t: (key: string) => string, isEdit: boolean) {
     email: z.string().trim().min(1, t("admin.modals.user.emailRequired")),
     password: isEdit
       ? z.string()
-      : z.string().min(6, t("settings.alert.passwordMinLength")),
+      : z
+          .string()
+          .min(1, t("admin.modals.user.passwordRequired"))
+          .refine(isStrongPassword, t("password.rule")),
     role: z.string(),
     level: z.string(),
     instrumentIds: z.array(z.string()),
@@ -71,6 +75,7 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
       level: "beginner",
       instrumentIds: [],
     },
+    mode: "onChange",
   });
 
   useEffect(() => {
@@ -293,6 +298,7 @@ export default function UserEditModal({ user, visible, onClose }: Props) {
                     onChangeText={onChange}
                     placeholder={t("settings.passwordModal.newPlaceholder")}
                     secureTextEntry
+                    hint={t("password.rule")}
                   />
                 )}
               />

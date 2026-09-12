@@ -20,6 +20,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/hooks/useLanguage";
 import { color } from "@/config/color";
+import { isStrongPassword } from "@/utils/passwordRules";
 
 function makeRegisterSchema(t: (key: string) => string) {
   return z
@@ -32,7 +33,7 @@ function makeRegisterSchema(t: (key: string) => string) {
       password: z
         .string()
         .min(1, t("register.passwordRequired"))
-        .min(6, t("register.passwordMinLength")),
+        .refine(isStrongPassword, t("password.rule")),
       confirmPassword: z.string().min(1, t("register.passwordRequired")),
     })
     .refine((data) => data.password === data.confirmPassword, {
@@ -63,6 +64,7 @@ export default function RegisterScreen() {
   } = useForm<RegisterFields>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
+    mode: "onChange",
   });
 
   const onSubmit = handleSubmit((data) => register(data));
@@ -257,8 +259,10 @@ export default function RegisterScreen() {
                         />
                       </Pressable>
                     </View>
-                    {errors.password && (
+                    {errors.password ? (
                       <Text style={styles.fieldError}>{errors.password.message}</Text>
+                    ) : (
+                      <Text style={styles.fieldHint}>{t("password.rule")}</Text>
                     )}
                   </View>
 
@@ -449,6 +453,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#EF4444",
     fontWeight: "500",
+    marginLeft: 2,
+  },
+  fieldHint: {
+    fontSize: 12,
+    color: color.softGray,
     marginLeft: 2,
   },
 

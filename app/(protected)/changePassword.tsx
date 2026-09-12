@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
+import { isStrongPassword } from "@/utils/passwordRules";
 
 function makeChangePasswordSchema(t: (key: string) => string) {
   return z
@@ -25,7 +26,7 @@ function makeChangePasswordSchema(t: (key: string) => string) {
       newPassword: z
         .string()
         .min(1, t("newPassword.passwordRequired"))
-        .min(6, t("settings.alert.passwordMinLength")),
+        .refine(isStrongPassword, t("password.rule")),
       confirmPassword: z.string().min(1, t("newPassword.passwordRequired")),
     })
     .refine((data) => data.newPassword === data.confirmPassword, {
@@ -65,6 +66,7 @@ export default function ChangePasswordScreen() {
   } = useForm<ChangePasswordFields>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: { newPassword: "", confirmPassword: "" },
+    mode: "onChange",
   });
 
   const onSubmit = handleSubmit(async (data) => {
@@ -131,8 +133,10 @@ export default function ChangePasswordScreen() {
                 )}
               </TouchableOpacity>
             </View>
-            {errors.newPassword && (
+            {errors.newPassword ? (
               <Text style={styles.fieldError}>{errors.newPassword.message}</Text>
+            ) : (
+              <Text style={styles.fieldHint}>{t("password.rule")}</Text>
             )}
           </View>
 
@@ -261,5 +265,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.red,
     fontWeight: "500",
+  },
+  fieldHint: {
+    fontSize: 12,
+    color: COLORS.softGray,
   },
 });

@@ -15,6 +15,8 @@ type Props = {
   editable?: boolean;
   /** use inside white cards (video modal) — switches input bg to color.bg */
   variant?: "card";
+  /** Optional hint shown below the input */
+  hint?: string;
 };
 
 export default function FormField({
@@ -29,6 +31,7 @@ export default function FormField({
   secureTextEntry,
   editable = true,
   variant,
+  hint,
 }: Props) {
   return (
     <View style={styles.field}>
@@ -54,6 +57,7 @@ export default function FormField({
         secureTextEntry={secureTextEntry}
         editable={editable}
       />
+      {hint && <Text style={styles.hint}>{hint}</Text>}
     </View>
   );
 }
@@ -75,4 +79,5 @@ const styles = StyleSheet.create({
   inputCard: { backgroundColor: color.bg },
   inputMultiline: { height: 90, paddingTop: 13 },
   inputDisabled: { opacity: 0.5 },
+  hint: { fontSize: 11, color: color.textMuted, marginTop: -2 },
 });

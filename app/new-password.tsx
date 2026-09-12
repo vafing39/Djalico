@@ -21,6 +21,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/hooks/useLanguage";
 import { color } from "@/config/color";
+import { isStrongPassword } from "@/utils/passwordRules";
 
 function makeNewPasswordSchema(t: (key: string) => string) {
   return z
@@ -28,7 +29,7 @@ function makeNewPasswordSchema(t: (key: string) => string) {
       password: z
         .string()
         .min(1, t("newPassword.passwordRequired"))
-        .min(6, t("newPassword.passwordMinLength")),
+        .refine(isStrongPassword, t("password.rule")),
       confirmPassword: z.string().min(1, t("newPassword.passwordRequired")),
     })
     .refine((data) => data.password === data.confirmPassword, {
@@ -54,6 +55,7 @@ export default function NewPasswordScreen() {
   } = useForm<NewPasswordFields>({
     resolver: zodResolver(newPasswordSchema),
     defaultValues: { password: "", confirmPassword: "" },
+    mode: "onChange",
   });
 
   const onSubmit = handleSubmit(async (data) => {
@@ -171,8 +173,10 @@ export default function NewPasswordScreen() {
                         />
                       </Pressable>
                     </View>
-                    {errors.password && (
+                    {errors.password ? (
                       <Text style={styles.fieldError}>{errors.password.message}</Text>
+                    ) : (
+                      <Text style={styles.fieldHint}>{t("password.rule")}</Text>
                     )}
                   </View>
 
@@ -329,6 +333,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#EF4444",
     fontWeight: "500",
+    marginLeft: 2,
+  },
+  fieldHint: {
+    fontSize: 12,
+    color: color.softGray,
     marginLeft: 2,
   },
 

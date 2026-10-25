@@ -23,7 +23,6 @@ import {
 } from "react-native";
 import ModalHeader from "@/components/admin/ModalHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useCourses } from "@/hooks/useCourses";
 import { useVideos } from "@/hooks/useVideos";
 import { supabase } from "@/utils/supabase";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -43,7 +42,6 @@ function makeVideoSchema(t: (key: string) => string) {
       videoUrl: z.string(),
       imageUri: z.string().nullable(),
       imageUrl: z.string(),
-      courseId: z.string(),
       published: z.boolean(),
       durationMin: z.string(),
       durationSec: z.string(),
@@ -66,7 +64,6 @@ function defaultVideoValues(): VideoFormFields {
     videoUrl: "",
     imageUri: null,
     imageUrl: "",
-    courseId: "",
     published: false,
     durationMin: "0",
     durationSec: "0",
@@ -101,7 +98,6 @@ export default function ModalView({
   video?: Video | null;
 }) {
   const { saveVideo, isSaving } = useVideos();
-  const { courses } = useCourses();
   const { t } = useLanguage();
   const isEdit = !!video;
 
@@ -129,7 +125,6 @@ export default function ModalView({
         videoUrl: video.url,
         imageUri: null,
         imageUrl: video.image_url ?? "",
-        courseId: "",
         published: video.published,
         durationMin: String(Math.floor(video.duration_seconds / 60)),
         durationSec: String(video.duration_seconds % 60),
@@ -235,7 +230,6 @@ export default function ModalView({
         durationSeconds:
           (parseInt(data.durationMin) || 0) * 60 + (parseInt(data.durationSec) || 0),
         published: data.published,
-        courseId: data.courseId,
       })
         .then(onClose)
         .catch((err: Error) => Alert.alert(t("common.error"), err.message));
@@ -447,24 +441,6 @@ export default function ModalView({
                 />
               )}
             />
-
-            {!isEdit && (
-              <Controller
-                control={control}
-                name="courseId"
-                render={({ field: { value, onChange } }) => (
-                  <PickerField
-                    label={t("admin.modals.video.linkedCourse")}
-                    variant="card"
-                    selectedValue={value}
-                    onValueChange={onChange}
-                    placeholder={t("admin.form.none")}
-                    hint={t("admin.modals.video.linkedCourseHint")}
-                    items={courses.map((c) => ({ label: c.title, value: c.id }))}
-                  />
-                )}
-              />
-            )}
 
             <Controller
               control={control}

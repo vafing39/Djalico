@@ -258,27 +258,6 @@ export function VideoProvider({ children }: PropsWithChildren) {
           .select("*, category:categories(id, title, emoji)")
           .single();
         if (error) throw error;
-        if (input.courseId) {
-          const { data: lastLesson, error: lastLessonError } = await supabase
-            .from("course_videos")
-            .select("index")
-            .eq("course_id", input.courseId)
-            .order("index", { ascending: false })
-            .limit(1);
-          if (lastLessonError) throw lastLessonError;
-          const nextIndex =
-            lastLesson?.[0] != null ? lastLesson[0].index + 1 : 1;
-          const { error: linkError } = await supabase
-            .from("course_videos")
-            .insert({
-              course_id: input.courseId,
-              title: inserted.title,
-              video_id: inserted.id,
-              duration_seconds: input.durationSeconds,
-              index: nextIndex,
-            });
-          if (linkError) throw linkError;
-        }
         return inserted as Video;
       }
     },

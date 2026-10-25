@@ -102,7 +102,6 @@ export type SaveVideoInput = {
   tagType: TagType;
   durationSeconds: number;
   published: boolean;
-  courseId: string;
 };
 
 // ─── Courses ──────────────────────────────────────────────────────────────────

@@ -275,8 +275,8 @@ export default function ExploreScreen() {
             </View>
           ) : (
             <>
-              {/* Thèmes — masqués en vue Vidéos */}
-              {activeTab !== "Vidéos" && filteredThemes.length > 0 && (
+              {/* Thèmes — masqués en vue Parcours (les thèmes mènent vers des vidéos) */}
+              {activeTab !== "Parcours" && filteredThemes.length > 0 && (
                 <>
                   <View
                     style={[styles.sectionHeader, { paddingHorizontal: 24 }]}

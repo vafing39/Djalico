@@ -69,6 +69,7 @@ export default function AllParcoursScreen() {
   const items = useMemo(
     () =>
       parcours
+        .filter((p) => p.published)
         .filter((p) => isLevelAccessible(p.tag_type, userLevel))
         .filter((p) => !categoryId || p.category?.id === categoryId)
         .map((p) => toCardItem(p, t)),

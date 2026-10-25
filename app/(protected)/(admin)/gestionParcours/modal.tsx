@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo } from "react";
 import { Controller, useController, useForm, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { z } from "zod";
 import ModalHeader from "@/components/admin/ModalHeader";
 import CategoryLevelPickers from "@/components/admin/CategoryLevelPickers";
@@ -32,6 +32,7 @@ function makeParcoursSchema(t: (key: string) => string) {
     durationMin: z.string(),
     coverImage: z.string().nullable(),
     courseIds: z.array(z.string()),
+    published: z.boolean(),
   });
 }
 
@@ -48,6 +49,7 @@ function defaultParcoursValues(): ParcoursFormFields {
     durationMin: "0",
     coverImage: null,
     courseIds: [],
+    published: false,
   };
 }
 
@@ -165,6 +167,7 @@ export default function ModalView({
         durationMin: String(Math.floor((totalSec % 3600) / 60)),
         coverImage: null,
         courseIds: [],
+        published: parcours.published,
       });
     } else {
       reset(defaultParcoursValues());
@@ -194,6 +197,7 @@ export default function ModalView({
         tagType: data.level as TagType,
         totalDurationSeconds,
         courseIds: data.courseIds,
+        published: data.published,
       })
         .then(() => {
           reset(defaultParcoursValues());
@@ -353,6 +357,22 @@ export default function ModalView({
                 </View>
               )}
             />
+
+            <Controller
+              control={control}
+              name="published"
+              render={({ field: { value, onChange } }) => (
+                <View style={styles.publishRow}>
+                  <Text style={styles.sectionLabel}>{t("admin.modals.parcours.published")}</Text>
+                  <Switch
+                    value={value}
+                    onValueChange={onChange}
+                    trackColor={{ false: color.border, true: color.navy }}
+                    thumbColor={color.white}
+                  />
+                </View>
+              )}
+            />
           </View>
 
           <View style={{ height: 40 }} />
@@ -368,6 +388,7 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20, gap: 20 },
   form: { gap: 16 },
   field: { gap: 7 },
+  publishRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   sectionLabel: { fontSize: 13, fontWeight: "700", color: color.textPrimary },
   fieldHint: { fontSize: 12, color: color.textMuted, marginBottom: 6 },
   courseList: { gap: 8 },

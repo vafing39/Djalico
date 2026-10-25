@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Switch, Text, View } from "react-native";
 import { supabase } from "@/utils/supabase";
 import { useLanguage } from "@/hooks/useLanguage";
+import { color } from "@/config/adminTheme";
 import type { Category, TagType } from "@/types";
 import CategoryLevelPickers from "./CategoryLevelPickers";
 import CoverImagePicker from "./CoverImagePicker";
@@ -23,6 +24,8 @@ type Props = {
   setDurationMin: (v: string) => void;
   coverImage: string | null;
   setCoverImage: (v: string | null) => void;
+  published: boolean;
+  setPublished: (v: boolean) => void;
 };
 
 export default function CourseForm({
@@ -33,6 +36,7 @@ export default function CourseForm({
   durationHours, setDurationHours,
   durationMin, setDurationMin,
   coverImage, setCoverImage,
+  published, setPublished,
 }: Props) {
   const { t } = useLanguage();
   const { data: categories = [] } = useQuery<Category[]>({
@@ -78,10 +82,22 @@ export default function CourseForm({
       />
 
       <CoverImagePicker coverImage={coverImage} setCoverImage={setCoverImage} />
+
+      <View style={styles.publishRow}>
+        <Text style={styles.label}>{t("admin.modals.course.published")}</Text>
+        <Switch
+          value={published}
+          onValueChange={setPublished}
+          trackColor={{ false: color.border, true: color.navy }}
+          thumbColor={color.white}
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   form: { gap: 16 },
+  publishRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  label: { fontSize: 13, fontWeight: "700", color: color.textPrimary },
 });

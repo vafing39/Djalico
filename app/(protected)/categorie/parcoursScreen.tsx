@@ -221,12 +221,17 @@ export default function ParcoursScreen() {
   const { t } = useLanguage();
   const { courseId, parcoursId } = useLocalSearchParams<{ courseId?: string; parcoursId?: string }>();
 
-  const { parcours, parcoursCourses } = useParcours();
-  const { courses }                   = useCourses();
+  const { parcours: rawParcours, parcoursCourses } = useParcours();
+  const { courses: rawCourses }       = useCourses();
   const { lessons }                   = useLessons();
   const { videoProgress, saveProgress } = useVideos();
 
   const [selectedVideo, setSelectedVideo] = useState<SelectedVideo | null>(null);
+
+  // Students must never see a draft course/parcours, including one deep-linked
+  // by id or reached as a course linked inside a published parcours.
+  const courses = useMemo(() => rawCourses.filter((c) => c.published), [rawCourses]);
+  const parcours = useMemo(() => rawParcours.filter((p) => p.published), [rawParcours]);
 
   // ── Course mode ────────────────────────────────────────────────────────────
   const course = useMemo(

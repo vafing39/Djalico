@@ -23,6 +23,7 @@ function makeCourseSchema(t: (key: string) => string) {
     durationHours: z.string(),
     durationMin: z.string(),
     coverImage: z.string().nullable(),
+    published: z.boolean(),
     lessonDrafts: z.array(z.custom<LessonDraft>()),
     deletedLessonIds: z.array(z.string()),
     videoSearch: z.string(),
@@ -40,6 +41,7 @@ function defaultCourseValues(): CourseModalFields {
     durationHours: "0",
     durationMin: "0",
     coverImage: null,
+    published: false,
     lessonDrafts: [],
     deletedLessonIds: [],
     videoSearch: "",
@@ -55,6 +57,7 @@ function CourseFormFields({ control }: { control: Control<CourseModalFields> }) 
   const durationHours = useController({ control, name: "durationHours" });
   const durationMin = useController({ control, name: "durationMin" });
   const coverImage = useController({ control, name: "coverImage" });
+  const published = useController({ control, name: "published" });
 
   return (
     <CourseForm
@@ -72,6 +75,8 @@ function CourseFormFields({ control }: { control: Control<CourseModalFields> }) 
       setDurationMin={durationMin.field.onChange}
       coverImage={coverImage.field.value}
       setCoverImage={coverImage.field.onChange}
+      published={published.field.value}
+      setPublished={published.field.onChange}
     />
   );
 }
@@ -179,6 +184,7 @@ export default function ModalView({
         durationHours: String(Math.floor(totalSec / 3600)),
         durationMin: String(Math.floor((totalSec % 3600) / 60)),
         coverImage: null,
+        published: course.published,
         lessonDrafts: allLessons
           .filter((l) => l.course_id === course.id)
           .sort((a, b) => a.index - b.index)
@@ -208,6 +214,7 @@ export default function ModalView({
           categoryId: data.categoryId,
           tagType: data.level as TagType,
           totalDurationSeconds,
+          published: data.published,
         });
         await saveLessons(savedCourse.id, data.lessonDrafts, data.deletedLessonIds);
         reset(defaultCourseValues());

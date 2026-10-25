@@ -241,7 +241,7 @@ export default function MesCoursScreen() {
   const userLevel = useUserLevel();
 
   const courses = useMemo(
-    () => allCourses.filter((c) => isLevelAccessible(c.tag_type, userLevel)),
+    () => allCourses.filter((c) => c.published && isLevelAccessible(c.tag_type, userLevel)),
     [allCourses, userLevel],
   );
 

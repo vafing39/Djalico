@@ -136,6 +136,8 @@ export default function Home() {
   const isActivityLoading = usersLoading || videosLoading;
 
   const publishedCount = videos.filter((v) => v.published).length;
+  const publishedParcoursCount = parcours.filter((p) => p.published).length;
+  const publishedCoursesCount = courses.filter((c) => c.published).length;
 
   const kpis: KpiItem[] = useMemo(
     () => [
@@ -158,7 +160,7 @@ export default function Home() {
       {
         id: "parcours",
         label: t("admin.home.kpi.parcours"),
-        value: parcours.length,
+        value: publishedParcoursCount,
         icon: "map-outline",
         bg: "#F3E8FF",
         iconColor: "#9333EA",
@@ -166,7 +168,7 @@ export default function Home() {
       {
         id: "courses",
         label: t("admin.home.kpi.courses"),
-        value: courses.length,
+        value: publishedCoursesCount,
         icon: "book-outline",
         bg: "#DCFCE7",
         iconColor: "#22C55E",
@@ -183,8 +185,8 @@ export default function Home() {
     [
       users.length,
       publishedCount,
-      parcours.length,
-      courses.length,
+      publishedParcoursCount,
+      publishedCoursesCount,
       lessons.length,
       t,
     ],

@@ -138,6 +138,7 @@ export function ParcoursProvider({ children }: PropsWithChildren) {
         tag_type: input.tagType,
         cover_image_url: finalImageUrl,
         total_duration_seconds: input.totalDurationSeconds,
+        published: input.published,
       };
 
       let result: Parcours;

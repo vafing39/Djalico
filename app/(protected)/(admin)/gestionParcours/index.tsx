@@ -118,6 +118,7 @@ export default function GestionParcours() {
                 instructor={p.instructor?.name ?? null}
                 metaIcon="map-outline"
                 metaText={`${p.category ? `${p.category.emoji} ${p.category.title}` : "—"} · ${formatDuration(p.total_duration_seconds)}`}
+                published={p.published}
                 showBorder={i < filtered.length - 1}
                 onEdit={() => handleEdit(p)}
                 onDelete={() => handleDelete(p)}

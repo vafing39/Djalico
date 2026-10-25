@@ -413,7 +413,7 @@ export const translations = {
     "admin.modals.video.linkedCourse": "Cours associé",
     "admin.modals.video.linkedCourseHint": "La vidéo sera ajoutée comme leçon de ce cours.",
     "admin.modals.video.published": "Publié",
-    "admin.modals.video.draft": "Brouillon",
+    "admin.common.draft": "Brouillon",
     "admin.modals.video.permissionDeniedTitle": "Accès refusé",
     "admin.modals.video.permissionDeniedBody": "Autorisez l'accès à la bibliothèque de photos dans Réglages > Confidentialité > Photos.",
     "admin.modals.video.limitedAccessTitle": "Accès limité",
@@ -434,6 +434,7 @@ export const translations = {
     "admin.modals.course.instructorPlaceholder": "Ex : Marc Dupont",
     "admin.modals.course.videosTitle": "Vidéos",
     "admin.modals.course.noVideosAvailable": "Aucune vidéo disponible",
+    "admin.modals.course.published": "Publié",
 
     // ── Admin — parcours modal (admin/gestionParcours/modal.tsx) ──────────────
     "admin.modals.parcours.editTitle": "Modifier le parcours",
@@ -445,6 +446,7 @@ export const translations = {
     "admin.modals.parcours.coursesIncluded": "Cours inclus",
     "admin.modals.parcours.courseSelected": "{{n}} cours sélectionné",
     "admin.modals.parcours.courseSelectedPlural": "{{n}} cours sélectionnés",
+    "admin.modals.parcours.published": "Publié",
 
     // ── Admin — user modal (components/UserEditModal.tsx) ─────────────────────
     "admin.modals.user.editTitle": "Modifier l'utilisateur",
@@ -885,7 +887,7 @@ export const translations = {
     "admin.modals.video.linkedCourse": "Linked course",
     "admin.modals.video.linkedCourseHint": "The video will be added as a lesson of this course.",
     "admin.modals.video.published": "Published",
-    "admin.modals.video.draft": "Draft",
+    "admin.common.draft": "Draft",
     "admin.modals.video.permissionDeniedTitle": "Access denied",
     "admin.modals.video.permissionDeniedBody": "Allow access to the photo library in Settings > Privacy > Photos.",
     "admin.modals.video.limitedAccessTitle": "Limited access",
@@ -906,6 +908,7 @@ export const translations = {
     "admin.modals.course.instructorPlaceholder": "E.g.: Marc Dupont",
     "admin.modals.course.videosTitle": "Videos",
     "admin.modals.course.noVideosAvailable": "No videos available",
+    "admin.modals.course.published": "Published",
 
     // ── Admin — parcours modal ─────────────────────────────────────────────────
     "admin.modals.parcours.editTitle": "Edit path",
@@ -917,6 +920,7 @@ export const translations = {
     "admin.modals.parcours.coursesIncluded": "Courses included",
     "admin.modals.parcours.courseSelected": "{{n}} course selected",
     "admin.modals.parcours.courseSelectedPlural": "{{n}} courses selected",
+    "admin.modals.parcours.published": "Published",
 
     // ── Admin — user modal ─────────────────────────────────────────────────────
     "admin.modals.user.editTitle": "Edit user",

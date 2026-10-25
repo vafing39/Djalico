@@ -112,6 +112,7 @@ export type Course = {
   tag_type: TagType;
   image_url: string | null;
   total_duration_seconds: number;
+  published: boolean;
   created_at: string;
   category: Category | null;
 };
@@ -123,6 +124,7 @@ export type CoursePayload = {
   tag_type: TagType;
   image_url?: string | null;
   total_duration_seconds: number;
+  published: boolean;
 };
 
 export type SaveCourseInput = {
@@ -134,6 +136,7 @@ export type SaveCourseInput = {
   categoryId: string;
   tagType: TagType;
   totalDurationSeconds: number;
+  published: boolean;
 };
 
 // ─── Parcours ─────────────────────────────────────────────────────────────────
@@ -145,6 +148,7 @@ export type Parcours = {
   cover_image_url: string | null;
   tag_type: TagType;
   total_duration_seconds: number;
+  published: boolean;
   created_at: string;
   category: Category | null;
   instructor: { id: string; name: string; avatar_url: string | null } | null;
@@ -158,6 +162,7 @@ export type ParcoursPayload = {
   tag_type: TagType;
   cover_image_url?: string | null;
   total_duration_seconds: number;
+  published: boolean;
 };
 
 export type SaveParcoursInput = {
@@ -171,6 +176,7 @@ export type SaveParcoursInput = {
   tagType: TagType;
   totalDurationSeconds: number;
   courseIds: string[];
+  published: boolean;
 };
 
 // ─── Lessons ──────────────────────────────────────────────────────────────────

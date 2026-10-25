@@ -109,6 +109,7 @@ export function CourseProvider({ children }: PropsWithChildren) {
         tag_type: input.tagType,
         image_url: finalImageUrl,
         total_duration_seconds: input.totalDurationSeconds,
+        published: input.published,
       };
 
       if (input.editId) {

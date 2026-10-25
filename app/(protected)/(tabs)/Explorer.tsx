@@ -131,7 +131,10 @@ export default function ExploreScreen() {
     [categories, publishedVideos, t],
   );
   const previewThemes = useMemo(() => themes.slice(0, 4), [themes]);
-  const parcoursItems = useMemo(() => parcours.map((p) => toParcoursItem(p, t)), [parcours, t]);
+  const parcoursItems = useMemo(
+    () => parcours.filter((p) => p.published).map((p) => toParcoursItem(p, t)),
+    [parcours, t],
+  );
   const videoItems = useMemo(
     () => publishedVideos.map((v) => ({ ...toVideoItem(v, t), bookmarked: isVideoSaved(v.id) })),
     [publishedVideos, isVideoSaved, t],

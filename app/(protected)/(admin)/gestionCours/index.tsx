@@ -148,6 +148,7 @@ export default function GestionCours() {
                 instructor={course.instructor}
                 metaIcon="musical-notes-outline"
                 metaText={`${course.category ? `${course.category.emoji} ${course.category.title}` : "—"} · ${formatDuration(course.total_duration_seconds)}`}
+                published={course.published}
                 showBorder={i < filtered.length - 1}
                 onEdit={() => openEdit(course)}
                 onDelete={() => handleDelete(course)}

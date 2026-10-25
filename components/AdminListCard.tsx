@@ -119,7 +119,7 @@ export default function AdminListCard({
           ) : published === false ? (
             <View style={[styles.publishedBadge, { backgroundColor: color.border }]}>
               <Text style={[styles.publishedBadgeText, { color: color.textMuted }]}>
-                {t("admin.modals.video.draft")}
+                {t("admin.common.draft")}
               </Text>
             </View>
           ) : null}

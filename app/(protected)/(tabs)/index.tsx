@@ -116,7 +116,7 @@ export default function HomeScreen() {
   const rawParcours = useMemo(
     () =>
       parcours
-        .filter((p) => isLevelAccessible(p.tag_type, userLevel))
+        .filter((p) => p.published && isLevelAccessible(p.tag_type, userLevel))
         .slice(0, 20),
     [parcours, userLevel],
   );

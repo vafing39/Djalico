@@ -8,12 +8,13 @@ import CategoryLevelPickers from "./CategoryLevelPickers";
 import CoverImagePicker from "./CoverImagePicker";
 import DurationField from "./DurationField";
 import FormField from "./FormField";
+import InstructorPicker from "./InstructorPicker";
 
 type Props = {
   title: string;
   setTitle: (v: string) => void;
-  instructor: string;
-  setInstructor: (v: string) => void;
+  instructorId: string;
+  setInstructorId: (v: string) => void;
   categoryId: string;
   setCategoryId: (v: string) => void;
   level: TagType;
@@ -30,7 +31,7 @@ type Props = {
 
 export default function CourseForm({
   title, setTitle,
-  instructor, setInstructor,
+  instructorId, setInstructorId,
   categoryId, setCategoryId,
   level, setLevel,
   durationHours, setDurationHours,
@@ -58,14 +59,6 @@ export default function CourseForm({
         placeholder={t("admin.modals.course.titlePlaceholder")}
       />
 
-      <FormField
-        label={t("admin.modals.course.instructor")}
-        required
-        value={instructor}
-        onChangeText={setInstructor}
-        placeholder={t("admin.modals.course.instructorPlaceholder")}
-      />
-
       <CategoryLevelPickers
         categoryId={categoryId}
         setCategoryId={setCategoryId}
@@ -73,6 +66,8 @@ export default function CourseForm({
         level={level}
         setLevel={setLevel}
       />
+
+      <InstructorPicker instructorId={instructorId} setInstructorId={setInstructorId} />
 
       <DurationField
         fields={[

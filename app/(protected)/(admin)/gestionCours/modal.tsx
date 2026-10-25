@@ -17,7 +17,7 @@ import VideoPickerSection from "@/components/admin/VideoPickerSection";
 function makeCourseSchema(t: (key: string) => string) {
   return z.object({
     title: z.string().trim().min(1, t("admin.form.titleRequired")),
-    instructor: z.string().trim().min(1, t("admin.modals.course.instructorRequired")),
+    instructorId: z.string(),
     categoryId: z.string(),
     level: z.string(),
     durationHours: z.string(),
@@ -35,7 +35,7 @@ type CourseModalFields = z.infer<ReturnType<typeof makeCourseSchema>>;
 function defaultCourseValues(): CourseModalFields {
   return {
     title: "",
-    instructor: "",
+    instructorId: "",
     categoryId: "",
     level: LEVELS[0].value,
     durationHours: "0",
@@ -51,7 +51,7 @@ function defaultCourseValues(): CourseModalFields {
 // Bridges CourseForm's flat value/setter props to the form.
 function CourseFormFields({ control }: { control: Control<CourseModalFields> }) {
   const title = useController({ control, name: "title" });
-  const instructor = useController({ control, name: "instructor" });
+  const instructorId = useController({ control, name: "instructorId" });
   const categoryId = useController({ control, name: "categoryId" });
   const level = useController({ control, name: "level" });
   const durationHours = useController({ control, name: "durationHours" });
@@ -63,8 +63,8 @@ function CourseFormFields({ control }: { control: Control<CourseModalFields> }) 
     <CourseForm
       title={title.field.value}
       setTitle={title.field.onChange}
-      instructor={instructor.field.value}
-      setInstructor={instructor.field.onChange}
+      instructorId={instructorId.field.value}
+      setInstructorId={instructorId.field.onChange}
       categoryId={categoryId.field.value}
       setCategoryId={categoryId.field.onChange}
       level={level.field.value as TagType}
@@ -178,7 +178,7 @@ export default function ModalView({
       const totalSec = course.total_duration_seconds;
       reset({
         title: course.title,
-        instructor: course.instructor,
+        instructorId: course.instructor?.id ?? "",
         categoryId: course.category?.id ?? "",
         level: course.tag_type,
         durationHours: String(Math.floor(totalSec / 3600)),
@@ -210,7 +210,7 @@ export default function ModalView({
           imageUri: data.coverImage,
           imageUrl: isEdit ? (course!.image_url ?? "") : "",
           title: data.title,
-          instructor: data.instructor,
+          instructorId: data.instructorId,
           categoryId: data.categoryId,
           tagType: data.level as TagType,
           totalDurationSeconds,

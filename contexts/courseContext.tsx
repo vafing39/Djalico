@@ -59,7 +59,7 @@ export function CourseProvider({ children }: PropsWithChildren) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("courses")
-        .select("*, category:categories(id, title, emoji)")
+        .select("*, category:categories(id, title, emoji), instructor:users(id, name, avatar_url)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Course[];
@@ -104,7 +104,7 @@ export function CourseProvider({ children }: PropsWithChildren) {
 
       const payload: CoursePayload = {
         title: input.title.trim(),
-        instructor: input.instructor.trim(),
+        instructor_id: input.instructorId || null,
         category_id: input.categoryId || null,
         tag_type: input.tagType,
         image_url: finalImageUrl,
@@ -117,7 +117,7 @@ export function CourseProvider({ children }: PropsWithChildren) {
           .from("courses")
           .update(payload)
           .eq("id", input.editId)
-          .select("*, category:categories(id, title, emoji)")
+          .select("*, category:categories(id, title, emoji), instructor:users(id, name, avatar_url)")
           .single();
         if (error) throw error;
         return updated as Course;
@@ -125,7 +125,7 @@ export function CourseProvider({ children }: PropsWithChildren) {
         const { data: inserted, error } = await supabase
           .from("courses")
           .insert(payload)
-          .select("*, category:categories(id, title, emoji)")
+          .select("*, category:categories(id, title, emoji), instructor:users(id, name, avatar_url)")
           .single();
         if (error) throw error;
         return inserted as Course;

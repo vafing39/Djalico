@@ -9,7 +9,7 @@ import CategoryLevelPickers from "@/components/admin/CategoryLevelPickers";
 import CoverImagePicker from "@/components/admin/CoverImagePicker";
 import DurationField from "@/components/admin/DurationField";
 import FormField from "@/components/admin/FormField";
-import PickerField from "@/components/admin/PickerField";
+import InstructorPicker from "@/components/admin/InstructorPicker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabase";
@@ -18,8 +18,6 @@ import { useCourses } from "@/hooks/useCourses";
 import { color, LEVELS } from "@/config/adminTheme";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { Parcours, Category, TagType } from "@/types";
-
-type Instructor = { id: string; name: string };
 
 function makeParcoursSchema(t: (key: string) => string) {
   return z.object({
@@ -121,19 +119,6 @@ export default function ModalView({
         .from("categories")
         .select("id, title, emoji")
         .order("title");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: instructors = [] } = useQuery<Instructor[]>({
-    queryKey: ["instructors"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, name")
-        .in("role", ["professeur", "admin"])
-        .order("name");
       if (error) throw error;
       return data;
     },
@@ -281,13 +266,7 @@ export default function ModalView({
               control={control}
               name="instructorId"
               render={({ field: { value, onChange } }) => (
-                <PickerField
-                  label={t("admin.modals.course.instructor")}
-                  selectedValue={value}
-                  onValueChange={onChange}
-                  placeholder={t("admin.form.none")}
-                  items={instructors.map((u) => ({ label: u.name, value: u.id }))}
-                />
+                <InstructorPicker instructorId={value} setInstructorId={onChange} />
               )}
             />
 
@@ -347,7 +326,7 @@ export default function ModalView({
                                 ? `${course.category.emoji} ${course.category.title}`
                                 : "—"}
                               {" · "}
-                              {course.instructor}
+                              {course.instructor?.name ?? "—"}
                             </Text>
                           </View>
                         </Pressable>

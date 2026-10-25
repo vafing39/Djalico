@@ -85,7 +85,7 @@ function ActiveCourseCard({
         </View>
 
         <View style={styles.heroBottom}>
-          <Text style={styles.heroInstructor}>{course.instructor}</Text>
+          <Text style={styles.heroInstructor}>{course.instructor?.name ?? ""}</Text>
           <Text style={styles.heroTitle}>{course.title}</Text>
           <View style={styles.heroProgressRow}>
             <View style={styles.heroProgressTrack}>
@@ -203,7 +203,7 @@ function CourseListItem({
           </View>
 
           <Text numberOfLines={1} style={styles.courseTitle}>{course.title}</Text>
-          <Text numberOfLines={1} style={styles.courseInstructor}>{course.instructor}</Text>
+          <Text numberOfLines={1} style={styles.courseInstructor}>{course.instructor?.name ?? ""}</Text>
 
           {!isNotStarted ? (
             <View style={styles.courseProgressRow}>

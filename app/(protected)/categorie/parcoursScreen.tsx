@@ -309,13 +309,13 @@ export default function ParcoursScreen() {
   const heroImage      = isCourseMode ? course!.image_url      : p?.cover_image_url;
   const heroTitle      = isCourseMode ? course!.title          : (p?.title ?? "");
   const heroCategory   = isCourseMode ? (course!.category?.title ?? "") : (p?.category?.title ?? "");
-  const heroInstructor = isCourseMode ? course!.instructor     : (p?.instructor?.name ?? "");
+  const heroInstructor = isCourseMode ? (course!.instructor?.name ?? "") : (p?.instructor?.name ?? "");
   const heroTag        = t(`common.level.${tagType}`);
   const heroLessons    = isCourseMode ? totalLessons           : parcoursTotal;
   const heroDuration   = formatDuration(isCourseMode ? course!.total_duration_seconds : (p?.total_duration_seconds ?? 0));
   const heroProgress   = isCourseMode ? courseProgress         : parcoursProgress;
   const heroCompleted  = isCourseMode ? completedLessons       : parcoursCompleted;
-  const instructorAvatar = !isCourseMode ? p?.instructor?.avatar_url : null;
+  const instructorAvatar = isCourseMode ? course!.instructor?.avatar_url : p?.instructor?.avatar_url;
 
   let offset = 0;
 

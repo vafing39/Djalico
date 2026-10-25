@@ -145,7 +145,7 @@ export default function GestionCours() {
                 imageUrl={course.image_url}
                 title={course.title}
                 tagType={course.tag_type}
-                instructor={course.instructor}
+                instructor={course.instructor?.name ?? null}
                 metaIcon="musical-notes-outline"
                 metaText={`${course.category ? `${course.category.emoji} ${course.category.title}` : "—"} · ${formatDuration(course.total_duration_seconds)}`}
                 published={course.published}

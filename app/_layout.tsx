@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/contexts/authContext";
 import { CategoryProvider } from "@/contexts/categoryContext";
+import { InstructorProvider } from "@/contexts/instructorContext";
 import { VideoProvider } from "@/contexts/videoContext";
 import { ParcoursProvider } from "@/contexts/parcoursContext";
 import { CourseProvider } from "@/contexts/courseContext";
@@ -19,6 +20,7 @@ export default function RootLayout() {
       <LanguageProvider>
         <AuthProvider>
           <CategoryProvider>
+          <InstructorProvider>
           <VideoProvider>
             <ParcoursProvider>
               <CourseProvider>
@@ -61,6 +63,7 @@ export default function RootLayout() {
               </CourseProvider>
             </ParcoursProvider>
           </VideoProvider>
+          </InstructorProvider>
           </CategoryProvider>
         </AuthProvider>
       </LanguageProvider>

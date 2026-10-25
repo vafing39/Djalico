@@ -4,6 +4,8 @@ export type TagType = "beginner" | "intermediate" | "expert";
 
 export type Category = { id: string; title: string; emoji: string };
 
+export type Instructor = { id: string; name: string };
+
 // ─── Auth / Profile ───────────────────────────────────────────────────────────
 
 export type UserStatus = "onboarding" | "pending_review" | "active";
@@ -108,7 +110,7 @@ export type SaveVideoInput = {
 export type Course = {
   id: string;
   title: string;
-  instructor: string;
+  instructor: { id: string; name: string; avatar_url: string | null } | null;
   tag_type: TagType;
   image_url: string | null;
   total_duration_seconds: number;
@@ -119,7 +121,7 @@ export type Course = {
 
 export type CoursePayload = {
   title: string;
-  instructor: string;
+  instructor_id?: string | null;
   category_id?: string | null;
   tag_type: TagType;
   image_url?: string | null;
@@ -132,7 +134,7 @@ export type SaveCourseInput = {
   imageUri: string | null;
   imageUrl: string;
   title: string;
-  instructor: string;
+  instructorId: string;
   categoryId: string;
   tagType: TagType;
   totalDurationSeconds: number;

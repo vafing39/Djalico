@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 14, color: color.deepBlue },
 
   // Tabs
-  tabsScroll: { flexGrow: 0, height: 44 },
+  tabsScroll: { flexGrow: 0 },
   tabsRow: {
     paddingHorizontal: 24,
     gap: 0,

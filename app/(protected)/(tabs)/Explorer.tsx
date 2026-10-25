@@ -297,7 +297,7 @@ export default function ExploreScreen() {
                         item={t}
                         onPress={() =>
                           router.navigate({
-                            pathname: "/categorie/allParcoursScreen",
+                            pathname: "/categorie/allVideos",
                             params: { categoryId: t.id, categoryTitle: t.title },
                           })
                         }

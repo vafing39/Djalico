@@ -91,7 +91,7 @@ export default function AllThemesScreen() {
             item={item}
             onPress={() =>
               router.navigate({
-                pathname: "/categorie/allParcoursScreen",
+                pathname: "/categorie/allVideos",
                 params: { categoryId: item.id, categoryTitle: item.title },
               })
             }

@@ -8,11 +8,11 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useUserLevel } from "@/hooks/useUserLevel";
 import { isLevelAccessible } from "@/utils/level";
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
-function Header({ count }: { count: number }) {
+function Header({ count, title }: { count: number; title?: string }) {
   const { t } = useLanguage();
   return (
     <View style={styles.headerWrap}>
@@ -22,7 +22,7 @@ function Header({ count }: { count: number }) {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerEyebrow}>{t("categorie.library")}</Text>
-          <Text style={styles.headerTitle}>{t("categorie.allVideos")}</Text>
+          <Text style={styles.headerTitle}>{title ?? t("categorie.allVideos")}</Text>
         </View>
         <View style={styles.headerCount}>
           <Text style={styles.headerCountText}>{count}</Text>
@@ -33,6 +33,10 @@ function Header({ count }: { count: number }) {
 }
 
 export default function AllVideos() {
+  const { categoryId, categoryTitle } = useLocalSearchParams<{
+    categoryId?: string;
+    categoryTitle?: string;
+  }>();
   const { videos, videoProgress, saveProgress } = useVideos();
   const { isVideoSaved, toggleVideoSave } = useSaved();
   const { t } = useLanguage();
@@ -41,8 +45,14 @@ export default function AllVideos() {
   const [selectedVideo, setSelectedVideo] = useState<{ id: string; url: string; title: string } | null>(null);
 
   const publishedVideos = useMemo(
-    () => videos.filter((v) => v.published && isLevelAccessible(v.tag_type, userLevel)),
-    [videos, userLevel],
+    () =>
+      videos.filter(
+        (v) =>
+          v.published &&
+          isLevelAccessible(v.tag_type, userLevel) &&
+          (!categoryId || v.category?.id === categoryId),
+      ),
+    [videos, userLevel, categoryId],
   );
 
   const videoItems = useMemo(
@@ -79,7 +89,7 @@ export default function AllVideos() {
         data={videoItems}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={<Header count={videoItems.length} />}
+        ListHeaderComponent={<Header count={videoItems.length} title={categoryTitle} />}
         renderItem={({ item }) => (
           <VideoCard
             item={item}

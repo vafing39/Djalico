@@ -273,7 +273,7 @@ export function VideoProvider({ children }: PropsWithChildren) {
             .insert({
               course_id: input.courseId,
               title: inserted.title,
-              url: inserted.url,
+              video_id: inserted.id,
               duration_seconds: input.durationSeconds,
               index: nextIndex,
             });

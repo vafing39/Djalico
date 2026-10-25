@@ -5,9 +5,9 @@ import { useEffect, useMemo } from "react";
 import { Controller, useController, useForm, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import CategoryLevelPickers from "@/components/admin/CategoryLevelPickers";
 import DurationField from "@/components/admin/DurationField";
 import FormField from "@/components/admin/FormField";
-import PickerField from "@/components/admin/PickerField";
 import {
   Alert,
   Image,
@@ -27,7 +27,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useVideos } from "@/hooks/useVideos";
 import { supabase } from "@/utils/supabase";
 import { useLanguage } from "@/hooks/useLanguage";
-import { color, LEVELS } from "@/config/adminTheme";
+import { color } from "@/config/adminTheme";
 import type { Video, Category, TagType } from "@/types";
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -124,6 +124,8 @@ export default function ModalView({
   const videoUrlField = useController({ control, name: "videoUrl" });
   const imageUriField = useController({ control, name: "imageUri" });
   const imageUrlField = useController({ control, name: "imageUrl" });
+  const categoryIdField = useController({ control, name: "categoryId" });
+  const tagTypeField = useController({ control, name: "tagType" });
 
   const hasStoredVideoFile =
     !videoUriField.field.value && isStorageUrl(videoUrlField.field.value);
@@ -288,35 +290,6 @@ export default function ModalView({
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Niveau ── */}
-          <Controller
-            control={control}
-            name="tagType"
-            render={({ field: { value, onChange } }) => (
-              <View style={styles.levelRow}>
-                {LEVELS.map((l) => (
-                  <Pressable
-                    key={l.value}
-                    style={[
-                      styles.levelChip,
-                      value === l.value && styles.levelChipActive,
-                    ]}
-                    onPress={() => onChange(l.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.levelText,
-                        value === l.value && styles.levelTextActive,
-                      ]}
-                    >
-                      {t(`common.level.${l.value}`)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          />
-
           {/* ── Video ── */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>
@@ -458,19 +431,12 @@ export default function ModalView({
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t("admin.modals.video.classification")}</Text>
 
-            <Controller
-              control={control}
-              name="categoryId"
-              render={({ field: { value, onChange } }) => (
-                <PickerField
-                  label={t("admin.form.category")}
-                  variant="card"
-                  selectedValue={value}
-                  onValueChange={onChange}
-                  placeholder={t("admin.modals.video.noCategoryPlaceholder")}
-                  items={categories.map((c) => ({ label: `${c.emoji} ${c.title}`, value: c.id }))}
-                />
-              )}
+            <CategoryLevelPickers
+              categoryId={categoryIdField.field.value}
+              setCategoryId={categoryIdField.field.onChange}
+              categories={categories}
+              level={tagTypeField.field.value as TagType}
+              setLevel={tagTypeField.field.onChange}
             />
 
             <Controller
@@ -573,19 +539,6 @@ const styles = StyleSheet.create({
     borderColor: color.border,
   },
 
-
-  levelRow: { flexDirection: "row", gap: 8 },
-  levelChip: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: color.border,
-    alignItems: "center",
-  },
-  levelChipActive: { backgroundColor: color.navy, borderColor: color.navy },
-  levelText: { fontSize: 12, fontWeight: "600", color: color.textMuted },
-  levelTextActive: { color: color.white },
 
   publishRow: {
     flexDirection: "row",

@@ -420,7 +420,6 @@ export const translations = {
     "admin.modals.video.unreachableBody": "La vidéo est peut-être stockée dans iCloud. Téléchargez-la sur l'appareil depuis l'app Photos puis réessayez.",
     "admin.modals.video.pickError": "Impossible de sélectionner la vidéo.",
     "admin.modals.video.fileRequired": "Veuillez importer une vidéo ou saisir une URL.",
-    "admin.modals.video.noCategoryPlaceholder": "— Aucune catégorie —",
 
     // ── Admin — course modal (admin/gestionCours/modal.tsx, CourseForm) ───────
     "admin.modals.course.editTitle": "Modifier le cours",
@@ -890,7 +889,6 @@ export const translations = {
     "admin.modals.video.unreachableBody": "The video may be stored in iCloud. Download it to the device from the Photos app and try again.",
     "admin.modals.video.pickError": "Unable to select the video.",
     "admin.modals.video.fileRequired": "Please import a video or enter a URL.",
-    "admin.modals.video.noCategoryPlaceholder": "— No category —",
 
     // ── Admin — course modal ───────────────────────────────────────────────────
     "admin.modals.course.editTitle": "Edit course",

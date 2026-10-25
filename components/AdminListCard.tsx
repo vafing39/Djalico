@@ -18,7 +18,7 @@ type Props = {
   subtitle?: string | null;
   instructor?: string | null;
   durationBadge?: string | null; // overlay label on the thumbnail
-  published?: boolean; // coloured dot after metaText
+  published?: boolean; // green dot if published, "Brouillon" badge if not
   showBorder: boolean;
   onPlay?: () => void; // if set, thumbnail becomes pressable with play overlay
   onEdit: () => void;
@@ -114,13 +114,14 @@ export default function AdminListCard({
         <View style={styles.meta}>
           <Ionicons name={metaIcon} size={11} color={color.textMuted} />
           <Text style={styles.metaText}>{metaText}</Text>
-          {published !== undefined ? (
-            <View
-              style={[
-                styles.publishedDot,
-                { backgroundColor: published ? color.green : color.border },
-              ]}
-            />
+          {published === true ? (
+            <View style={[styles.publishedDot, { backgroundColor: color.green }]} />
+          ) : published === false ? (
+            <View style={[styles.publishedBadge, { backgroundColor: color.border }]}>
+              <Text style={[styles.publishedBadgeText, { color: color.textMuted }]}>
+                {t("admin.modals.video.draft")}
+              </Text>
+            </View>
           ) : null}
         </View>
       </View>
@@ -189,6 +190,13 @@ const styles = StyleSheet.create({
   meta: { flexDirection: "row", alignItems: "center", gap: 4 },
   metaText: { fontSize: 11, color: color.textMuted, flex: 1 },
   publishedDot: { width: 7, height: 7, borderRadius: 4 },
+  publishedBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    flexShrink: 0,
+  },
+  publishedBadgeText: { fontSize: 9, fontWeight: "700" },
 
   actions: { flexDirection: "column", gap: 6 },
   actionBtn: {

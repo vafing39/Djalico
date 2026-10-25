@@ -83,7 +83,7 @@ export default function CourseForm({
         <Switch
           value={published}
           onValueChange={setPublished}
-          trackColor={{ false: color.border, true: color.navy }}
+          trackColor={{ false: color.textMuted, true: color.navy }}
           thumbColor={color.white}
         />
       </View>

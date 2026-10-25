@@ -10,6 +10,7 @@ import FormField from "@/components/admin/FormField";
 import PickerField from "@/components/admin/PickerField";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -112,6 +113,23 @@ export default function ModalView({
     resolver: zodResolver(videoSchema),
     defaultValues: defaultVideoValues(),
   });
+
+  // A file picked from the phone, OR (on edit) an existing value that's
+  // already one of our own Supabase-hosted files — in both cases we show
+  // "Sélectionné" and hide the raw link, instead of exposing the internal
+  // storage URL in a text field.
+  const isStorageUrl = (url: string) => url.includes("/storage/v1/object/public/videos/");
+
+  const videoUriField = useController({ control, name: "videoUri" });
+  const videoUrlField = useController({ control, name: "videoUrl" });
+  const imageUriField = useController({ control, name: "imageUri" });
+  const imageUrlField = useController({ control, name: "imageUrl" });
+
+  const hasStoredVideoFile =
+    !videoUriField.field.value && isStorageUrl(videoUrlField.field.value);
+  const hasStoredImageFile =
+    !imageUriField.field.value && isStorageUrl(imageUrlField.field.value);
+  const thumbnailPreview = imageUriField.field.value || imageUrlField.field.value || null;
 
   useEffect(() => {
     if (!visible) return;
@@ -307,84 +325,97 @@ export default function ModalView({
             <Controller
               control={control}
               name="videoUri"
-              render={({ field: { value: videoUri } }) => (
-                <Pressable style={styles.uploadZone} onPress={pickVideo}>
-                  <Ionicons
-                    name={videoUri ? "checkmark-circle" : "cloud-upload-outline"}
-                    size={28}
-                    color={videoUri ? color.green : color.white}
-                  />
-                  <Text style={styles.uploadTitle}>
-                    {videoUri ? t("admin.modals.video.selected") : t("admin.modals.video.import")}
-                  </Text>
-                  <Text style={styles.uploadSub}>{t("admin.modals.video.formatHint")}</Text>
-                </Pressable>
-              )}
+              render={({ field: { value: videoUri } }) => {
+                const selected = !!videoUri || hasStoredVideoFile;
+                return (
+                  <Pressable style={styles.uploadZone} onPress={pickVideo}>
+                    <Ionicons
+                      name={selected ? "checkmark-circle" : "cloud-upload-outline"}
+                      size={28}
+                      color={selected ? color.green : color.white}
+                    />
+                    <Text style={styles.uploadTitle}>
+                      {selected ? t("admin.modals.video.selected") : t("admin.modals.video.import")}
+                    </Text>
+                    <Text style={styles.uploadSub}>{t("admin.modals.video.formatHint")}</Text>
+                  </Pressable>
+                );
+              }}
             />
-            <Text style={styles.divider}>{t("admin.modals.video.orUrl")}</Text>
-            <Controller
-              control={control}
-              name="videoUrl"
-              render={({ field: { value, onChange } }) => (
-                <TextInput
-                  style={styles.input}
-                  placeholder={t("admin.modals.video.urlPlaceholder")}
-                  placeholderTextColor={color.textMuted}
-                  value={value}
-                  onChangeText={(v) => {
-                    onChange(v);
-                    // Switching away from a picked file: its auto-detected
-                    // duration no longer applies to the pasted URL.
-                    setValue("videoUri", null);
-                    setValue("durationMin", "0");
-                    setValue("durationSec", "0");
-                  }}
-                  autoCapitalize="none"
-                  keyboardType="url"
+            {!videoUriField.field.value && !hasStoredVideoFile && (
+              <>
+                <Text style={styles.divider}>{t("admin.modals.video.orUrl")}</Text>
+                <Controller
+                  control={control}
+                  name="videoUrl"
+                  render={({ field: { value, onChange } }) => (
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t("admin.modals.video.urlPlaceholder")}
+                      placeholderTextColor={color.textMuted}
+                      value={value}
+                      onChangeText={(v) => {
+                        onChange(v);
+                        // Switching away from a picked file: its auto-detected
+                        // duration no longer applies to the pasted URL.
+                        setValue("videoUri", null);
+                        setValue("durationMin", "0");
+                        setValue("durationSec", "0");
+                      }}
+                      autoCapitalize="none"
+                      keyboardType="url"
+                    />
+                  )}
                 />
-              )}
-            />
+              </>
+            )}
           </View>
 
           {/* ── Thumbnail ── */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t("admin.modals.video.thumbnail")}</Text>
-            <Controller
-              control={control}
-              name="imageUri"
-              render={({ field: { value: imageUri } }) => (
-                <Pressable style={styles.uploadZone} onPress={pickImage}>
-                  <Ionicons
-                    name={imageUri ? "checkmark-circle" : "image-outline"}
-                    size={28}
-                    color={imageUri ? color.green : color.white}
-                  />
-                  <Text style={styles.uploadTitle}>
-                    {imageUri ? t("admin.modals.video.imageSelected") : t("admin.form.chooseImage")}
-                  </Text>
+            <Pressable style={[styles.uploadZone, styles.uploadZoneClip]} onPress={pickImage}>
+              {thumbnailPreview ? (
+                <>
+                  <Image source={{ uri: thumbnailPreview }} style={styles.uploadPreviewImage} />
+                  <View style={styles.uploadPreviewBadge}>
+                    <Ionicons name="checkmark-circle" size={14} color={color.green} />
+                    <Text style={styles.uploadPreviewBadgeText}>
+                      {t("admin.modals.video.imageSelected")}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="image-outline" size={28} color={color.white} />
+                  <Text style={styles.uploadTitle}>{t("admin.form.chooseImage")}</Text>
                   <Text style={styles.uploadSub}>{t("admin.modals.video.imageFormatHint")}</Text>
-                </Pressable>
+                </>
               )}
-            />
-            <Text style={styles.divider}>{t("admin.modals.video.orUrl")}</Text>
-            <Controller
-              control={control}
-              name="imageUrl"
-              render={({ field: { value, onChange } }) => (
-                <TextInput
-                  style={styles.input}
-                  placeholder={t("admin.modals.video.imageUrlPlaceholder")}
-                  placeholderTextColor={color.textMuted}
-                  value={value}
-                  onChangeText={(v) => {
-                    onChange(v);
-                    setValue("imageUri", null);
-                  }}
-                  autoCapitalize="none"
-                  keyboardType="url"
+            </Pressable>
+            {!imageUriField.field.value && !hasStoredImageFile && (
+              <>
+                <Text style={styles.divider}>{t("admin.modals.video.orUrl")}</Text>
+                <Controller
+                  control={control}
+                  name="imageUrl"
+                  render={({ field: { value, onChange } }) => (
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t("admin.modals.video.imageUrlPlaceholder")}
+                      placeholderTextColor={color.textMuted}
+                      value={value}
+                      onChangeText={(v) => {
+                        onChange(v);
+                        setValue("imageUri", null);
+                      }}
+                      autoCapitalize="none"
+                      keyboardType="url"
+                    />
+                  )}
                 />
-              )}
-            />
+              </>
+            )}
           </View>
 
           {/* ── Informations ── */}
@@ -500,6 +531,28 @@ const styles = StyleSheet.create({
   },
   uploadTitle: { fontSize: 14, fontWeight: "600", color: color.white },
   uploadSub: { fontSize: 11, color: color.yellow },
+
+  uploadZoneClip: { overflow: "hidden", minHeight: 140 },
+  uploadPreviewImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    resizeMode: "cover",
+  },
+  uploadPreviewBadge: {
+    position: "absolute",
+    bottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  uploadPreviewBadgeText: { fontSize: 12, fontWeight: "600", color: color.white },
 
   divider: {
     textAlign: "center",
